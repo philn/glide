@@ -229,8 +229,8 @@ fn main() {
         process::exit(-1);
     }
 
-    gst::init().unwrap();
-    gtk::init().unwrap();
+    gst::init().expect("Failed to initialize GStreamer.");
+    gtk::init().expect("Failed to initialize GTK.");
 
     let app = VideoPlayer::new();
     app.run();
