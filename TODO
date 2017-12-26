@@ -1,0 +1,11 @@
+
+- play, pause actions
+- seek bar
+- shortcuts for play_toggle, seek, fullscreen
+- subtitles selection
+- audio track selection
+- subtitle rendering customization (background opacity, text color)
+- subscene.com sub crawler
+- screen sleep inhibition during fullscreen playback
+- desktop integration
+- packaging
