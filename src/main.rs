@@ -51,6 +51,14 @@ impl VideoPlayer {
             player,
             renderer,
         };
+        app_clone.connect_startup(move |app| {
+            let quit = gio::SimpleAction::new("quit", None);
+            let app_clone = app.clone();
+            quit.connect_activate(move |_, _| {
+                app_clone.quit();
+            });
+            app.add_action(&quit);
+        });
         let self_clone = video_player.clone();
         app_clone.connect_activate(move |_| {
             self_clone.create_ui();
