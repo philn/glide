@@ -87,6 +87,17 @@ impl VideoPlayer {
                 Inhibit(false)
             });
         }
+
+        {
+            let self_clone = myself.clone();
+            myself
+                .video_area
+                .connect_configure_event(move |_, event| -> bool {
+                    self_clone.resize_video_area(event);
+                    true
+                });
+        }
+
         myself
     }
 
@@ -151,6 +162,28 @@ impl VideoPlayer {
         video_overlay.expose();
     }
 
+    fn resize_video_area(&self, event: &gdk::EventConfigure) {
+        let video_overlay = &self.renderer;
+        let (width, height) = event.get_size();
+        let (x, y) = event.get_position();
+
+        let player = &self.player;
+        if let Ok(video_track) = player.get_property("current-video-track") {
+            if let Some(video_track) = video_track.get::<gst_player::PlayerVideoInfo>() {
+                let video_width = video_track.get_width();
+                let video_height = video_track.get_height();
+                let src_rect = gst_video::VideoRectangle::new(0, 0, video_width, video_height);
+
+                let dst_rect = gst_video::VideoRectangle::new(x, y, width as i32, height as i32);
+                let rect = gst_video::center_video_rectangle(src_rect, dst_rect, true);
+                video_overlay.set_render_rectangle(rect.x, rect.y, rect.w, rect.h);
+                video_overlay.expose();
+                let video_window = &self.video_area;
+                video_window.queue_draw();
+            }
+        }
+    }
+
     pub fn start(&self, app: &gtk::Application) {
         let window = gtk::Window::new(gtk::WindowType::Toplevel);
         window.set_default_size(320, 240);
@@ -172,31 +205,6 @@ impl VideoPlayer {
             let label = label_clone.borrow();
             label.set_text(&format!("Position: {:.0}", position));
         });
-
-        let video_overlay_clone = self.renderer.clone();
-        let video_window_clone = SendCell::new(self.video_area.clone());
-        let player_clone = self.player.clone();
-        self.video_area
-            .connect_configure_event(move |_, event| -> bool {
-                let video_overlay = &video_overlay_clone;
-                let (width, height) = event.get_size();
-                let (x, y) = event.get_position();
-
-                let player = &player_clone;
-                let video_track = player.get_property("current-video-track").unwrap();
-                let video_track = video_track.get::<gst_player::PlayerVideoInfo>().unwrap();
-                let video_width = video_track.get_width();
-                let video_height = video_track.get_height();
-                let src_rect = gst_video::VideoRectangle::new(0, 0, video_width, video_height);
-
-                let dst_rect = gst_video::VideoRectangle::new(x, y, width as i32, height as i32);
-                let rect = gst_video::center_video_rectangle(src_rect, dst_rect, true);
-                video_overlay.set_render_rectangle(rect.x, rect.y, rect.w, rect.h);
-                video_overlay.expose();
-                let video_window = video_window_clone.borrow();
-                video_window.queue_draw();
-                true
-            });
 
         let video_window_clone = SendCell::new(self.video_area.clone());
         self.player
