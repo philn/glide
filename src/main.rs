@@ -1,33 +1,25 @@
-extern crate gstreamer as gst;
-use gst::prelude::*;
-
-extern crate glib;
-use glib::translate::ToGlibPtr;
-
-extern crate gio;
-use gio::prelude::*;
-
-extern crate gtk;
-use gtk::prelude::*;
-
-extern crate gdk;
-use gdk::prelude::*;
-
-use std::env;
-
-use std::os::raw::c_void;
-
-extern crate send_cell;
-use send_cell::SendCell;
-
-use std::process;
-use std::sync::Arc;
-
-extern crate gstreamer_player as gst_player;
-extern crate gstreamer_video as gst_video;
 
 extern crate cairo;
+extern crate gdk;
+extern crate gio;
+extern crate glib;
+extern crate gstreamer as gst;
+extern crate gstreamer_player as gst_player;
+extern crate gstreamer_video as gst_video;
+extern crate gtk;
+extern crate send_cell;
+
 use cairo::Context as CairoContext;
+use gdk::prelude::*;
+use gio::prelude::*;
+use glib::translate::ToGlibPtr;
+use gst::prelude::*;
+use gtk::prelude::*;
+use send_cell::SendCell;
+use std::env;
+use std::os::raw::c_void;
+use std::process;
+use std::sync::Arc;
 
 #[derive(Clone)]
 struct VideoPlayer {
