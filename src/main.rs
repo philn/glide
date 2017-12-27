@@ -30,6 +30,7 @@ struct VideoPlayer {
     window: gtk::Window,
     video_area: gtk::DrawingArea,
     fullscreen_action: gio::SimpleAction,
+    pause_action: gio::SimpleAction,
 }
 
 lazy_static! {
@@ -55,6 +56,9 @@ impl VideoPlayer {
             gio::SimpleAction::new_stateful("fullscreen", None, &false.to_variant());
         gtk_app.add_action(&fullscreen_action);
 
+        let pause_action = gio::SimpleAction::new_stateful("pause", None, &false.to_variant());
+        gtk_app.add_action(&pause_action);
+
         let window = gtk::Window::new(gtk::WindowType::Toplevel);
         window.set_default_size(320, 240);
         window.set_resizable(true);
@@ -65,6 +69,7 @@ impl VideoPlayer {
             window,
             video_area,
             fullscreen_action,
+            pause_action,
         };
         let myself = Arc::new(video_player);
 
@@ -123,6 +128,8 @@ impl VideoPlayer {
                     }
                 } else if keyval == gdk::enums::key::Escape {
                     self_clone.toggle_fullscreen(app, false);
+                } else if keyval == gdk::enums::key::space {
+                    self_clone.toggle_pause();
                 }
 
                 Inhibit(false)
@@ -130,6 +137,20 @@ impl VideoPlayer {
         }
 
         myself
+    }
+
+    pub fn toggle_pause(&self) {
+        let pause_action = &self.pause_action;
+        let player = &self.player;
+        if let Some(is_paused) = pause_action.get_state() {
+            let paused = is_paused.get::<bool>().unwrap();
+            if paused {
+                player.play();
+            } else {
+                player.pause();
+            }
+            pause_action.change_state(&(!paused).to_variant());
+        }
     }
 
     pub fn toggle_fullscreen(&self, app: &gtk::Application, allowed: bool) {
