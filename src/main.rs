@@ -26,6 +26,9 @@ use std::sync::Arc;
 extern crate gstreamer_player as gst_player;
 extern crate gstreamer_video as gst_video;
 
+extern crate cairo;
+use cairo::Context as CairoContext;
+
 #[derive(Clone)]
 struct VideoPlayer {
     player: gst_player::Player,
@@ -77,6 +80,13 @@ impl VideoPlayer {
             });
         }
 
+        {
+            let self_clone = myself.clone();
+            myself.video_area.connect_draw(move |_, cairo_context| {
+                self_clone.draw_video_area(cairo_context);
+                Inhibit(false)
+            });
+        }
         myself
     }
 
@@ -128,29 +138,25 @@ impl VideoPlayer {
         }
     }
 
+    fn draw_video_area(&self, cairo_context: &CairoContext) {
+        let video_window = &self.video_area;
+        let width = video_window.get_allocated_width();
+        let height = video_window.get_allocated_height();
+
+        // Paint some black borders
+        cairo_context.rectangle(0., 0., width as f64, height as f64);
+        cairo_context.fill();
+
+        let video_overlay = &self.renderer;
+        video_overlay.expose();
+    }
+
     pub fn start(&self, app: &gtk::Application) {
         let window = gtk::Window::new(gtk::WindowType::Toplevel);
         window.set_default_size(320, 240);
         window.set_resizable(true);
 
         let vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
-
-        let video_overlay_clone = self.renderer.clone();
-        self.video_area
-            .connect_draw(move |video_window, cairo_context| {
-                let width = video_window.get_allocated_width();
-                let height = video_window.get_allocated_height();
-
-                // Paint some black borders
-                cairo_context.rectangle(0., 0., width as f64, height as f64);
-                cairo_context.fill();
-
-                let video_overlay = &video_overlay_clone;
-                video_overlay.expose();
-
-                Inhibit(false)
-            });
-
         vbox.pack_start(&self.video_area, true, true, 0);
 
         let label = gtk::Label::new("Position: 00:00:00");

@@ -9,6 +9,7 @@ description = "Cross-platform media player based on GStreamer and GTK+"
 license = "MIT"
 
 [dependencies]
+cairo-rs = { git = "https://github.com/gtk-rs/cairo" }
 glib = { git = "https://github.com/gtk-rs/glib" }
 gdk = { git = "https://github.com/gtk-rs/gdk" }
 gio = { git = "https://github.com/gtk-rs/gio" }
