@@ -1,4 +1,3 @@
-
 extern crate cairo;
 extern crate gdk;
 extern crate gio;
@@ -59,21 +58,21 @@ impl VideoPlayer {
         });
 
         {
-            let self_clone = myself.clone();
+            let self_clone = Arc::clone(&myself);
             gtk_app.connect_open(move |app, files, _| {
                 self_clone.open_files(app, files);
             });
         }
 
         {
-            let self_clone = myself.clone();
+            let self_clone = Arc::clone(&myself);
             myself.video_area.connect_realize(move |_| {
                 self_clone.prepare_video_overlay();
             });
         }
 
         {
-            let self_clone = myself.clone();
+            let self_clone = Arc::clone(&myself);
             myself.video_area.connect_draw(move |_, cairo_context| {
                 self_clone.draw_video_area(cairo_context);
                 Inhibit(false)
@@ -81,7 +80,7 @@ impl VideoPlayer {
         }
 
         {
-            let self_clone = myself.clone();
+            let self_clone = Arc::clone(&myself);
             myself
                 .video_area
                 .connect_configure_event(move |_, event| -> bool {
@@ -147,7 +146,7 @@ impl VideoPlayer {
         let height = video_window.get_allocated_height();
 
         // Paint some black borders
-        cairo_context.rectangle(0., 0., width as f64, height as f64);
+        cairo_context.rectangle(0., 0., f64::from(width), f64::from(height));
         cairo_context.fill();
 
         let video_overlay = &self.renderer;
@@ -251,7 +250,7 @@ fn main() {
     let gtk_app = gtk::Application::new(None, gio::ApplicationFlags::HANDLES_OPEN).unwrap();
     let app = VideoPlayer::new(&gtk_app);
     gtk_app.connect_activate(move |gtk_app| {
-        app.start(&gtk_app);
+        app.start(gtk_app);
     });
 
     let args = env::args().collect::<Vec<_>>();
