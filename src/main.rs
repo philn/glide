@@ -136,6 +136,40 @@ impl VideoPlayer {
             });
         }
 
+        {
+            let video_area_clone = SendCell::new(myself.video_area.clone());
+            myself
+                .player
+                .connect_video_dimensions_changed(move |_, width, height| {
+                    let video_area = video_area_clone.borrow();
+                    video_area.set_size_request(width, height);
+                });
+        }
+        {
+            let self_clone = Arc::clone(&myself);
+            gtk_app.connect_shutdown(move |_| {
+                self_clone.player.stop();
+            });
+        }
+
+        {
+            let app_clone = gtk_app.clone();
+            myself.window.connect_delete_event(move |_, _| {
+                app_clone.quit();
+                Inhibit(false)
+            });
+        }
+
+        {
+            let app_clone = SendCell::new(gtk_app.clone());
+            myself.player.connect_error(move |_, error| {
+                // FIXME: display some GTK error dialog...
+                eprintln!("Error! {}", error);
+                let app = &app_clone.borrow();
+                app.quit();
+            });
+        }
+
         myself
     }
 
@@ -274,34 +308,6 @@ impl VideoPlayer {
         self.player.connect_position_updated(move |_, position| {
             let label = label_clone.borrow();
             label.set_text(&format!("Position: {:.0}", position));
-        });
-
-        let video_window_clone = SendCell::new(self.video_area.clone());
-        self.player
-            .connect_video_dimensions_changed(move |_, width, height| {
-                let video_window = video_window_clone.borrow();
-                video_window.set_size_request(width, height);
-            });
-
-        let app_clone = app.clone();
-        self.window.connect_delete_event(move |_, _| {
-            let app = &app_clone;
-            app.quit();
-            Inhibit(false)
-        });
-
-        let app_clone = SendCell::new(app.clone());
-        self.player.connect_error(move |_, error| {
-            // FIXME: display some GTK error dialog...
-            eprintln!("Error! {}", error);
-            let app = &app_clone.borrow();
-            app.quit();
-        });
-
-        let player_clone = self.player.clone();
-        app.connect_shutdown(move |_| {
-            let player = &player_clone;
-            player.stop();
         });
     }
 
