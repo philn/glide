@@ -18,3 +18,4 @@ gstreamer-player = { git = "https://github.com/sdroege/gstreamer-rs" }
 gstreamer-video = { git = "https://github.com/sdroege/gstreamer-rs" }
 gtk = { git = "https://github.com/gtk-rs/gtk", features = ["v3_6"] }
 send-cell = "0.1"
+lazy_static = "1.0"

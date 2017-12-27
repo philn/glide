@@ -162,6 +162,7 @@ dependencies = [
  "gstreamer-player 0.11.0 (git+https://github.com/sdroege/gstreamer-rs)",
  "gstreamer-video 0.11.0 (git+https://github.com/sdroege/gstreamer-rs)",
  "gtk 0.3.0 (git+https://github.com/gtk-rs/gtk)",
+ "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "send-cell 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
