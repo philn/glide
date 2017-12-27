@@ -31,10 +31,17 @@ struct VideoPlayer {
     video_area: gtk::DrawingArea,
     fullscreen_action: gio::SimpleAction,
     pause_action: gio::SimpleAction,
+    label: gtk::Label,
 }
 
 lazy_static! {
     static ref INHIBIT_COOKIE: Mutex<Option<u32>> = {
+        Mutex::new(None)
+    };
+    static ref INITIAL_POSITION: Mutex<Option<(i32, i32)>> = {
+        Mutex::new(None)
+    };
+    static ref INITIAL_SIZE: Mutex<Option<(i32, i32)>> = {
         Mutex::new(None)
     };
 }
@@ -50,8 +57,6 @@ impl VideoPlayer {
             Some(&dispatcher.upcast::<gst_player::PlayerSignalDispatcher>()),
         );
 
-        let video_area = gtk::DrawingArea::new();
-
         let fullscreen_action =
             gio::SimpleAction::new_stateful("fullscreen", None, &false.to_variant());
         gtk_app.add_action(&fullscreen_action);
@@ -63,6 +68,16 @@ impl VideoPlayer {
         window.set_default_size(320, 240);
         window.set_resizable(true);
 
+        let vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
+
+        let video_area = gtk::DrawingArea::new();
+        vbox.pack_start(&video_area, true, true, 0);
+
+        let label = gtk::Label::new("Position: 00:00:00");
+        vbox.pack_start(&label, false, false, 5);
+
+        window.add(&vbox);
+
         let video_player = VideoPlayer {
             player,
             renderer,
@@ -70,6 +85,7 @@ impl VideoPlayer {
             video_area,
             fullscreen_action,
             pause_action,
+            label,
         };
         let myself = Arc::new(video_player);
 
@@ -161,6 +177,21 @@ impl VideoPlayer {
         }
 
         {
+            myself.window.connect_map_event(move |widget, _| {
+                if let Ok(size) = INITIAL_SIZE.lock() {
+                    if let Some((width, height)) = *size {
+                        widget.resize(width, height);
+                    }
+                }
+                if let Ok(position) = INITIAL_POSITION.lock() {
+                    if let Some((x, y)) = *position {
+                        widget.move_(x, y);
+                    }
+                }
+                Inhibit(false)
+            });
+        }
+        {
             let app_clone = SendCell::new(gtk_app.clone());
             myself.player.connect_error(move |_, error| {
                 // FIXME: display some GTK error dialog...
@@ -199,11 +230,16 @@ impl VideoPlayer {
                 }
                 window.unfullscreen();
                 window.present();
+                self.label.set_visible(true);
                 fullscreen_action.change_state(&(!fullscreen).to_variant());
             } else if allowed {
                 let flags =
                     gtk::ApplicationInhibitFlags::SUSPEND | gtk::ApplicationInhibitFlags::IDLE;
                 *INHIBIT_COOKIE.lock().unwrap() = Some(app.inhibit(window, flags, None));
+                self.label.set_visible(false);
+
+                *INITIAL_SIZE.lock().unwrap() = Some(window.get_size());
+                *INITIAL_POSITION.lock().unwrap() = Some(window.get_position());
                 window.fullscreen();
                 fullscreen_action.change_state(&(!fullscreen).to_variant());
             }
@@ -266,9 +302,6 @@ impl VideoPlayer {
         // Paint some black borders
         cairo_context.rectangle(0., 0., f64::from(width), f64::from(height));
         cairo_context.fill();
-
-        let video_overlay = &self.renderer;
-        video_overlay.expose();
     }
 
     fn resize_video_area(&self, event: &gdk::EventConfigure) {
@@ -294,17 +327,10 @@ impl VideoPlayer {
     }
 
     pub fn start(&self, app: &gtk::Application) {
-        let vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
-        vbox.pack_start(&self.video_area, true, true, 0);
-
-        let label = gtk::Label::new("Position: 00:00:00");
-        vbox.pack_start(&label, false, false, 5);
-        self.window.add(&vbox);
-
         self.window.show_all();
         app.add_window(&self.window);
 
-        let label_clone = SendCell::new(label.clone());
+        let label_clone = SendCell::new(self.label.clone());
         self.player.connect_position_updated(move |_, position| {
             let label = label_clone.borrow();
             label.set_text(&format!("Position: {:.0}", position));
