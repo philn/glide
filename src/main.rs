@@ -303,6 +303,7 @@ impl VideoPlayerInner {
                     *cookie = None;
                 }
                 window.unfullscreen();
+                self.progress_bar.set_visible(true);
                 window.present();
                 fullscreen_action.change_state(&(!fullscreen).to_variant());
             } else if allowed {
@@ -312,6 +313,7 @@ impl VideoPlayerInner {
                 *INITIAL_SIZE.lock().unwrap() = Some(window.get_size());
                 *INITIAL_POSITION.lock().unwrap() = Some(window.get_position());
                 window.fullscreen();
+                self.progress_bar.set_visible(false);
                 fullscreen_action.change_state(&(!fullscreen).to_variant());
             }
         }
