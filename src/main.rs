@@ -63,6 +63,11 @@ impl VideoPlayer {
             Some(&dispatcher.upcast::<gst_player::PlayerSignalDispatcher>()),
         );
 
+        // Get position updates every 250ms.
+        let mut config = player.get_config();
+        config.set_position_update_interval(250);
+        player.set_config(config).unwrap();
+
         let fullscreen_action =
             gio::SimpleAction::new_stateful("fullscreen", None, &false.to_variant());
         gtk_app.add_action(&fullscreen_action);
