@@ -1,10 +1,11 @@
 
-- play, pause actions
-- seek toolbar
-- shortcuts for play_toggle, seek
+- play, pause, seek, fullscreen buttons
+- hide mouse cursor in fullscreen
 - subtitles selection
 - audio track selection
 - subtitle rendering customization (background opacity, text color)
 - subscene.com sub crawler
-- desktop integration
+- desktop integration (file browser mostly)
+- resume to last playback position
+- subtitle file drag&drop into window
 - packaging
