@@ -416,6 +416,13 @@ fn main() {
     gtk::init().expect("Failed to initialize GTK.");
 
     let gtk_app = gtk::Application::new(None, gio::ApplicationFlags::HANDLES_OPEN).unwrap();
+
+    if let Some(settings) = gtk::Settings::get_default() {
+        settings
+            .set_property("gtk-application-prefer-dark-theme", &true)
+            .unwrap();
+    }
+
     let app = VideoPlayer::new(&gtk_app);
     gtk_app.connect_activate(move |gtk_app| {
         app.start(gtk_app);
