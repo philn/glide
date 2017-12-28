@@ -40,6 +40,13 @@ struct VideoPlayer {
     inner: Arc<Mutex<VideoPlayerInner>>,
 }
 
+static SEEK_BACKWARD_OFFSET: u64 = 2000;
+static SEEK_FORWARD_OFFSET: u64 = 5000;
+enum SeekDirection {
+    Backward,
+    Forward,
+}
+
 lazy_static! {
     static ref INHIBIT_COOKIE: Mutex<Option<u32>> = {
         Mutex::new(None)
@@ -87,9 +94,6 @@ impl VideoPlayer {
         let progress_bar = gtk::Scale::new(gtk::Orientation::Horizontal, None);
         progress_bar.set_draw_value(true);
         progress_bar.set_value_pos(gtk::PositionType::Right);
-        let range = progress_bar.clone().upcast::<gtk::Range>();
-        range.set_range(0.0, 1.0);
-
         {
             let player_clone = player.clone();
             progress_bar.connect_format_value(move |_, _| -> std::string::String {
@@ -97,7 +101,7 @@ impl VideoPlayer {
                 format!("{:.0}", position)
             });
         }
-        vbox.pack_start(&progress_bar, false, false, 20);
+        vbox.pack_start(&progress_bar, false, false, 10);
 
         window.add(&vbox);
 
@@ -191,6 +195,10 @@ impl VideoPlayerInner {
                 if keystate.intersects(gdk::ModifierType::META_MASK) {
                     if keyval == gdk::enums::key::f {
                         self_clone.toggle_fullscreen(app, true);
+                    } else if keyval == gdk::enums::key::Left {
+                        self_clone.seek(&SeekDirection::Backward, SEEK_BACKWARD_OFFSET);
+                    } else if keyval == gdk::enums::key::Right {
+                        self_clone.seek(&SeekDirection::Forward, SEEK_FORWARD_OFFSET);
                     }
                 } else if keyval == gdk::enums::key::Escape {
                     self_clone.toggle_fullscreen(app, false);
@@ -224,18 +232,36 @@ impl VideoPlayerInner {
         }
 
         {
+            let range = self.progress_bar.clone().upcast::<gtk::Range>();
+            let player_clone = self.player.clone();
+            let seek_signal_handler_id = range.connect_value_changed(move |range| {
+                let value = range.get_value();
+                player_clone.seek(gst::ClockTime::from_seconds(value as u64));
+            });
+
             let progress_bar_clone = SendCell::new(self.progress_bar.clone());
-            let self_clone = SendCell::new(self.clone());
-            self.player.connect_position_updated(move |_, position| {
+            let player_clone = self.player.clone();
+            let signal_handler_id = Arc::new(Mutex::new(seek_signal_handler_id));
+            let s_clone = Arc::clone(&signal_handler_id);
+            player_clone.connect_duration_changed(move |_, duration| {
                 let progress_bar = progress_bar_clone.borrow();
-                let self_clone = self_clone.borrow();
-                let duration = self_clone.player.get_duration();
-                if duration != gst::ClockTime::none() {
-                    let frac: f64 = position.nanoseconds().unwrap() as f64
-                        / duration.nanoseconds().unwrap() as f64;
-                    let range = progress_bar.clone().upcast::<gtk::Range>();
-                    range.set_value(frac);
-                }
+                let range = progress_bar.clone().upcast::<gtk::Range>();
+                let seek_signal_handler_id = s_clone.lock().unwrap();
+                glib::signal_handler_block(&range, &seek_signal_handler_id);
+                range.set_range(0.0, duration.seconds().unwrap() as f64);
+                glib::signal_handler_unblock(&range, &seek_signal_handler_id);
+            });
+
+            let progress_bar_clone = SendCell::new(self.progress_bar.clone());
+            let player_clone = self.player.clone();
+            let s_clone = Arc::clone(&signal_handler_id);
+            player_clone.connect_position_updated(move |_, position| {
+                let progress_bar = progress_bar_clone.borrow();
+                let range = progress_bar.clone().upcast::<gtk::Range>();
+                let seek_signal_handler_id = s_clone.lock().unwrap();
+                glib::signal_handler_block(&range, &seek_signal_handler_id);
+                range.set_value(position.seconds().unwrap() as f64);
+                glib::signal_handler_unblock(&range, &seek_signal_handler_id);
             });
         }
 
@@ -276,6 +302,31 @@ impl VideoPlayerInner {
     pub fn start(&mut self, app: &gtk::Application) {
         self.window.show_all();
         app.add_window(&self.window);
+    }
+
+    pub fn seek(&self, direction: &SeekDirection, offset: u64) {
+        let position = self.player.get_position();
+        let offset = gst::ClockTime::from_mseconds(offset);
+        let destination = match *direction {
+            SeekDirection::Backward => {
+                if position >= offset {
+                    Some(position - offset)
+                } else {
+                    None
+                }
+            }
+            SeekDirection::Forward => {
+                let duration = self.player.get_duration();
+                if duration != gst::ClockTime::none() && position + offset <= duration {
+                    Some(position + offset)
+                } else {
+                    None
+                }
+            }
+        };
+        if let Some(destination) = destination {
+            self.player.seek(destination);
+        }
     }
 
     pub fn toggle_pause(&self) {
