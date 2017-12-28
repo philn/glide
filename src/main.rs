@@ -360,6 +360,15 @@ impl VideoPlayerInner {
         }
     }
 
+    pub fn play_asset(&self, asset: &str) {
+        self.player
+            .set_property("uri", &glib::Value::from(&asset))
+            .unwrap();
+        self.player.play();
+        // TODO: get nicer title from media-info player property.
+        self.window.set_title(asset);
+    }
+
     pub fn open_files(&mut self, files: &[gio::File]) {
         let mut playlist = vec![];
         for file in files.to_vec() {
@@ -369,10 +378,7 @@ impl VideoPlayerInner {
         }
 
         assert!(!files.is_empty());
-        self.player
-            .set_property("uri", &glib::Value::from(&*playlist[0]))
-            .unwrap();
-        self.player.play();
+        self.play_asset(&*playlist[0]);
 
         let inner_clone = SendCell::new(self.clone());
         let index_cell = RefCell::new(AtomicUsize::new(0));
@@ -382,11 +388,7 @@ impl VideoPlayerInner {
             *index += 1;
             if *index < playlist.len() {
                 let inner_clone = inner_clone.borrow();
-                inner_clone
-                    .player
-                    .set_property("uri", &glib::Value::from(&*playlist[*index]))
-                    .unwrap();
-                inner_clone.player.play();
+                inner_clone.play_asset(&*playlist[*index]);
             }
             // TODO: else quit?
         });
