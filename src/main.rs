@@ -17,21 +17,27 @@ use glib::translate::ToGlibPtr;
 use gst::prelude::*;
 use gtk::prelude::*;
 use send_cell::SendCell;
+use std::cell::RefCell;
 use std::env;
 use std::os::raw::c_void;
 use std::process;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::atomic::AtomicUsize;
 
 #[derive(Clone)]
-struct VideoPlayer {
-    player: gst_player::Player,
+struct VideoPlayerInner {
+    pub player: gst_player::Player,
     renderer: gst_player::PlayerVideoOverlayVideoRenderer,
     window: gtk::Window,
     video_area: gtk::DrawingArea,
     fullscreen_action: gio::SimpleAction,
     pause_action: gio::SimpleAction,
     label: gtk::Label,
+}
+
+struct VideoPlayer {
+    inner: Arc<Mutex<VideoPlayerInner>>,
 }
 
 lazy_static! {
@@ -47,7 +53,7 @@ lazy_static! {
 }
 
 impl VideoPlayer {
-    pub fn new(gtk_app: &gtk::Application) -> Arc<Self> {
+    pub fn new(gtk_app: &gtk::Application) -> Self {
         let dispatcher = gst_player::PlayerGMainContextSignalDispatcher::new(None);
         let sink = gst::ElementFactory::make("glimagesink", None).unwrap();
         let renderer1 = gst_player::PlayerVideoOverlayVideoRenderer::new_with_sink(&sink);
@@ -78,7 +84,7 @@ impl VideoPlayer {
 
         window.add(&vbox);
 
-        let video_player = VideoPlayer {
+        let video_player = VideoPlayerInner {
             player,
             renderer,
             window,
@@ -87,7 +93,7 @@ impl VideoPlayer {
             pause_action,
             label,
         };
-        let myself = Arc::new(video_player);
+        let inner = Arc::new(Mutex::new(video_player));
 
         gtk_app.connect_startup(move |app| {
             let quit = gio::SimpleAction::new("quit", None);
@@ -99,31 +105,58 @@ impl VideoPlayer {
         });
 
         {
-            let self_clone = Arc::clone(&myself);
+            let self_clone = Arc::clone(&inner);
             gtk_app.connect_open(move |app, files, _| {
-                self_clone.open_files(app, files);
+                app.activate();
+                if let Ok(mut inner) = self_clone.lock() {
+                    inner.open_files(files);
+                }
             });
         }
 
         {
-            let self_clone = Arc::clone(&myself);
-            myself.video_area.connect_realize(move |_| {
+            let self_clone = Arc::clone(&inner);
+            gtk_app.connect_shutdown(move |_| {
+                if let Ok(inner) = self_clone.lock() {
+                    inner.player.stop();
+                }
+            });
+        }
+
+        if let Ok(inner) = inner.lock() {
+            inner.setup(gtk_app);
+        }
+
+        VideoPlayer { inner }
+    }
+
+    pub fn start(&self, app: &gtk::Application) {
+        if let Ok(mut inner) = self.inner.lock() {
+            inner.start(app);
+        }
+    }
+}
+
+impl VideoPlayerInner {
+    pub fn setup(&self, gtk_app: &gtk::Application) {
+        {
+            let self_clone = self.clone();
+            self.video_area.connect_realize(move |_| {
                 self_clone.prepare_video_overlay();
             });
         }
 
         {
-            let self_clone = Arc::clone(&myself);
-            myself.video_area.connect_draw(move |_, cairo_context| {
+            let self_clone = self.clone();
+            self.video_area.connect_draw(move |_, cairo_context| {
                 self_clone.draw_video_area(cairo_context);
                 Inhibit(false)
             });
         }
 
         {
-            let self_clone = Arc::clone(&myself);
-            myself
-                .video_area
+            let self_clone = self.clone();
+            self.video_area
                 .connect_configure_event(move |_, event| -> bool {
                     self_clone.resize_video_area(event);
                     true
@@ -132,8 +165,8 @@ impl VideoPlayer {
 
         {
             let app_clone = gtk_app.clone();
-            let self_clone = Arc::clone(&myself);
-            myself.window.connect_key_press_event(move |_, key| {
+            let self_clone = self.clone();
+            self.window.connect_key_press_event(move |_, key| {
                 let keyval = key.get_keyval();
                 let keystate = key.get_state();
                 let app = &app_clone;
@@ -153,31 +186,23 @@ impl VideoPlayer {
         }
 
         {
-            let video_area_clone = SendCell::new(myself.video_area.clone());
-            myself
-                .player
+            let video_area_clone = SendCell::new(self.video_area.clone());
+            self.player
                 .connect_video_dimensions_changed(move |_, width, height| {
                     let video_area = video_area_clone.borrow();
                     video_area.set_size_request(width, height);
                 });
         }
         {
-            let self_clone = Arc::clone(&myself);
-            gtk_app.connect_shutdown(move |_| {
-                self_clone.player.stop();
-            });
-        }
-
-        {
             let app_clone = gtk_app.clone();
-            myself.window.connect_delete_event(move |_, _| {
+            self.window.connect_delete_event(move |_, _| {
                 app_clone.quit();
                 Inhibit(false)
             });
         }
 
         {
-            myself.window.connect_map_event(move |widget, _| {
+            self.window.connect_map_event(move |widget, _| {
                 if let Ok(size) = INITIAL_SIZE.lock() {
                     if let Some((width, height)) = *size {
                         widget.resize(width, height);
@@ -193,15 +218,24 @@ impl VideoPlayer {
         }
         {
             let app_clone = SendCell::new(gtk_app.clone());
-            myself.player.connect_error(move |_, error| {
+            self.player.connect_error(move |_, error| {
                 // FIXME: display some GTK error dialog...
                 eprintln!("Error! {}", error);
                 let app = &app_clone.borrow();
                 app.quit();
             });
         }
+    }
 
-        myself
+    pub fn start(&mut self, app: &gtk::Application) {
+        self.window.show_all();
+        app.add_window(&self.window);
+
+        let label_clone = SendCell::new(self.label.clone());
+        self.player.connect_position_updated(move |_, position| {
+            let label = label_clone.borrow();
+            label.set_text(&format!("Position: {:.0}", position));
+        });
     }
 
     pub fn toggle_pause(&self) {
@@ -326,25 +360,36 @@ impl VideoPlayer {
         }
     }
 
-    pub fn start(&self, app: &gtk::Application) {
-        self.window.show_all();
-        app.add_window(&self.window);
-
-        let label_clone = SendCell::new(self.label.clone());
-        self.player.connect_position_updated(move |_, position| {
-            let label = label_clone.borrow();
-            label.set_text(&format!("Position: {:.0}", position));
-        });
-    }
-
-    pub fn open_files(&self, app: &gtk::Application, files: &[gio::File]) {
-        if let Some(uri) = files[0].get_uri() {
-            app.activate();
-            self.player
-                .set_property("uri", &glib::Value::from(uri.as_str()))
-                .unwrap();
-            self.player.play();
+    pub fn open_files(&mut self, files: &[gio::File]) {
+        let mut playlist = vec![];
+        for file in files.to_vec() {
+            if let Some(uri) = file.get_uri() {
+                playlist.push(std::string::String::from(uri.as_str()));
+            }
         }
+
+        assert!(!files.is_empty());
+        self.player
+            .set_property("uri", &glib::Value::from(&*playlist[0]))
+            .unwrap();
+        self.player.play();
+
+        let inner_clone = SendCell::new(self.clone());
+        let index_cell = RefCell::new(AtomicUsize::new(0));
+        self.player.connect_end_of_stream(move |_| {
+            let mut cell = index_cell.borrow_mut();
+            let index = cell.get_mut();
+            *index += 1;
+            if *index < playlist.len() {
+                let inner_clone = inner_clone.borrow();
+                inner_clone
+                    .player
+                    .set_property("uri", &glib::Value::from(&*playlist[*index]))
+                    .unwrap();
+                inner_clone.player.play();
+            }
+            // TODO: else quit?
+        });
     }
 }
 
