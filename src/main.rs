@@ -193,6 +193,18 @@ impl VideoPlayerInner {
                     video_area.set_size_request(width, height);
                 });
         }
+
+        {
+            let window_clone = SendCell::new(self.window.clone());
+            self.player.connect_media_info_updated(move |_, info| {
+                let window = window_clone.borrow();
+                if let Some(title) = info.get_title() {
+                    window.set_title(&*title);
+                } else {
+                    window.set_title(&*info.get_uri());
+                }
+            });
+        }
         {
             let app_clone = gtk_app.clone();
             self.window.connect_delete_event(move |_, _| {
@@ -365,8 +377,6 @@ impl VideoPlayerInner {
             .set_property("uri", &glib::Value::from(&asset))
             .unwrap();
         self.player.play();
-        // TODO: get nicer title from media-info player property.
-        self.window.set_title(asset);
     }
 
     pub fn open_files(&mut self, files: &[gio::File]) {
