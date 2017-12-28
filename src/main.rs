@@ -33,7 +33,7 @@ struct VideoPlayerInner {
     video_area: gtk::DrawingArea,
     fullscreen_action: gio::SimpleAction,
     pause_action: gio::SimpleAction,
-    label: gtk::Label,
+    progress_bar: gtk::Scale,
 }
 
 struct VideoPlayer {
@@ -84,8 +84,20 @@ impl VideoPlayer {
         let video_area = gtk::DrawingArea::new();
         vbox.pack_start(&video_area, true, true, 0);
 
-        let label = gtk::Label::new("Position: 00:00:00");
-        vbox.pack_start(&label, false, false, 5);
+        let progress_bar = gtk::Scale::new(gtk::Orientation::Horizontal, None);
+        progress_bar.set_draw_value(true);
+        progress_bar.set_value_pos(gtk::PositionType::Right);
+        let range = progress_bar.clone().upcast::<gtk::Range>();
+        range.set_range(0.0, 1.0);
+
+        {
+            let player_clone = player.clone();
+            progress_bar.connect_format_value(move |_, _| -> std::string::String {
+                let position = player_clone.get_position();
+                format!("{:.0}", position)
+            });
+        }
+        vbox.pack_start(&progress_bar, false, false, 20);
 
         window.add(&vbox);
 
@@ -96,7 +108,7 @@ impl VideoPlayer {
             video_area,
             fullscreen_action,
             pause_action,
-            label,
+            progress_bar,
         };
         let inner = Arc::new(Mutex::new(video_player));
 
@@ -210,6 +222,23 @@ impl VideoPlayerInner {
                 }
             });
         }
+
+        {
+            let progress_bar_clone = SendCell::new(self.progress_bar.clone());
+            let self_clone = SendCell::new(self.clone());
+            self.player.connect_position_updated(move |_, position| {
+                let progress_bar = progress_bar_clone.borrow();
+                let self_clone = self_clone.borrow();
+                let duration = self_clone.player.get_duration();
+                if duration != gst::ClockTime::none() {
+                    let frac: f64 = position.nanoseconds().unwrap() as f64
+                        / duration.nanoseconds().unwrap() as f64;
+                    let range = progress_bar.clone().upcast::<gtk::Range>();
+                    range.set_value(frac);
+                }
+            });
+        }
+
         {
             let app_clone = gtk_app.clone();
             self.window.connect_delete_event(move |_, _| {
@@ -247,12 +276,6 @@ impl VideoPlayerInner {
     pub fn start(&mut self, app: &gtk::Application) {
         self.window.show_all();
         app.add_window(&self.window);
-
-        let label_clone = SendCell::new(self.label.clone());
-        self.player.connect_position_updated(move |_, position| {
-            let label = label_clone.borrow();
-            label.set_text(&format!("Position: {:.0}", position));
-        });
     }
 
     pub fn toggle_pause(&self) {
@@ -281,14 +304,11 @@ impl VideoPlayerInner {
                 }
                 window.unfullscreen();
                 window.present();
-                self.label.set_visible(true);
                 fullscreen_action.change_state(&(!fullscreen).to_variant());
             } else if allowed {
                 let flags =
                     gtk::ApplicationInhibitFlags::SUSPEND | gtk::ApplicationInhibitFlags::IDLE;
                 *INHIBIT_COOKIE.lock().unwrap() = Some(app.inhibit(window, flags, None));
-                self.label.set_visible(false);
-
                 *INITIAL_SIZE.lock().unwrap() = Some(window.get_size());
                 *INITIAL_POSITION.lock().unwrap() = Some(window.get_position());
                 window.fullscreen();
