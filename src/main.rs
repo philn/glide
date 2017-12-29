@@ -210,6 +210,13 @@ impl VideoPlayer {
                 inner.seek(&SeekDirection::Forward, SEEK_FORWARD_OFFSET);
             }));
 
+            inner
+                .window
+                .connect_key_press_event(clone_army!([inner, gtk_app] move |_, key| {
+                    inner.handle_key_press(key, &gtk_app);
+                    Inhibit(false)
+                }));
+
             inner.setup(gtk_app);
         }
 
@@ -225,28 +232,6 @@ impl VideoPlayer {
 
 impl VideoPlayerInner {
     pub fn setup(&self, gtk_app: &gtk::Application) {
-        let self_clone = self.clone();
-        self.window
-            .connect_key_press_event(clone_army!([gtk_app] move |_, key| {
-            let keyval = key.get_keyval();
-            let keystate = key.get_state();
-
-            if keystate.intersects(gdk::ModifierType::META_MASK) {
-                if keyval == gdk::enums::key::f {
-                    self_clone.toggle_fullscreen(&gtk_app, true);
-                } else if keyval == gdk::enums::key::Left {
-                    self_clone.seek(&SeekDirection::Backward, SEEK_BACKWARD_OFFSET);
-                } else if keyval == gdk::enums::key::Right {
-                    self_clone.seek(&SeekDirection::Forward, SEEK_FORWARD_OFFSET);
-                }
-            } else if keyval == gdk::enums::key::Escape {
-                self_clone.toggle_fullscreen(&gtk_app, false);
-            } else if keyval == gdk::enums::key::space {
-                self_clone.toggle_pause();
-            }
-            Inhibit(false)
-        }));
-
         let video_area_clone = SendCell::new(self.video_area.clone());
         self.player
             .connect_video_dimensions_changed(move |_, width, height| {
@@ -351,6 +336,25 @@ impl VideoPlayerInner {
     pub fn start(&mut self, app: &gtk::Application) {
         self.window.show_all();
         app.add_window(&self.window);
+    }
+
+    pub fn handle_key_press(&self, key: &gdk::EventKey, gtk_app: &gtk::Application) {
+        let keyval = key.get_keyval();
+        let keystate = key.get_state();
+
+        if keystate.intersects(gdk::ModifierType::META_MASK) {
+            if keyval == gdk::enums::key::f {
+                self.toggle_fullscreen(gtk_app, true);
+            } else if keyval == gdk::enums::key::Left {
+                self.seek(&SeekDirection::Backward, SEEK_BACKWARD_OFFSET);
+            } else if keyval == gdk::enums::key::Right {
+                self.seek(&SeekDirection::Forward, SEEK_FORWARD_OFFSET);
+            }
+        } else if keyval == gdk::enums::key::Escape {
+            self.toggle_fullscreen(gtk_app, false);
+        } else if keyval == gdk::enums::key::space {
+            self.toggle_pause();
+        }
     }
 
     pub fn seek(&self, direction: &SeekDirection, offset: u64) {
