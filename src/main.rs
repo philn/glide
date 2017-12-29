@@ -39,6 +39,7 @@ struct VideoPlayerInner {
     pause_button: gtk::Button,
     seek_backward_button: gtk::Button,
     seek_forward_button: gtk::Button,
+    fullscreen_button: gtk::Button,
     progress_bar: gtk::Scale,
     toolbar_box: gtk::Box,
 }
@@ -129,6 +130,14 @@ impl VideoPlayer {
 
         toolbar_box.pack_start(&progress_bar, true, true, 10);
 
+        let fullscreen_button = gtk::Button::new();
+        let fullscreen_image = gtk::Image::new_from_icon_name(
+            "view-fullscreen-symbolic",
+            gtk::IconSize::SmallToolbar.into(),
+        );
+        fullscreen_button.set_image(&fullscreen_image);
+        toolbar_box.pack_start(&fullscreen_button, false, false, 0);
+
         vbox.pack_start(&toolbar_box, false, false, 10);
         window.add(&vbox);
 
@@ -142,6 +151,7 @@ impl VideoPlayer {
             seek_backward_button,
             seek_forward_button,
             pause_button,
+            fullscreen_button,
             progress_bar,
             toolbar_box,
         };
@@ -205,6 +215,12 @@ impl VideoPlayer {
                 .seek_forward_button
                 .connect_clicked(clone_army!([inner] move |_| {
                 inner.seek(&SeekDirection::Forward, SEEK_FORWARD_OFFSET);
+                }));
+
+            inner
+                .fullscreen_button
+                .connect_clicked(clone_army!([inner, gtk_app] move |_| {
+                inner.toggle_fullscreen(&gtk_app, true);
             }));
 
             inner
