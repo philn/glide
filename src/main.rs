@@ -413,6 +413,7 @@ impl VideoPlayerInner {
         let window = &self.window;
         if let Some(is_fullscreen) = fullscreen_action.get_state() {
             let fullscreen = is_fullscreen.get::<bool>().unwrap();
+            let gdk_window = window.get_window().unwrap();
             if fullscreen {
                 if let Ok(mut cookie) = INHIBIT_COOKIE.lock() {
                     app.uninhibit(cookie.unwrap());
@@ -421,13 +422,16 @@ impl VideoPlayerInner {
                 window.unfullscreen();
                 self.toolbar_box.set_visible(true);
                 window.present();
+                gdk_window.set_cursor(None);
                 fullscreen_action.change_state(&(!fullscreen).to_variant());
             } else if allowed {
                 let flags = gtk::ApplicationInhibitFlags::SUSPEND | gtk::ApplicationInhibitFlags::IDLE;
                 *INHIBIT_COOKIE.lock().unwrap() = Some(app.inhibit(window, flags, None));
                 *INITIAL_SIZE.lock().unwrap() = Some(window.get_size());
                 *INITIAL_POSITION.lock().unwrap() = Some(window.get_position());
+                let cursor = gdk::Cursor::new(gdk::CursorType::BlankCursor);
                 window.fullscreen();
+                gdk_window.set_cursor(Some(&cursor));
                 self.toolbar_box.set_visible(false);
                 fullscreen_action.change_state(&(!fullscreen).to_variant());
             }
