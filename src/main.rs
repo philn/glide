@@ -10,6 +10,9 @@ extern crate gtk;
 extern crate lazy_static;
 extern crate send_cell;
 
+#[macro_use]
+extern crate closet;
+
 use cairo::Context as CairoContext;
 use gdk::prelude::*;
 use gio::prelude::*;
@@ -117,17 +120,16 @@ impl VideoPlayer {
         toolbar_box.pack_start(&pause_button, false, false, 0);
         toolbar_box.pack_start(&seek_forward_button, false, false, 0);
 
-
         let progress_bar = gtk::Scale::new(gtk::Orientation::Horizontal, None);
         progress_bar.set_draw_value(true);
         progress_bar.set_value_pos(gtk::PositionType::Right);
-        {
-            let player_clone = player.clone();
-            progress_bar.connect_format_value(move |_, _| -> std::string::String {
-                let position = player_clone.get_position();
+        progress_bar.connect_format_value(
+            clone_army!([player] move |_, _| -> std::string::String {
+                let position = player.get_position();
                 format!("{:.0}", position)
-            });
-        }
+            }),
+        );
+
         toolbar_box.pack_start(&progress_bar, true, true, 10);
 
         vbox.pack_start(&toolbar_box, false, false, 10);
@@ -150,31 +152,24 @@ impl VideoPlayer {
 
         gtk_app.connect_startup(move |app| {
             let quit = gio::SimpleAction::new("quit", None);
-            let app_clone = app.clone();
-            quit.connect_activate(move |_, _| {
-                app_clone.quit();
-            });
+            quit.connect_activate(clone_army!([app] move |_, _| {
+                app.quit();
+            }));
             app.add_action(&quit);
         });
 
-        {
-            let self_clone = Arc::clone(&inner);
-            gtk_app.connect_open(move |app, files, _| {
+        gtk_app.connect_open(clone_army!([inner] move |app, files, _| {
                 app.activate();
-                if let Ok(mut inner) = self_clone.lock() {
+                if let Ok(mut inner) = inner.lock() {
                     inner.open_files(files);
                 }
-            });
-        }
+            }));
 
-        {
-            let self_clone = Arc::clone(&inner);
-            gtk_app.connect_shutdown(move |_| {
-                if let Ok(inner) = self_clone.lock() {
+        gtk_app.connect_shutdown(clone_army!([inner] move |_| {
+                if let Ok(inner) = inner.lock() {
                     inner.player.stop();
                 }
-            });
-        }
+            }));
 
         if let Ok(inner) = inner.lock() {
             inner.setup(gtk_app);
@@ -235,134 +230,118 @@ impl VideoPlayerInner {
             });
         }
 
-        {
-            let app_clone = gtk_app.clone();
-            let self_clone = self.clone();
-            self.window.connect_key_press_event(move |_, key| {
-                let keyval = key.get_keyval();
-                let keystate = key.get_state();
-                let app = &app_clone;
+        let self_clone = self.clone();
+        self.window
+            .connect_key_press_event(clone_army!([gtk_app] move |_, key| {
+            let keyval = key.get_keyval();
+            let keystate = key.get_state();
 
-                if keystate.intersects(gdk::ModifierType::META_MASK) {
-                    if keyval == gdk::enums::key::f {
-                        self_clone.toggle_fullscreen(app, true);
-                    } else if keyval == gdk::enums::key::Left {
-                        self_clone.seek(&SeekDirection::Backward, SEEK_BACKWARD_OFFSET);
-                    } else if keyval == gdk::enums::key::Right {
-                        self_clone.seek(&SeekDirection::Forward, SEEK_FORWARD_OFFSET);
-                    }
-                } else if keyval == gdk::enums::key::Escape {
-                    self_clone.toggle_fullscreen(app, false);
-                } else if keyval == gdk::enums::key::space {
-                    self_clone.toggle_pause();
+            if keystate.intersects(gdk::ModifierType::META_MASK) {
+                if keyval == gdk::enums::key::f {
+                    self_clone.toggle_fullscreen(&gtk_app, true);
+                } else if keyval == gdk::enums::key::Left {
+                    self_clone.seek(&SeekDirection::Backward, SEEK_BACKWARD_OFFSET);
+                } else if keyval == gdk::enums::key::Right {
+                    self_clone.seek(&SeekDirection::Forward, SEEK_FORWARD_OFFSET);
                 }
+            } else if keyval == gdk::enums::key::Escape {
+                self_clone.toggle_fullscreen(&gtk_app, false);
+            } else if keyval == gdk::enums::key::space {
+                self_clone.toggle_pause();
+            }
+            Inhibit(false)
+        }));
 
-                Inhibit(false)
+        let video_area_clone = SendCell::new(self.video_area.clone());
+        self.player
+            .connect_video_dimensions_changed(move |_, width, height| {
+                let video_area = video_area_clone.borrow();
+                video_area.set_size_request(width, height);
             });
-        }
 
-        {
-            let video_area_clone = SendCell::new(self.video_area.clone());
-            self.player
-                .connect_video_dimensions_changed(move |_, width, height| {
-                    let video_area = video_area_clone.borrow();
-                    video_area.set_size_request(width, height);
-                });
-        }
+        let window_clone = SendCell::new(self.window.clone());
+        self.player.connect_media_info_updated(move |_, info| {
+            let window = window_clone.borrow();
+            if let Some(title) = info.get_title() {
+                window.set_title(&*title);
+            } else {
+                window.set_title(&*info.get_uri());
+            }
+        });
 
-        {
-            let window_clone = SendCell::new(self.window.clone());
-            self.player.connect_media_info_updated(move |_, info| {
-                let window = window_clone.borrow();
-                if let Some(title) = info.get_title() {
-                    window.set_title(&*title);
-                } else {
-                    window.set_title(&*info.get_uri());
+        let pause_button_clone = SendCell::new(self.pause_button.clone());
+        self.player.connect_state_changed(move |_, state| {
+            let pause_button = pause_button_clone.borrow();
+            match state {
+                gst_player::PlayerState::Paused => {
+                    let image = gtk::Image::new_from_icon_name(
+                        "media-playback-start-symbolic",
+                        gtk::IconSize::SmallToolbar.into(),
+                    );
+                    pause_button.set_image(&image);
                 }
-            });
-        }
+                gst_player::PlayerState::Playing => {
+                    let image = gtk::Image::new_from_icon_name(
+                        "media-playback-pause-symbolic",
+                        gtk::IconSize::SmallToolbar.into(),
+                    );
+                    pause_button.set_image(&image);
+                }
+                _ => {}
+            };
+        });
 
-        {
-            let pause_button_clone = SendCell::new(self.pause_button.clone());
-            self.player.connect_state_changed(move |_, state| {
-                let pause_button = pause_button_clone.borrow();
-                match state {
-                    gst_player::PlayerState::Paused => {
-                        let image = gtk::Image::new_from_icon_name(
-                            "media-playback-start-symbolic",
-                            gtk::IconSize::SmallToolbar.into(),
-                        );
-                        pause_button.set_image(&image);
-                    }
-                    gst_player::PlayerState::Playing => {
-                        let image = gtk::Image::new_from_icon_name(
-                            "media-playback-pause-symbolic",
-                            gtk::IconSize::SmallToolbar.into(),
-                        );
-                        pause_button.set_image(&image);
-                    }
-                    _ => {}
-                };
-            });
-        }
-
-        {
-            let range = self.progress_bar.clone().upcast::<gtk::Range>();
-            let player_clone = self.player.clone();
-            let seek_signal_handler_id = range.connect_value_changed(move |range| {
+        let range = self.progress_bar.clone().upcast::<gtk::Range>();
+        let player = &self.player;
+        let seek_signal_handler_id =
+            range.connect_value_changed(clone_army!([player] move |range| {
                 let value = range.get_value();
-                player_clone.seek(gst::ClockTime::from_seconds(value as u64));
-            });
+                player.seek(gst::ClockTime::from_seconds(value as u64));
+            }));
 
-            let progress_bar_clone = SendCell::new(self.progress_bar.clone());
-            let player_clone = self.player.clone();
-            let signal_handler_id = Arc::new(Mutex::new(seek_signal_handler_id));
-            let s_clone = Arc::clone(&signal_handler_id);
-            player_clone.connect_duration_changed(move |_, duration| {
+        let progress_bar_clone = SendCell::new(self.progress_bar.clone());
+        let signal_handler_id = Arc::new(Mutex::new(seek_signal_handler_id));
+        self.player
+            .connect_duration_changed(clone_army!([signal_handler_id] move |_, duration| {
                 let progress_bar = progress_bar_clone.borrow();
                 let range = progress_bar.clone().upcast::<gtk::Range>();
-                let seek_signal_handler_id = s_clone.lock().unwrap();
+                let seek_signal_handler_id = signal_handler_id.lock().unwrap();
                 glib::signal_handler_block(&range, &seek_signal_handler_id);
                 range.set_range(0.0, duration.seconds().unwrap() as f64);
                 glib::signal_handler_unblock(&range, &seek_signal_handler_id);
-            });
+            }));
 
-            let progress_bar_clone = SendCell::new(self.progress_bar.clone());
-            let player_clone = self.player.clone();
-            let s_clone = Arc::clone(&signal_handler_id);
-            player_clone.connect_position_updated(move |_, position| {
+        let progress_bar_clone = SendCell::new(self.progress_bar.clone());
+        self.player
+            .connect_position_updated(clone_army!([signal_handler_id] move |_, position| {
                 let progress_bar = progress_bar_clone.borrow();
                 let range = progress_bar.clone().upcast::<gtk::Range>();
-                let seek_signal_handler_id = s_clone.lock().unwrap();
+                let seek_signal_handler_id = signal_handler_id.lock().unwrap();
                 glib::signal_handler_block(&range, &seek_signal_handler_id);
                 range.set_value(position.seconds().unwrap() as f64);
                 glib::signal_handler_unblock(&range, &seek_signal_handler_id);
-            });
-        }
+            }));
 
-        {
-            let app_clone = gtk_app.clone();
-            self.window.connect_delete_event(move |_, _| {
-                app_clone.quit();
-                Inhibit(false)
-            });
-        }
+        self.window
+            .connect_delete_event(clone_army!([gtk_app] move |_, _| {
+            gtk_app.quit();
+            Inhibit(false)
+        }));
 
-        {
-            self.window.connect_map_event(move |widget, _| {
-                if let Ok(size) = INITIAL_SIZE.lock() {
-                    if let Some((width, height)) = *size {
-                        widget.resize(width, height);
-                    }
+        self.window.connect_map_event(move |widget, _| {
+            if let Ok(size) = INITIAL_SIZE.lock() {
+                if let Some((width, height)) = *size {
+                    widget.resize(width, height);
                 }
-                if let Ok(position) = INITIAL_POSITION.lock() {
-                    if let Some((x, y)) = *position {
-                        widget.move_(x, y);
-                    }
+            }
+            if let Ok(position) = INITIAL_POSITION.lock() {
+                if let Some((x, y)) = *position {
+                    widget.move_(x, y);
                 }
-                Inhibit(false)
-            });
-        }
+            }
+            Inhibit(false)
+        });
+
         {
             let app_clone = SendCell::new(gtk_app.clone());
             self.player.connect_error(move |_, error| {

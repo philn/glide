@@ -19,3 +19,4 @@ gstreamer-video = { git = "https://github.com/sdroege/gstreamer-rs" }
 gtk = { git = "https://github.com/gtk-rs/gtk", features = ["v3_6"] }
 send-cell = "0.1"
 lazy_static = "1.0"
+closet = "0.2.2"

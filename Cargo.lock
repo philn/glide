@@ -43,6 +43,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "closet"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "gdk"
 version = "0.7.0"
 source = "git+https://github.com/gtk-rs/gdk#b294d3f44d4841c00484be232a8fccd24f7da316"
@@ -155,6 +160,7 @@ name = "glide"
 version = "0.1.0"
 dependencies = [
  "cairo-rs 0.3.0 (git+https://github.com/gtk-rs/cairo)",
+ "closet 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "gdk 0.7.0 (git+https://github.com/gtk-rs/gdk)",
  "gio 0.3.0 (git+https://github.com/gtk-rs/gio)",
  "glib 0.4.0 (git+https://github.com/gtk-rs/glib)",
@@ -413,6 +419,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum c_vec 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "6237ac5a4b1e81c213c24c6437964c61e646df910a914b4ab1487b46df20bd13"
 "checksum cairo-rs 0.3.0 (git+https://github.com/gtk-rs/cairo)" = "<none>"
 "checksum cairo-sys-rs 0.5.0 (git+https://github.com/gtk-rs/cairo)" = "<none>"
+"checksum closet 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "49732b4442d72363c48beb01eb85128d66dc558e5f2718c9aa8249bff2e411c7"
 "checksum gdk 0.7.0 (git+https://github.com/gtk-rs/gdk)" = "<none>"
 "checksum gdk-pixbuf 0.3.0 (git+https://github.com/gtk-rs/gdk-pixbuf)" = "<none>"
 "checksum gdk-pixbuf-sys 0.5.0 (git+https://github.com/gtk-rs/sys)" = "<none>"
