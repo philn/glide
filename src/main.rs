@@ -82,8 +82,7 @@ impl VideoPlayer {
         config.set_position_update_interval(250);
         player.set_config(config).unwrap();
 
-        let fullscreen_action =
-            gio::SimpleAction::new_stateful("fullscreen", None, &false.to_variant());
+        let fullscreen_action = gio::SimpleAction::new_stateful("fullscreen", None, &false.to_variant());
         gtk_app.add_action(&fullscreen_action);
 
         let pause_action = gio::SimpleAction::new_stateful("pause", None, &false.to_variant());
@@ -123,12 +122,10 @@ impl VideoPlayer {
         let progress_bar = gtk::Scale::new(gtk::Orientation::Horizontal, None);
         progress_bar.set_draw_value(true);
         progress_bar.set_value_pos(gtk::PositionType::Right);
-        progress_bar.connect_format_value(
-            clone_army!([player] move |_, _| -> std::string::String {
+        progress_bar.connect_format_value(clone_army!([player] move |_, _| -> std::string::String {
                 let position = player.get_position();
                 format!("{:.0}", position)
-            }),
-        );
+            }));
 
         toolbar_box.pack_start(&progress_bar, true, true, 10);
 
@@ -259,22 +256,21 @@ impl VideoPlayerInner {
                         gtk::IconSize::SmallToolbar.into(),
                     );
                     pause_button.set_image(&image);
-                }
+                },
                 gst_player::PlayerState::Playing => {
                     let image = gtk::Image::new_from_icon_name(
                         "media-playback-pause-symbolic",
                         gtk::IconSize::SmallToolbar.into(),
                     );
                     pause_button.set_image(&image);
-                }
-                _ => {}
+                },
+                _ => {},
             };
         });
 
         let range = self.progress_bar.clone().upcast::<gtk::Range>();
         let player = &self.player;
-        let seek_signal_handler_id =
-            range.connect_value_changed(clone_army!([player] move |range| {
+        let seek_signal_handler_id = range.connect_value_changed(clone_army!([player] move |range| {
                 let value = range.get_value();
                 player.seek(gst::ClockTime::from_seconds(value as u64));
             }));
@@ -367,7 +363,7 @@ impl VideoPlayerInner {
                 } else {
                     None
                 }
-            }
+            },
             SeekDirection::Forward => {
                 let duration = self.player.get_duration();
                 if duration != gst::ClockTime::none() && position + offset <= duration {
@@ -375,7 +371,7 @@ impl VideoPlayerInner {
                 } else {
                     None
                 }
-            }
+            },
         };
         if let Some(destination) = destination {
             self.player.seek(destination);
@@ -411,8 +407,7 @@ impl VideoPlayerInner {
                 window.present();
                 fullscreen_action.change_state(&(!fullscreen).to_variant());
             } else if allowed {
-                let flags =
-                    gtk::ApplicationInhibitFlags::SUSPEND | gtk::ApplicationInhibitFlags::IDLE;
+                let flags = gtk::ApplicationInhibitFlags::SUSPEND | gtk::ApplicationInhibitFlags::IDLE;
                 *INHIBIT_COOKIE.lock().unwrap() = Some(app.inhibit(window, flags, None));
                 *INITIAL_SIZE.lock().unwrap() = Some(window.get_size());
                 *INITIAL_POSITION.lock().unwrap() = Some(window.get_position());
@@ -439,9 +434,7 @@ impl VideoPlayerInner {
             // Check if we're using X11 or ...
             if display_type_name == "GdkX11Display" {
                 extern "C" {
-                    pub fn gdk_x11_window_get_xid(
-                        window: *mut glib::object::GObject,
-                    ) -> *mut c_void;
+                    pub fn gdk_x11_window_get_xid(window: *mut glib::object::GObject) -> *mut c_void;
                 }
 
                 unsafe {
@@ -455,9 +448,7 @@ impl VideoPlayerInner {
         } else if cfg!(target_os = "macos") {
             if display_type_name == "GdkQuartzDisplay" {
                 extern "C" {
-                    pub fn gdk_quartz_window_get_nsview(
-                        window: *mut glib::object::GObject,
-                    ) -> *mut c_void;
+                    pub fn gdk_quartz_window_get_nsview(window: *mut glib::object::GObject) -> *mut c_void;
                 }
 
                 unsafe {
