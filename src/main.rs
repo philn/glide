@@ -172,6 +172,44 @@ impl VideoPlayer {
             }));
 
         if let Ok(inner) = inner.lock() {
+            inner
+                .video_area
+                .connect_realize(clone_army!([inner] move |_| {
+                inner.prepare_video_overlay();
+            }));
+
+            inner
+                .video_area
+                .connect_draw(clone_army!([inner] move |_, cairo_context| {
+                inner.draw_video_area(cairo_context);
+                Inhibit(false)
+            }));
+
+            inner
+                .video_area
+                .connect_configure_event(clone_army!([inner] move |_, event| -> bool {
+                    inner.resize_video_area(event);
+                    true
+                }));
+
+            inner
+                .pause_button
+                .connect_clicked(clone_army!([inner] move |_| {
+                inner.toggle_pause();
+            }));
+
+            inner
+                .seek_backward_button
+                .connect_clicked(clone_army!([inner] move |_| {
+                inner.seek(&SeekDirection::Backward, SEEK_BACKWARD_OFFSET);
+            }));
+
+            inner
+                .seek_forward_button
+                .connect_clicked(clone_army!([inner] move |_| {
+                inner.seek(&SeekDirection::Forward, SEEK_FORWARD_OFFSET);
+            }));
+
             inner.setup(gtk_app);
         }
 
@@ -187,49 +225,6 @@ impl VideoPlayer {
 
 impl VideoPlayerInner {
     pub fn setup(&self, gtk_app: &gtk::Application) {
-        {
-            let self_clone = self.clone();
-            self.video_area.connect_realize(move |_| {
-                self_clone.prepare_video_overlay();
-            });
-        }
-
-        {
-            let self_clone = self.clone();
-            self.video_area.connect_draw(move |_, cairo_context| {
-                self_clone.draw_video_area(cairo_context);
-                Inhibit(false)
-            });
-        }
-
-        {
-            let self_clone = self.clone();
-            self.video_area
-                .connect_configure_event(move |_, event| -> bool {
-                    self_clone.resize_video_area(event);
-                    true
-                });
-        }
-
-        {
-            let self_clone = self.clone();
-            self.pause_button.connect_clicked(move |_| {
-                self_clone.toggle_pause();
-            });
-        }
-        {
-            let self_clone = self.clone();
-            self.seek_backward_button.connect_clicked(move |_| {
-                self_clone.seek(&SeekDirection::Backward, SEEK_BACKWARD_OFFSET);
-            });
-        }
-        {
-            let self_clone = self.clone();
-            self.seek_forward_button.connect_clicked(move |_| {
-                self_clone.seek(&SeekDirection::Forward, SEEK_FORWARD_OFFSET);
-            });
-        }
-
         let self_clone = self.clone();
         self.window
             .connect_key_press_event(clone_army!([gtk_app] move |_, key| {
