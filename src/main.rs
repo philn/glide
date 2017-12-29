@@ -33,7 +33,9 @@ struct VideoPlayerInner {
     video_area: gtk::DrawingArea,
     fullscreen_action: gio::SimpleAction,
     pause_action: gio::SimpleAction,
+    pause_button: gtk::Button,
     progress_bar: gtk::Scale,
+    toolbar_box: gtk::Box,
 }
 
 struct VideoPlayer {
@@ -91,6 +93,11 @@ impl VideoPlayer {
         let video_area = gtk::DrawingArea::new();
         vbox.pack_start(&video_area, true, true, 0);
 
+        let toolbar_box = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+
+        let pause_button = gtk::Button::new();
+        toolbar_box.pack_start(&pause_button, false, false, 0);
+
         let progress_bar = gtk::Scale::new(gtk::Orientation::Horizontal, None);
         progress_bar.set_draw_value(true);
         progress_bar.set_value_pos(gtk::PositionType::Right);
@@ -101,8 +108,9 @@ impl VideoPlayer {
                 format!("{:.0}", position)
             });
         }
-        vbox.pack_start(&progress_bar, false, false, 10);
+        toolbar_box.pack_start(&progress_bar, true, true, 10);
 
+        vbox.pack_start(&toolbar_box, false, false, 10);
         window.add(&vbox);
 
         let video_player = VideoPlayerInner {
@@ -112,7 +120,9 @@ impl VideoPlayer {
             video_area,
             fullscreen_action,
             pause_action,
+            pause_button,
             progress_bar,
+            toolbar_box,
         };
         let inner = Arc::new(Mutex::new(video_player));
 
@@ -185,6 +195,13 @@ impl VideoPlayerInner {
         }
 
         {
+            let self_clone = self.clone();
+            self.pause_button.connect_clicked(move |_| {
+                self_clone.toggle_pause();
+            });
+        }
+
+        {
             let app_clone = gtk_app.clone();
             let self_clone = self.clone();
             self.window.connect_key_press_event(move |_, key| {
@@ -228,6 +245,30 @@ impl VideoPlayerInner {
                 } else {
                     window.set_title(&*info.get_uri());
                 }
+            });
+        }
+
+        {
+            let pause_button_clone = SendCell::new(self.pause_button.clone());
+            self.player.connect_state_changed(move |_, state| {
+                let pause_button = pause_button_clone.borrow();
+                match state {
+                    gst_player::PlayerState::Paused => {
+                        let image = gtk::Image::new_from_icon_name(
+                            "media-playback-start-symbolic",
+                            gtk::IconSize::SmallToolbar.into(),
+                        );
+                        pause_button.set_image(&image);
+                    }
+                    gst_player::PlayerState::Playing => {
+                        let image = gtk::Image::new_from_icon_name(
+                            "media-playback-pause-symbolic",
+                            gtk::IconSize::SmallToolbar.into(),
+                        );
+                        pause_button.set_image(&image);
+                    }
+                    _ => {}
+                };
             });
         }
 
@@ -354,7 +395,7 @@ impl VideoPlayerInner {
                     *cookie = None;
                 }
                 window.unfullscreen();
-                self.progress_bar.set_visible(true);
+                self.toolbar_box.set_visible(true);
                 window.present();
                 fullscreen_action.change_state(&(!fullscreen).to_variant());
             } else if allowed {
@@ -364,7 +405,7 @@ impl VideoPlayerInner {
                 *INITIAL_SIZE.lock().unwrap() = Some(window.get_size());
                 *INITIAL_POSITION.lock().unwrap() = Some(window.get_position());
                 window.fullscreen();
-                self.progress_bar.set_visible(false);
+                self.toolbar_box.set_visible(false);
                 fullscreen_action.change_state(&(!fullscreen).to_variant());
             }
         }
