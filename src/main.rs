@@ -34,6 +34,8 @@ struct VideoPlayerInner {
     fullscreen_action: gio::SimpleAction,
     pause_action: gio::SimpleAction,
     pause_button: gtk::Button,
+    seek_backward_button: gtk::Button,
+    seek_forward_button: gtk::Button,
     progress_bar: gtk::Scale,
     toolbar_box: gtk::Box,
 }
@@ -96,7 +98,25 @@ impl VideoPlayer {
         let toolbar_box = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
         let pause_button = gtk::Button::new();
+
+        let seek_backward_button = gtk::Button::new();
+        let backward_image = gtk::Image::new_from_icon_name(
+            "media-seek-backward-symbolic",
+            gtk::IconSize::SmallToolbar.into(),
+        );
+        seek_backward_button.set_image(&backward_image);
+
+        let seek_forward_button = gtk::Button::new();
+        let forward_image = gtk::Image::new_from_icon_name(
+            "media-seek-forward-symbolic",
+            gtk::IconSize::SmallToolbar.into(),
+        );
+        seek_forward_button.set_image(&forward_image);
+
+        toolbar_box.pack_start(&seek_backward_button, false, false, 0);
         toolbar_box.pack_start(&pause_button, false, false, 0);
+        toolbar_box.pack_start(&seek_forward_button, false, false, 0);
+
 
         let progress_bar = gtk::Scale::new(gtk::Orientation::Horizontal, None);
         progress_bar.set_draw_value(true);
@@ -120,6 +140,8 @@ impl VideoPlayer {
             video_area,
             fullscreen_action,
             pause_action,
+            seek_backward_button,
+            seek_forward_button,
             pause_button,
             progress_bar,
             toolbar_box,
@@ -198,6 +220,18 @@ impl VideoPlayerInner {
             let self_clone = self.clone();
             self.pause_button.connect_clicked(move |_| {
                 self_clone.toggle_pause();
+            });
+        }
+        {
+            let self_clone = self.clone();
+            self.seek_backward_button.connect_clicked(move |_| {
+                self_clone.seek(&SeekDirection::Backward, SEEK_BACKWARD_OFFSET);
+            });
+        }
+        {
+            let self_clone = self.clone();
+            self.seek_forward_button.connect_clicked(move |_| {
+                self_clone.seek(&SeekDirection::Forward, SEEK_FORWARD_OFFSET);
             });
         }
 
