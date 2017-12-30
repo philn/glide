@@ -35,6 +35,7 @@ struct VideoPlayerInner {
     window: gtk::Window,
     video_area: gtk::DrawingArea,
     fullscreen_action: gio::SimpleAction,
+    restore_action: gio::SimpleAction,
     pause_action: gio::SimpleAction,
     pause_button: gtk::Button,
     seek_backward_button: gtk::Button,
@@ -86,6 +87,9 @@ impl VideoPlayer {
         let fullscreen_action = gio::SimpleAction::new_stateful("fullscreen", None, &false.to_variant());
         gtk_app.add_action(&fullscreen_action);
 
+        let restore_action = gio::SimpleAction::new_stateful("restore", None, &true.to_variant());
+        gtk_app.add_action(&restore_action);
+
         let pause_action = gio::SimpleAction::new_stateful("pause", None, &false.to_variant());
         gtk_app.add_action(&pause_action);
 
@@ -136,6 +140,9 @@ impl VideoPlayer {
             gtk::IconSize::SmallToolbar.into(),
         );
         fullscreen_button.set_image(&fullscreen_image);
+        let fs_actionable = fullscreen_button.clone().upcast::<gtk::Actionable>();
+        fs_actionable.set_action_name("app.fullscreen");
+
         toolbar_box.pack_start(&fullscreen_button, false, false, 0);
 
         vbox.pack_start(&toolbar_box, false, false, 10);
@@ -147,6 +154,7 @@ impl VideoPlayer {
             window,
             video_area,
             fullscreen_action,
+            restore_action,
             pause_action,
             seek_backward_button,
             seek_forward_button,
@@ -163,6 +171,9 @@ impl VideoPlayer {
                 app.quit();
             }));
             app.add_action(&quit);
+
+            app.set_accels_for_action("app.fullscreen", &*vec!["<Meta>f"]);
+            app.set_accels_for_action("app.restore", &*vec!["Escape"]);
         });
 
         gtk_app.connect_open(clone_army!([inner] move |app, files, _| {
@@ -218,15 +229,21 @@ impl VideoPlayer {
                 }));
 
             inner
-                .fullscreen_button
-                .connect_clicked(clone_army!([inner, gtk_app] move |_| {
-                inner.toggle_fullscreen(&gtk_app, true);
+                .fullscreen_action
+                .connect_change_state(clone_army!([inner, gtk_app] move |_, _| {
+                inner.enter_fullscreen(&gtk_app);
+            }));
+
+            inner
+                .restore_action
+                .connect_change_state(clone_army!([inner, gtk_app] move |_, _| {
+                inner.leave_fullscreen(&gtk_app);
             }));
 
             inner
                 .window
-                .connect_key_press_event(clone_army!([inner, gtk_app] move |_, key| {
-                    inner.handle_key_press(key, &gtk_app);
+                .connect_key_press_event(clone_army!([inner] move |_, key| {
+                    inner.handle_key_press(key);
                     Inhibit(false)
                 }));
 
@@ -350,20 +367,16 @@ impl VideoPlayerInner {
         app.add_window(&self.window);
     }
 
-    pub fn handle_key_press(&self, key: &gdk::EventKey, gtk_app: &gtk::Application) {
+    pub fn handle_key_press(&self, key: &gdk::EventKey) {
         let keyval = key.get_keyval();
         let keystate = key.get_state();
 
         if keystate.intersects(gdk::ModifierType::META_MASK) {
-            if keyval == gdk::enums::key::f {
-                self.toggle_fullscreen(gtk_app, true);
-            } else if keyval == gdk::enums::key::Left {
+            if keyval == gdk::enums::key::Left {
                 self.seek(&SeekDirection::Backward, SEEK_BACKWARD_OFFSET);
             } else if keyval == gdk::enums::key::Right {
                 self.seek(&SeekDirection::Forward, SEEK_FORWARD_OFFSET);
             }
-        } else if keyval == gdk::enums::key::Escape {
-            self.toggle_fullscreen(gtk_app, false);
         } else if keyval == gdk::enums::key::space {
             self.toggle_pause();
         }
@@ -408,23 +421,13 @@ impl VideoPlayerInner {
         }
     }
 
-    pub fn toggle_fullscreen(&self, app: &gtk::Application, allowed: bool) {
+    pub fn enter_fullscreen(&self, app: &gtk::Application) {
         let fullscreen_action = &self.fullscreen_action;
-        let window = &self.window;
         if let Some(is_fullscreen) = fullscreen_action.get_state() {
             let fullscreen = is_fullscreen.get::<bool>().unwrap();
-            let gdk_window = window.get_window().unwrap();
-            if fullscreen {
-                if let Ok(mut cookie) = INHIBIT_COOKIE.lock() {
-                    app.uninhibit(cookie.unwrap());
-                    *cookie = None;
-                }
-                window.unfullscreen();
-                self.toolbar_box.set_visible(true);
-                window.present();
-                gdk_window.set_cursor(None);
-                fullscreen_action.change_state(&(!fullscreen).to_variant());
-            } else if allowed {
+            if !fullscreen {
+                let window = &self.window;
+                let gdk_window = window.get_window().unwrap();
                 let flags = gtk::ApplicationInhibitFlags::SUSPEND | gtk::ApplicationInhibitFlags::IDLE;
                 *INHIBIT_COOKIE.lock().unwrap() = Some(app.inhibit(window, flags, None));
                 *INITIAL_SIZE.lock().unwrap() = Some(window.get_size());
@@ -433,7 +436,28 @@ impl VideoPlayerInner {
                 window.fullscreen();
                 gdk_window.set_cursor(Some(&cursor));
                 self.toolbar_box.set_visible(false);
-                fullscreen_action.change_state(&(!fullscreen).to_variant());
+                fullscreen_action.set_state(&true.to_variant());
+            }
+        }
+    }
+
+    pub fn leave_fullscreen(&self, app: &gtk::Application) {
+        let fullscreen_action = &self.fullscreen_action;
+        if let Some(is_fullscreen) = fullscreen_action.get_state() {
+            let fullscreen = is_fullscreen.get::<bool>().unwrap();
+
+            if fullscreen {
+                let window = &self.window;
+                let gdk_window = window.get_window().unwrap();
+                if let Ok(mut cookie) = INHIBIT_COOKIE.lock() {
+                    app.uninhibit(cookie.unwrap());
+                    *cookie = None;
+                }
+                window.unfullscreen();
+                self.toolbar_box.set_visible(true);
+                window.present();
+                gdk_window.set_cursor(None);
+                fullscreen_action.set_state(&false.to_variant());
             }
         }
     }
