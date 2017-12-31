@@ -638,7 +638,28 @@ fn main() {
         process::exit(-1);
     }
 
+    #[cfg(target_os = "linux")]
+    {
+        // FIXME: We should somehow detect at runtime if we're running under a
+        // Wayland compositor and thus don't set this variable.
+        let key = "GST_GL_XINITTHREADS";
+        env::set_var(key, "1");
+    }
+
     gst::init().expect("Failed to initialize GStreamer.");
+
+    #[cfg(target_os = "linux")]
+    {
+        // Force the gst-gl stack to call XInitThreads()...
+        let _sink = if let Some(gtkglsink) = gst::ElementFactory::make("gtkglsink", None) {
+            let glsinkbin = gst::ElementFactory::make("glsinkbin", None).unwrap();
+            glsinkbin
+        } else {
+            let sink = gst::ElementFactory::make("glimagesink", None).unwrap();
+            sink
+        };
+    }
+
     gtk::init().expect("Failed to initialize GTK.");
 
     let gtk_app = gtk::Application::new(None, gio::ApplicationFlags::HANDLES_OPEN).unwrap();
