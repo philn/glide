@@ -29,11 +29,17 @@ use std::sync::Mutex;
 use std::sync::atomic::AtomicUsize;
 
 #[derive(Clone)]
-struct VideoPlayerInner {
-    pub player: gst_player::Player,
+struct PlayerContext {
+    player: gst_player::Player,
     renderer: gst_player::PlayerVideoOverlayVideoRenderer,
+    video_area: gtk::Widget,
+}
+
+#[derive(Clone)]
+struct VideoPlayerInner {
+    player_context: Option<PlayerContext>,
     window: gtk::Window,
-    video_area: gtk::DrawingArea,
+    main_box: gtk::Box,
     fullscreen_action: gio::SimpleAction,
     restore_action: gio::SimpleAction,
     pause_action: gio::SimpleAction,
@@ -68,10 +74,23 @@ lazy_static! {
     };
 }
 
-impl VideoPlayer {
-    pub fn new(gtk_app: &gtk::Application) -> Self {
+impl PlayerContext {
+    pub fn new() -> Self {
         let dispatcher = gst_player::PlayerGMainContextSignalDispatcher::new(None);
-        let sink = gst::ElementFactory::make("glimagesink", None).unwrap();
+        let (sink, video_area) = if let Some(gtkglsink) = gst::ElementFactory::make("gtkglsink", None) {
+            let glsinkbin = gst::ElementFactory::make("glsinkbin", None).unwrap();
+            glsinkbin
+                .set_property("sink", &gtkglsink.to_value())
+                .unwrap();
+
+            let widget = gtkglsink.get_property("widget").unwrap();
+            (glsinkbin, widget.get::<gtk::Widget>().unwrap())
+        } else {
+            let sink = gst::ElementFactory::make("glimagesink", None).unwrap();
+            let widget = gtk::DrawingArea::new();
+            (sink, widget.upcast::<gtk::Widget>())
+        };
+
         let renderer1 = gst_player::PlayerVideoOverlayVideoRenderer::new_with_sink(&sink);
         let renderer = renderer1.clone();
         let player = gst_player::Player::new(
@@ -84,6 +103,16 @@ impl VideoPlayer {
         config.set_position_update_interval(250);
         player.set_config(config).unwrap();
 
+        PlayerContext {
+            player,
+            renderer,
+            video_area,
+        }
+    }
+}
+
+impl VideoPlayer {
+    pub fn new(gtk_app: &gtk::Application) -> Self {
         let fullscreen_action = gio::SimpleAction::new_stateful("fullscreen", None, &false.to_variant());
         gtk_app.add_action(&fullscreen_action);
 
@@ -97,10 +126,7 @@ impl VideoPlayer {
         window.set_default_size(320, 240);
         window.set_resizable(true);
 
-        let vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
-
-        let video_area = gtk::DrawingArea::new();
-        vbox.pack_start(&video_area, true, true, 0);
+        let main_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
 
         let toolbar_box = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
@@ -127,10 +153,6 @@ impl VideoPlayer {
         let progress_bar = gtk::Scale::new(gtk::Orientation::Horizontal, None);
         progress_bar.set_draw_value(true);
         progress_bar.set_value_pos(gtk::PositionType::Right);
-        progress_bar.connect_format_value(clone_army!([player] move |_, _| -> std::string::String {
-                let position = player.get_position();
-                format!("{:.0}", position)
-            }));
 
         toolbar_box.pack_start(&progress_bar, true, true, 10);
 
@@ -145,14 +167,13 @@ impl VideoPlayer {
 
         toolbar_box.pack_start(&fullscreen_button, false, false, 0);
 
-        vbox.pack_start(&toolbar_box, false, false, 10);
-        window.add(&vbox);
+        main_box.pack_start(&toolbar_box, false, false, 10);
+        window.add(&main_box);
 
         let video_player = VideoPlayerInner {
-            player,
-            renderer,
+            player_context: None,
             window,
-            video_area,
+            main_box,
             fullscreen_action,
             restore_action,
             pause_action,
@@ -185,31 +206,11 @@ impl VideoPlayer {
 
         gtk_app.connect_shutdown(clone_army!([inner] move |_| {
                 if let Ok(inner) = inner.lock() {
-                    inner.player.stop();
+                    inner.stop_player();
                 }
             }));
 
         if let Ok(inner) = inner.lock() {
-            inner
-                .video_area
-                .connect_realize(clone_army!([inner] move |_| {
-                inner.prepare_video_overlay();
-            }));
-
-            inner
-                .video_area
-                .connect_draw(clone_army!([inner] move |_, cairo_context| {
-                inner.draw_video_area(cairo_context);
-                Inhibit(false)
-            }));
-
-            inner
-                .video_area
-                .connect_configure_event(clone_army!([inner] move |_, event| -> bool {
-                    inner.resize_video_area(event);
-                    true
-                }));
-
             inner
                 .pause_button
                 .connect_clicked(clone_army!([inner] move |_| {
@@ -247,7 +248,26 @@ impl VideoPlayer {
                     Inhibit(false)
                 }));
 
-            inner.setup(gtk_app);
+            inner
+                .window
+                .connect_delete_event(clone_army!([gtk_app] move |_, _| {
+                    gtk_app.quit();
+                    Inhibit(false)
+                }));
+
+            inner.window.connect_map_event(move |widget, _| {
+                if let Ok(size) = INITIAL_SIZE.lock() {
+                    if let Some((width, height)) = *size {
+                        widget.resize(width, height);
+                    }
+                }
+                if let Ok(position) = INITIAL_POSITION.lock() {
+                    if let Some((x, y)) = *position {
+                        widget.move_(x, y);
+                    }
+                }
+                Inhibit(false)
+            });
         }
 
         VideoPlayer { inner }
@@ -255,6 +275,38 @@ impl VideoPlayer {
 
     pub fn start(&self, app: &gtk::Application) {
         if let Ok(mut inner) = self.inner.lock() {
+            inner.player_context = Some(PlayerContext::new());
+
+            inner.setup(app);
+
+            if let Some(ref ctx) = inner.player_context {
+                let video_area = &ctx.video_area;
+                inner.main_box.pack_start(&*video_area, true, true, 0);
+                inner.main_box.reorder_child(&*video_area, 0);
+                video_area.show();
+
+                inner
+                    .progress_bar
+                    .connect_format_value(clone_army!([ctx] move |_, _| -> std::string::String {
+                    let position = ctx.player.get_position();
+                    format!("{:.0}", position)
+                }));
+
+                video_area.connect_realize(clone_army!([inner] move |_| {
+                        inner.prepare_video_overlay();
+                    }));
+
+                video_area.connect_draw(clone_army!([inner] move |_, cairo_context| {
+                        inner.draw_video_area(cairo_context);
+                        Inhibit(false)
+                    }));
+
+                video_area.connect_configure_event(clone_army!([inner] move |_, event| -> bool {
+                        inner.resize_video_area(event);
+                        true
+                    }));
+            }
+
             inner.start(app);
         }
     }
@@ -262,56 +314,58 @@ impl VideoPlayer {
 
 impl VideoPlayerInner {
     pub fn setup(&self, gtk_app: &gtk::Application) {
-        let video_area_clone = SendCell::new(self.video_area.clone());
-        self.player
-            .connect_video_dimensions_changed(move |_, width, height| {
-                let video_area = video_area_clone.borrow();
-                video_area.set_size_request(width, height);
+        if let Some(ref ctx) = self.player_context {
+            let video_area = &ctx.video_area;
+            let video_area_clone = SendCell::new(video_area.clone());
+            ctx.player
+                .connect_video_dimensions_changed(move |_, width, height| {
+                    let video_area = video_area_clone.borrow();
+                    video_area.set_size_request(width, height);
+                });
+
+            let window_clone = SendCell::new(self.window.clone());
+            ctx.player.connect_media_info_updated(move |_, info| {
+                let window = window_clone.borrow();
+                if let Some(title) = info.get_title() {
+                    window.set_title(&*title);
+                } else {
+                    window.set_title(&*info.get_uri());
+                }
             });
 
-        let window_clone = SendCell::new(self.window.clone());
-        self.player.connect_media_info_updated(move |_, info| {
-            let window = window_clone.borrow();
-            if let Some(title) = info.get_title() {
-                window.set_title(&*title);
-            } else {
-                window.set_title(&*info.get_uri());
-            }
-        });
+            let pause_button_clone = SendCell::new(self.pause_button.clone());
+            ctx.player.connect_state_changed(move |_, state| {
+                let pause_button = pause_button_clone.borrow();
+                match state {
+                    gst_player::PlayerState::Paused => {
+                        let image = gtk::Image::new_from_icon_name(
+                            "media-playback-start-symbolic",
+                            gtk::IconSize::SmallToolbar.into(),
+                        );
+                        pause_button.set_image(&image);
+                    },
+                    gst_player::PlayerState::Playing => {
+                        let image = gtk::Image::new_from_icon_name(
+                            "media-playback-pause-symbolic",
+                            gtk::IconSize::SmallToolbar.into(),
+                        );
+                        pause_button.set_image(&image);
+                    },
+                    _ => {},
+                };
+            });
 
-        let pause_button_clone = SendCell::new(self.pause_button.clone());
-        self.player.connect_state_changed(move |_, state| {
-            let pause_button = pause_button_clone.borrow();
-            match state {
-                gst_player::PlayerState::Paused => {
-                    let image = gtk::Image::new_from_icon_name(
-                        "media-playback-start-symbolic",
-                        gtk::IconSize::SmallToolbar.into(),
-                    );
-                    pause_button.set_image(&image);
-                },
-                gst_player::PlayerState::Playing => {
-                    let image = gtk::Image::new_from_icon_name(
-                        "media-playback-pause-symbolic",
-                        gtk::IconSize::SmallToolbar.into(),
-                    );
-                    pause_button.set_image(&image);
-                },
-                _ => {},
-            };
-        });
-
-        let range = self.progress_bar.clone().upcast::<gtk::Range>();
-        let player = &self.player;
-        let seek_signal_handler_id = range.connect_value_changed(clone_army!([player] move |range| {
+            let range = self.progress_bar.clone().upcast::<gtk::Range>();
+            let player = &ctx.player;
+            let seek_signal_handler_id = range.connect_value_changed(clone_army!([player] move |range| {
                 let value = range.get_value();
                 player.seek(gst::ClockTime::from_seconds(value as u64));
             }));
 
-        let progress_bar_clone = SendCell::new(self.progress_bar.clone());
-        let signal_handler_id = Arc::new(Mutex::new(seek_signal_handler_id));
-        self.player
-            .connect_duration_changed(clone_army!([signal_handler_id] move |_, duration| {
+            let progress_bar_clone = SendCell::new(self.progress_bar.clone());
+            let signal_handler_id = Arc::new(Mutex::new(seek_signal_handler_id));
+            ctx.player
+                .connect_duration_changed(clone_army!([signal_handler_id] move |_, duration| {
                 let progress_bar = progress_bar_clone.borrow();
                 let range = progress_bar.clone().upcast::<gtk::Range>();
                 let seek_signal_handler_id = signal_handler_id.lock().unwrap();
@@ -320,9 +374,9 @@ impl VideoPlayerInner {
                 glib::signal_handler_unblock(&range, &seek_signal_handler_id);
             }));
 
-        let progress_bar_clone = SendCell::new(self.progress_bar.clone());
-        self.player
-            .connect_position_updated(clone_army!([signal_handler_id] move |_, position| {
+            let progress_bar_clone = SendCell::new(self.progress_bar.clone());
+            ctx.player
+                .connect_position_updated(clone_army!([signal_handler_id] move |_, position| {
                 let progress_bar = progress_bar_clone.borrow();
                 let range = progress_bar.clone().upcast::<gtk::Range>();
                 let seek_signal_handler_id = signal_handler_id.lock().unwrap();
@@ -331,29 +385,8 @@ impl VideoPlayerInner {
                 glib::signal_handler_unblock(&range, &seek_signal_handler_id);
             }));
 
-        self.window
-            .connect_delete_event(clone_army!([gtk_app] move |_, _| {
-            gtk_app.quit();
-            Inhibit(false)
-        }));
-
-        self.window.connect_map_event(move |widget, _| {
-            if let Ok(size) = INITIAL_SIZE.lock() {
-                if let Some((width, height)) = *size {
-                    widget.resize(width, height);
-                }
-            }
-            if let Ok(position) = INITIAL_POSITION.lock() {
-                if let Some((x, y)) = *position {
-                    widget.move_(x, y);
-                }
-            }
-            Inhibit(false)
-        });
-
-        {
             let app_clone = SendCell::new(gtk_app.clone());
-            self.player.connect_error(move |_, error| {
+            ctx.player.connect_error(move |_, error| {
                 // FIXME: display some GTK error dialog...
                 eprintln!("Error! {}", error);
                 let app = &app_clone.borrow();
@@ -365,6 +398,12 @@ impl VideoPlayerInner {
     pub fn start(&mut self, app: &gtk::Application) {
         self.window.show_all();
         app.add_window(&self.window);
+    }
+
+    pub fn stop_player(&self) {
+        if let Some(ref ctx) = self.player_context {
+            ctx.player.stop();
+        }
     }
 
     pub fn handle_key_press(&self, key: &gdk::EventKey) {
@@ -383,41 +422,46 @@ impl VideoPlayerInner {
     }
 
     pub fn seek(&self, direction: &SeekDirection, offset: u64) {
-        let position = self.player.get_position();
-        let offset = gst::ClockTime::from_mseconds(offset);
-        let destination = match *direction {
-            SeekDirection::Backward => {
-                if position >= offset {
-                    Some(position - offset)
-                } else {
-                    None
-                }
-            },
-            SeekDirection::Forward => {
-                let duration = self.player.get_duration();
-                if duration != gst::ClockTime::none() && position + offset <= duration {
-                    Some(position + offset)
-                } else {
-                    None
-                }
-            },
-        };
-        if let Some(destination) = destination {
-            self.player.seek(destination);
+        if let Some(ref ctx) = self.player_context {
+            let player = &ctx.player;
+            let position = player.get_position();
+            let offset = gst::ClockTime::from_mseconds(offset);
+            let destination = match *direction {
+                SeekDirection::Backward => {
+                    if position >= offset {
+                        Some(position - offset)
+                    } else {
+                        None
+                    }
+                },
+                SeekDirection::Forward => {
+                    let duration = player.get_duration();
+                    if duration != gst::ClockTime::none() && position + offset <= duration {
+                        Some(position + offset)
+                    } else {
+                        None
+                    }
+                },
+            };
+            if let Some(destination) = destination {
+                player.seek(destination);
+            }
         }
     }
 
     pub fn toggle_pause(&self) {
-        let pause_action = &self.pause_action;
-        let player = &self.player;
-        if let Some(is_paused) = pause_action.get_state() {
-            let paused = is_paused.get::<bool>().unwrap();
-            if paused {
-                player.play();
-            } else {
-                player.pause();
+        if let Some(ref ctx) = self.player_context {
+            let pause_action = &self.pause_action;
+            let player = &ctx.player;
+            if let Some(is_paused) = pause_action.get_state() {
+                let paused = is_paused.get::<bool>().unwrap();
+                if paused {
+                    player.play();
+                } else {
+                    player.pause();
+                }
+                pause_action.change_state(&(!paused).to_variant());
             }
-            pause_action.change_state(&(!paused).to_variant());
         }
     }
 
@@ -463,86 +507,99 @@ impl VideoPlayerInner {
     }
 
     pub fn prepare_video_overlay(&self) {
-        let video_window = &self.video_area;
-        let gdk_window = video_window.get_window().unwrap();
-        let video_overlay = &self.renderer;
-        if !gdk_window.ensure_native() {
-            println!("Can't create native window for widget");
-            process::exit(-1);
-        }
-
-        let display_type_name = gdk_window.get_display().get_type().name();
-
-        // Check if we're using X11 or ...
-        if cfg!(target_os = "linux") {
-            // Check if we're using X11 or ...
-            if display_type_name == "GdkX11Display" {
-                extern "C" {
-                    pub fn gdk_x11_window_get_xid(window: *mut glib::object::GObject) -> *mut c_void;
-                }
-
-                unsafe {
-                    let xid = gdk_x11_window_get_xid(gdk_window.to_glib_none().0);
-                    video_overlay.set_window_handle(xid as usize);
-                }
-            } else {
-                println!("Add support for display type '{}'", display_type_name);
+        if let Some(ref ctx) = self.player_context {
+            let video_window = &ctx.video_area;
+            let gdk_window = video_window.get_window().unwrap();
+            let video_overlay = &ctx.renderer;
+            if !gdk_window.ensure_native() {
+                println!("Can't create native window for widget");
                 process::exit(-1);
             }
-        } else if cfg!(target_os = "macos") {
-            if display_type_name == "GdkQuartzDisplay" {
-                extern "C" {
-                    pub fn gdk_quartz_window_get_nsview(window: *mut glib::object::GObject) -> *mut c_void;
-                }
 
-                unsafe {
-                    let window = gdk_quartz_window_get_nsview(gdk_window.to_glib_none().0);
-                    video_overlay.set_window_handle(window as usize);
+            let display_type_name = gdk_window.get_display().get_type().name();
+
+            // Check if we're using X11 or ...
+            if cfg!(target_os = "linux") {
+                // Check if we're using X11 or ...
+                if display_type_name == "GdkX11Display" {
+                    extern "C" {
+                        pub fn gdk_x11_window_get_xid(window: *mut glib::object::GObject) -> *mut c_void;
+                    }
+
+                    unsafe {
+                        let xid = gdk_x11_window_get_xid(gdk_window.to_glib_none().0);
+                        video_overlay.set_window_handle(xid as usize);
+                    }
+                } else {
+                    println!("Add support for display type '{}'", display_type_name);
+                    process::exit(-1);
                 }
-            } else {
-                println!("Unsupported display type '{}", display_type_name);
-                process::exit(-1);
+            } else if cfg!(target_os = "macos") {
+                if display_type_name == "GdkQuartzDisplay" {
+                    extern "C" {
+                        pub fn gdk_quartz_window_get_nsview(window: *mut glib::object::GObject) -> *mut c_void;
+                    }
+
+                    unsafe {
+                        let window = gdk_quartz_window_get_nsview(gdk_window.to_glib_none().0);
+                        video_overlay.set_window_handle(window as usize);
+                    }
+                } else {
+                    println!("Unsupported display type '{}", display_type_name);
+                    process::exit(-1);
+                }
             }
         }
     }
 
     fn draw_video_area(&self, cairo_context: &CairoContext) {
-        let video_window = &self.video_area;
-        let width = video_window.get_allocated_width();
-        let height = video_window.get_allocated_height();
+        if let Some(ref ctx) = self.player_context {
+            let video_window = &ctx.video_area;
+            let width = video_window.get_allocated_width();
+            let height = video_window.get_allocated_height();
 
-        // Paint some black borders
-        cairo_context.rectangle(0., 0., f64::from(width), f64::from(height));
-        cairo_context.fill();
+            // Paint some black borders
+            cairo_context.rectangle(0., 0., f64::from(width), f64::from(height));
+            cairo_context.fill();
+        }
     }
 
     fn resize_video_area(&self, event: &gdk::EventConfigure) {
-        let video_overlay = &self.renderer;
-        let (width, height) = event.get_size();
-        let (x, y) = event.get_position();
+        if let Some(ref ctx) = self.player_context {
+            let video_overlay = &ctx.renderer;
+            let (width, height) = event.get_size();
+            let (x, y) = event.get_position();
 
-        let player = &self.player;
-        if let Ok(video_track) = player.get_property("current-video-track") {
-            if let Some(video_track) = video_track.get::<gst_player::PlayerVideoInfo>() {
-                let video_width = video_track.get_width();
-                let video_height = video_track.get_height();
-                let src_rect = gst_video::VideoRectangle::new(0, 0, video_width, video_height);
+            let player = &ctx.player;
+            if let Ok(video_track) = player.get_property("current-video-track") {
+                if let Some(video_track) = video_track.get::<gst_player::PlayerVideoInfo>() {
+                    let video_width = video_track.get_width();
+                    let video_height = video_track.get_height();
+                    let src_rect = gst_video::VideoRectangle::new(0, 0, video_width, video_height);
 
-                let dst_rect = gst_video::VideoRectangle::new(x, y, width as i32, height as i32);
-                let rect = gst_video::center_video_rectangle(src_rect, dst_rect, true);
-                video_overlay.set_render_rectangle(rect.x, rect.y, rect.w, rect.h);
-                video_overlay.expose();
-                let video_window = &self.video_area;
-                video_window.queue_draw();
+                    let dst_rect = gst_video::VideoRectangle::new(x, y, width as i32, height as i32);
+                    let rect = gst_video::center_video_rectangle(src_rect, dst_rect, true);
+                    video_overlay.set_render_rectangle(rect.x, rect.y, rect.w, rect.h);
+                    video_overlay.expose();
+                    let video_window = &ctx.video_area;
+                    video_window.queue_draw();
+                }
             }
         }
     }
 
-    pub fn play_asset(&self, asset: &str) {
-        self.player
-            .set_property("uri", &glib::Value::from(&asset))
-            .unwrap();
-        self.player.play();
+    pub fn play_uri(&self, uri: &str) {
+        if let Some(ref ctx) = self.player_context {
+            let player = &ctx.player;
+
+            player.connect_uri_loaded(move |player, _| {
+                player.play();
+            });
+
+            player
+                .set_property("uri", &glib::Value::from(&uri))
+                .unwrap();
+        }
     }
 
     pub fn open_files(&mut self, files: &[gio::File]) {
@@ -554,20 +611,23 @@ impl VideoPlayerInner {
         }
 
         assert!(!files.is_empty());
-        self.play_asset(&*playlist[0]);
+        self.play_uri(&*playlist[0]);
 
         let inner_clone = SendCell::new(self.clone());
         let index_cell = RefCell::new(AtomicUsize::new(0));
-        self.player.connect_end_of_stream(move |_| {
-            let mut cell = index_cell.borrow_mut();
-            let index = cell.get_mut();
-            *index += 1;
-            if *index < playlist.len() {
-                let inner_clone = inner_clone.borrow();
-                inner_clone.play_asset(&*playlist[*index]);
-            }
-            // TODO: else quit?
-        });
+        if let Some(ref ctx) = self.player_context {
+            let player = &ctx.player;
+            player.connect_end_of_stream(move |_| {
+                let mut cell = index_cell.borrow_mut();
+                let index = cell.get_mut();
+                *index += 1;
+                if *index < playlist.len() {
+                    let inner_clone = inner_clone.borrow();
+                    inner_clone.play_uri(&*playlist[*index]);
+                }
+                // TODO: else quit?
+            });
+        }
     }
 }
 
