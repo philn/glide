@@ -43,6 +43,8 @@ struct VideoPlayerInner {
     fullscreen_action: gio::SimpleAction,
     restore_action: gio::SimpleAction,
     pause_action: gio::SimpleAction,
+    seek_forward_action: gio::SimpleAction,
+    seek_backward_action: gio::SimpleAction,
     pause_button: gtk::Button,
     seek_backward_button: gtk::Button,
     seek_forward_button: gtk::Button,
@@ -122,6 +124,12 @@ impl VideoPlayer {
         let pause_action = gio::SimpleAction::new_stateful("pause", None, &false.to_variant());
         gtk_app.add_action(&pause_action);
 
+        let seek_forward_action = gio::SimpleAction::new_stateful("seek-forward", None, &false.to_variant());
+        gtk_app.add_action(&seek_forward_action);
+
+        let seek_backward_action = gio::SimpleAction::new_stateful("seek-backward", None, &false.to_variant());
+        gtk_app.add_action(&seek_backward_action);
+
         let window = gtk::Window::new(gtk::WindowType::Toplevel);
         window.set_default_size(320, 240);
         window.set_resizable(true);
@@ -131,8 +139,12 @@ impl VideoPlayer {
         let toolbar_box = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
         let pause_button = gtk::Button::new();
+        let pause_actionable = pause_button.clone().upcast::<gtk::Actionable>();
+        pause_actionable.set_action_name("app.pause");
 
         let seek_backward_button = gtk::Button::new();
+        let seek_bw_actionable = seek_backward_button.clone().upcast::<gtk::Actionable>();
+        seek_bw_actionable.set_action_name("app.seek-backward");
         let backward_image = gtk::Image::new_from_icon_name(
             "media-seek-backward-symbolic",
             gtk::IconSize::SmallToolbar.into(),
@@ -140,6 +152,8 @@ impl VideoPlayer {
         seek_backward_button.set_image(&backward_image);
 
         let seek_forward_button = gtk::Button::new();
+        let seek_fw_actionable = seek_forward_button.clone().upcast::<gtk::Actionable>();
+        seek_fw_actionable.set_action_name("app.seek-forward");
         let forward_image = gtk::Image::new_from_icon_name(
             "media-seek-forward-symbolic",
             gtk::IconSize::SmallToolbar.into(),
@@ -177,6 +191,8 @@ impl VideoPlayer {
             fullscreen_action,
             restore_action,
             pause_action,
+            seek_forward_action,
+            seek_backward_action,
             seek_backward_button,
             seek_forward_button,
             pause_button,
@@ -195,6 +211,9 @@ impl VideoPlayer {
 
             app.set_accels_for_action("app.fullscreen", &*vec!["<Meta>f"]);
             app.set_accels_for_action("app.restore", &*vec!["Escape"]);
+            app.set_accels_for_action("app.pause", &*vec!["space"]);
+            app.set_accels_for_action("app.seek-forward", &*vec!["<Meta>Right"]);
+            app.set_accels_for_action("app.seek-backward", &*vec!["<Meta>Left"]);
         });
 
         gtk_app.connect_open(clone_army!([inner] move |app, files, _| {
@@ -212,24 +231,6 @@ impl VideoPlayer {
 
         if let Ok(inner) = inner.lock() {
             inner
-                .pause_button
-                .connect_clicked(clone_army!([inner] move |_| {
-                inner.toggle_pause();
-            }));
-
-            inner
-                .seek_backward_button
-                .connect_clicked(clone_army!([inner] move |_| {
-                inner.seek(&SeekDirection::Backward, SEEK_BACKWARD_OFFSET);
-            }));
-
-            inner
-                .seek_forward_button
-                .connect_clicked(clone_army!([inner] move |_| {
-                inner.seek(&SeekDirection::Forward, SEEK_FORWARD_OFFSET);
-                }));
-
-            inner
                 .fullscreen_action
                 .connect_change_state(clone_army!([inner, gtk_app] move |_, _| {
                 inner.enter_fullscreen(&gtk_app);
@@ -240,13 +241,6 @@ impl VideoPlayer {
                 .connect_change_state(clone_army!([inner, gtk_app] move |_, _| {
                 inner.leave_fullscreen(&gtk_app);
             }));
-
-            inner
-                .window
-                .connect_key_press_event(clone_army!([inner] move |_, key| {
-                    inner.handle_key_press(key);
-                    Inhibit(false)
-                }));
 
             inner
                 .window
@@ -306,6 +300,22 @@ impl VideoPlayer {
                         true
                     }));
             }
+
+            inner.pause_action.connect_change_state(clone_army!([inner] move |_, _| {
+                inner.toggle_pause();
+            }));
+
+            inner
+                .seek_forward_action
+                .connect_change_state(clone_army!([inner] move |_, _| {
+                    inner.seek(&SeekDirection::Forward, SEEK_FORWARD_OFFSET);
+                }));
+
+            inner
+                .seek_backward_action
+                .connect_change_state(clone_army!([inner] move |_, _| {
+                    inner.seek(&SeekDirection::Backward, SEEK_BACKWARD_OFFSET);
+                }));
 
             inner.start(app);
         }
@@ -406,21 +416,6 @@ impl VideoPlayerInner {
         }
     }
 
-    pub fn handle_key_press(&self, key: &gdk::EventKey) {
-        let keyval = key.get_keyval();
-        let keystate = key.get_state();
-
-        if keystate.intersects(gdk::ModifierType::META_MASK) {
-            if keyval == gdk::enums::key::Left {
-                self.seek(&SeekDirection::Backward, SEEK_BACKWARD_OFFSET);
-            } else if keyval == gdk::enums::key::Right {
-                self.seek(&SeekDirection::Forward, SEEK_FORWARD_OFFSET);
-            }
-        } else if keyval == gdk::enums::key::space {
-            self.toggle_pause();
-        }
-    }
-
     pub fn seek(&self, direction: &SeekDirection, offset: u64) {
         if let Some(ref ctx) = self.player_context {
             let player = &ctx.player;
@@ -460,7 +455,7 @@ impl VideoPlayerInner {
                 } else {
                     player.pause();
                 }
-                pause_action.change_state(&(!paused).to_variant());
+                pause_action.set_state(&(!paused).to_variant());
             }
         }
     }
