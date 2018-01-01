@@ -646,7 +646,7 @@ fn main() {
     #[cfg(target_os = "linux")]
     {
         // Force the gst-gl stack to call XInitThreads()...
-        let _sink = if let Some(gtkglsink) = gst::ElementFactory::make("gtkglsink", None) {
+        let _sink = if let Some(_gtkglsink) = gst::ElementFactory::make("gtkglsink", None) {
             let glsinkbin = gst::ElementFactory::make("glsinkbin", None).unwrap();
             glsinkbin
         } else {
