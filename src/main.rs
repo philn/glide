@@ -223,11 +223,12 @@ impl VideoPlayer {
             }));
             app.add_action(&quit);
 
-            app.set_accels_for_action("app.fullscreen", &*vec!["<Meta>f"]);
+            app.set_accels_for_action("app.quit", &*vec!["<Meta>q", "<Ctrl>q"]);
+            app.set_accels_for_action("app.fullscreen", &*vec!["<Meta>f", "<Alt>f"]);
             app.set_accels_for_action("app.restore", &*vec!["Escape"]);
             app.set_accels_for_action("app.pause", &*vec!["space"]);
-            app.set_accels_for_action("app.seek-forward", &*vec!["<Meta>Right"]);
-            app.set_accels_for_action("app.seek-backward", &*vec!["<Meta>Left"]);
+            app.set_accels_for_action("app.seek-forward", &*vec!["<Meta>Right", "<Alt>Right"]);
+            app.set_accels_for_action("app.seek-backward", &*vec!["<Meta>Left", "<Alt>Left"]);
 
             let menu = gio::Menu::new();
             let subtitles_menu = gio::Menu::new();
