@@ -193,7 +193,7 @@ impl VideoPlayer {
         let subtitle_track_menu = gio::Menu::new();
         let subtitle_action = gio::SimpleAction::new_stateful(
             "subtitle",
-            unsafe { glib::VariantTy::from_str_unchecked("s") },
+            glib::VariantTy::new("s").unwrap(),
             &"".to_variant(),
         );
         gtk_app.add_action(&subtitle_action);
@@ -201,7 +201,7 @@ impl VideoPlayer {
         let audio_track_menu = gio::Menu::new();
         let audio_track_action = gio::SimpleAction::new_stateful(
             "audio-track",
-            unsafe { glib::VariantTy::from_str_unchecked("s") },
+            glib::VariantTy::new("s").unwrap(),
             &"audio-0".to_variant(),
         );
         gtk_app.add_action(&audio_track_action);
