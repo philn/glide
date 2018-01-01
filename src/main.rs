@@ -16,6 +16,8 @@ extern crate closet;
 use cairo::Context as CairoContext;
 use gdk::prelude::*;
 use gio::prelude::*;
+use gio::MenuExt;
+use gio::MenuItemExt;
 use glib::translate::ToGlibPtr;
 use gst::prelude::*;
 use gtk::prelude::*;
@@ -45,12 +47,14 @@ struct VideoPlayerInner {
     pause_action: gio::SimpleAction,
     seek_forward_action: gio::SimpleAction,
     seek_backward_action: gio::SimpleAction,
+    subtitle_action: gio::SimpleAction,
     pause_button: gtk::Button,
     seek_backward_button: gtk::Button,
     seek_forward_button: gtk::Button,
     fullscreen_button: gtk::Button,
     progress_bar: gtk::Scale,
     toolbar_box: gtk::Box,
+    subtitle_track_menu: gio::Menu,
 }
 
 struct VideoPlayer {
@@ -184,6 +188,14 @@ impl VideoPlayer {
         main_box.pack_start(&toolbar_box, false, false, 10);
         window.add(&main_box);
 
+        let subtitle_track_menu = gio::Menu::new();
+        let subtitle_action = gio::SimpleAction::new_stateful(
+            "subtitle",
+            unsafe { glib::VariantTy::from_str_unchecked("s") },
+            &"".to_variant(),
+        );
+        gtk_app.add_action(&subtitle_action);
+
         let video_player = VideoPlayerInner {
             player_context: None,
             window,
@@ -193,16 +205,18 @@ impl VideoPlayer {
             pause_action,
             seek_forward_action,
             seek_backward_action,
+            subtitle_action,
             seek_backward_button,
             seek_forward_button,
             pause_button,
             fullscreen_button,
             progress_bar,
             toolbar_box,
+            subtitle_track_menu,
         };
         let inner = Arc::new(Mutex::new(video_player));
 
-        gtk_app.connect_startup(move |app| {
+        gtk_app.connect_startup(clone_army!([inner] move |app| {
             let quit = gio::SimpleAction::new("quit", None);
             quit.connect_activate(clone_army!([app] move |_, _| {
                 app.quit();
@@ -214,7 +228,18 @@ impl VideoPlayer {
             app.set_accels_for_action("app.pause", &*vec!["space"]);
             app.set_accels_for_action("app.seek-forward", &*vec!["<Meta>Right"]);
             app.set_accels_for_action("app.seek-backward", &*vec!["<Meta>Left"]);
-        });
+
+            let menu = gio::Menu::new();
+            let subtitles_menu = gio::Menu::new();
+            menu.append("Quit", "app.quit");
+
+            if let Ok(inner) = inner.lock() {
+                subtitles_menu.append_submenu("Subtitle track", &inner.subtitle_track_menu);
+            }
+            menu.append_submenu("Subtitles", &subtitles_menu);
+
+            app.set_menubar(&menu);
+        }));
 
         gtk_app.connect_open(clone_army!([inner] move |app, files, _| {
                 app.activate();
@@ -301,7 +326,9 @@ impl VideoPlayer {
                     }));
             }
 
-            inner.pause_action.connect_change_state(clone_army!([inner] move |_, _| {
+            inner
+                .pause_action
+                .connect_change_state(clone_army!([inner] move |_, _| {
                 inner.toggle_pause();
             }));
 
@@ -315,6 +342,24 @@ impl VideoPlayer {
                 .seek_backward_action
                 .connect_change_state(clone_army!([inner] move |_, _| {
                     inner.seek(&SeekDirection::Backward, SEEK_BACKWARD_OFFSET);
+                }));
+
+            inner
+                .subtitle_action
+                .connect_change_state(clone_army!([inner] move |action, value| {
+                    if let Some(val) = value.clone() {
+                        if let Some(idx) = val.get::<std::string::String>() {
+                            let (_prefix, idx) = idx.split_at(4);
+                            let idx = idx.parse::<i32>().unwrap();
+                            if let Some(ref ctx) = inner.player_context {
+                                ctx.player.set_subtitle_track_enabled(idx > -1);
+                                if idx >= 0 {
+                                    ctx.player.set_subtitle_track(idx).unwrap();
+                                }
+                                action.set_state(&val);
+                            }
+                        }
+                    }
                 }));
 
             inner.start(app);
@@ -333,15 +378,27 @@ impl VideoPlayerInner {
                     video_area.set_size_request(width, height);
                 });
 
+            let file_list = Arc::new(Mutex::new(vec![]));
+            let inner = SendCell::new(self.clone());
             let window_clone = SendCell::new(self.window.clone());
-            ctx.player.connect_media_info_updated(move |_, info| {
-                let window = window_clone.borrow();
-                if let Some(title) = info.get_title() {
-                    window.set_title(&*title);
-                } else {
-                    window.set_title(&*info.get_uri());
+            ctx.player
+                .connect_media_info_updated(clone_army!([file_list, inner] move |_, info| {
+                let uri = info.get_uri();
+                let mut file_list = file_list.lock().unwrap();
+                // Call this only once per asset.
+                if !&file_list.contains(&uri) {
+                    file_list.push(uri.clone());
+                    let window = window_clone.borrow();
+                    if let Some(title) = info.get_title() {
+                        window.set_title(&*title);
+                    } else {
+                        window.set_title(&*info.get_uri());
+                    }
+
+                    let inner = inner.borrow();
+                    inner.fill_subtitle_track_menu(info);
                 }
-            });
+            }));
 
             let pause_button_clone = SendCell::new(self.pause_button.clone());
             ctx.player.connect_state_changed(move |_, state| {
@@ -581,6 +638,27 @@ impl VideoPlayerInner {
                 }
             }
         }
+    }
+
+    pub fn fill_subtitle_track_menu(&self, info: &gst_player::PlayerMediaInfo) {
+        let mut i = 0;
+        let section = gio::Menu::new();
+
+        let item = gio::MenuItem::new(&*"Disable", &*"subtitle");
+        item.set_detailed_action("app.subtitle::sub--1");
+        section.append_item(&item);
+
+        for sub_stream in info.get_subtitle_streams() {
+            if let Some(lang) = sub_stream.get_language() {
+                let action_id = format!("app.subtitle::sub-{}", i);
+                let item = gio::MenuItem::new(&*lang, &*action_id);
+                item.set_detailed_action(&*action_id);
+                section.append_item(&item);
+                i += 1;
+            }
+        }
+        self.subtitle_track_menu.append_section(None, &section);
+        self.subtitle_action.change_state(&("sub--1").to_variant());
     }
 
     pub fn play_uri(&self, uri: &str) {
