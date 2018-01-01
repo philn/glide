@@ -48,6 +48,7 @@ struct VideoPlayerInner {
     seek_forward_action: gio::SimpleAction,
     seek_backward_action: gio::SimpleAction,
     subtitle_action: gio::SimpleAction,
+    audio_track_action: gio::SimpleAction,
     pause_button: gtk::Button,
     seek_backward_button: gtk::Button,
     seek_forward_button: gtk::Button,
@@ -55,6 +56,7 @@ struct VideoPlayerInner {
     progress_bar: gtk::Scale,
     toolbar_box: gtk::Box,
     subtitle_track_menu: gio::Menu,
+    audio_track_menu: gio::Menu,
 }
 
 struct VideoPlayer {
@@ -196,6 +198,14 @@ impl VideoPlayer {
         );
         gtk_app.add_action(&subtitle_action);
 
+        let audio_track_menu = gio::Menu::new();
+        let audio_track_action = gio::SimpleAction::new_stateful(
+            "audio-track",
+            unsafe { glib::VariantTy::from_str_unchecked("s") },
+            &"audio-0".to_variant(),
+        );
+        gtk_app.add_action(&audio_track_action);
+
         let video_player = VideoPlayerInner {
             player_context: None,
             window,
@@ -206,6 +216,7 @@ impl VideoPlayer {
             seek_forward_action,
             seek_backward_action,
             subtitle_action,
+            audio_track_action,
             seek_backward_button,
             seek_forward_button,
             pause_button,
@@ -213,6 +224,7 @@ impl VideoPlayer {
             progress_bar,
             toolbar_box,
             subtitle_track_menu,
+            audio_track_menu,
         };
         let inner = Arc::new(Mutex::new(video_player));
 
@@ -231,12 +243,16 @@ impl VideoPlayer {
             app.set_accels_for_action("app.seek-backward", &*vec!["<Meta>Left", "<Alt>Left"]);
 
             let menu = gio::Menu::new();
+            let audio_menu = gio::Menu::new();
             let subtitles_menu = gio::Menu::new();
             menu.append("Quit", "app.quit");
 
             if let Ok(inner) = inner.lock() {
                 subtitles_menu.append_submenu("Subtitle track", &inner.subtitle_track_menu);
+                audio_menu.append_submenu("Audio track", &inner.audio_track_menu);
             }
+
+            menu.append_submenu("Audio", &audio_menu);
             menu.append_submenu("Subtitles", &subtitles_menu);
 
             app.set_menubar(&menu);
@@ -363,6 +379,24 @@ impl VideoPlayer {
                     }
                 }));
 
+            inner
+                .audio_track_action
+                .connect_change_state(clone_army!([inner] move |action, value| {
+                    if let Some(val) = value.clone() {
+                        if let Some(idx) = val.get::<std::string::String>() {
+                            let (_prefix, idx) = idx.split_at(6);
+                            let idx = idx.parse::<i32>().unwrap();
+                            if let Some(ref ctx) = inner.player_context {
+                                ctx.player.set_audio_track_enabled(idx > -1);
+                                if idx >= 0 {
+                                    ctx.player.set_audio_track(idx).unwrap();
+                                }
+                                action.set_state(&val);
+                            }
+                        }
+                    }
+                }));
+
             inner.start(app);
         }
     }
@@ -398,6 +432,7 @@ impl VideoPlayerInner {
 
                     let inner = inner.borrow();
                     inner.fill_subtitle_track_menu(info);
+                    inner.fill_audio_track_menu(info);
                 }
             }));
 
@@ -660,6 +695,27 @@ impl VideoPlayerInner {
         }
         self.subtitle_track_menu.append_section(None, &section);
         self.subtitle_action.change_state(&("sub--1").to_variant());
+    }
+
+    pub fn fill_audio_track_menu(&self, info: &gst_player::PlayerMediaInfo) {
+        let mut i = 0;
+        let section = gio::Menu::new();
+
+        let item = gio::MenuItem::new(&*"Disable", &*"subtitle");
+        item.set_detailed_action("app.audio-track::audio--1");
+        section.append_item(&item);
+
+        for audio_stream in info.get_audio_streams() {
+            if let Some(lang) = audio_stream.get_language() {
+                let action_id = format!("app.audio-track::audio-{}", i);
+                let lang = format!("{} {} channels", lang, audio_stream.get_channels());
+                let item = gio::MenuItem::new(&*lang, &*action_id);
+                item.set_detailed_action(&*action_id);
+                section.append_item(&item);
+                i += 1;
+            }
+        }
+        self.audio_track_menu.append_section(None, &section);
     }
 
     pub fn play_uri(&self, uri: &str) {
