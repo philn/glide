@@ -1,9 +1,8 @@
 
-- subtitles selection
-- audio track selection
 - subtitle rendering customization (background opacity, text color)
 - subscene.com sub crawler
 - desktop integration (file browser mostly)
 - resume to last playback position
 - subtitle file drag&drop into window
+- audio/video offset config support
 - packaging
