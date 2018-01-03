@@ -558,7 +558,8 @@ impl VideoPlayerInner {
     pub fn start_autohide_toolbar(&self) {
         let toolbar = SendCell::new(self.toolbar_box.clone());
         let fullscreen_action = &self.fullscreen_action;
-        self.window.connect_motion_notify_event(clone_army!([toolbar, fullscreen_action] move |window, _| {
+        self.window
+            .connect_motion_notify_event(clone_army!([toolbar, fullscreen_action] move |window, _| {
             if let Some(is_fullscreen) = fullscreen_action.get_state() {
                 let fullscreen = is_fullscreen.get::<bool>().unwrap();
                 if fullscreen {
@@ -566,7 +567,6 @@ impl VideoPlayerInner {
                     toolbar.set_visible(true);
                     let gdk_window = window.get_window().unwrap();
                     gdk_window.set_cursor(None);
-                    println!("show again");
 
                     let inner_toolbar = SendCell::new(toolbar.clone());
                     let inner_window = SendCell::new(window.clone());
@@ -577,7 +577,6 @@ impl VideoPlayerInner {
                         let toolbar = inner_toolbar.borrow();
                         toolbar.set_visible(false);
                         gdk_window.set_cursor(Some(&cursor));
-                        println!("hide");
                         glib::Continue(false)
                     }));
                 }

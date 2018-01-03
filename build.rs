@@ -1,4 +1,3 @@
-
 fn main() {
     let target = std::env::var("TARGET").unwrap();
     if let Some(_) = target.find("linux") {
