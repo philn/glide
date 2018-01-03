@@ -42,7 +42,7 @@ struct PlayerContext {
 #[derive(Clone)]
 struct VideoPlayerInner {
     player_context: Option<PlayerContext>,
-    window: gtk::Window,
+    window: gtk::ApplicationWindow,
     main_box: gtk::Box,
     fullscreen_action: gio::SimpleAction,
     restore_action: gio::SimpleAction,
@@ -139,7 +139,7 @@ impl VideoPlayer {
         let seek_backward_action = gio::SimpleAction::new_stateful("seek-backward", None, &false.to_variant());
         gtk_app.add_action(&seek_backward_action);
 
-        let window = gtk::Window::new(gtk::WindowType::Toplevel);
+        let window = gtk::ApplicationWindow::new(gtk_app);
         window.set_default_size(320, 240);
         window.set_resizable(true);
 
@@ -209,6 +209,19 @@ impl VideoPlayer {
         );
         gtk_app.add_action(&audio_track_action);
 
+        let about = gio::SimpleAction::new("about", None);
+        about.connect_activate(clone_army!([window] move |_, _| {
+            let dialog = gtk::AboutDialog::new();
+            dialog.set_authors(&["Philippe Normand"]);
+            dialog.set_website_label(Some("base-art.net"));
+            dialog.set_website(Some("http://base-art.net"));
+            dialog.set_title("About");
+            dialog.set_transient_for(Some(&window));
+            dialog.run();
+            dialog.destroy();
+        }));
+        gtk_app.add_action(&about);
+
         let video_player = VideoPlayerInner {
             player_context: None,
             window,
@@ -237,21 +250,6 @@ impl VideoPlayer {
                 app.quit();
             }));
             app.add_action(&quit);
-
-            let about = gio::SimpleAction::new("about", None);
-            about.connect_activate(clone_army!([app] move |_, _| {
-                if let Some(window) = app.get_window_by_id(0) {
-                    let dialog = gtk::AboutDialog::new();
-                    dialog.set_authors(&["Philippe Normand"]);
-                    dialog.set_website_label(Some("base-art.net"));
-                    dialog.set_website(Some("http://base-art.net"));
-                    dialog.set_title("About");
-                    dialog.set_transient_for(Some(&window));
-                    dialog.run();
-                    dialog.destroy();
-                }
-            }));
-            app.add_action(&about);
 
             app.set_accels_for_action("app.quit", &*vec!["<Meta>q", "<Ctrl>q"]);
             app.set_accels_for_action("app.fullscreen", &*vec!["<Meta>f", "<Alt>f"]);
@@ -866,6 +864,7 @@ fn main() {
             .unwrap();
     }
 
+    glib::set_application_name("Glide");
     let app = VideoPlayer::new(&gtk_app);
     gtk_app.connect_activate(move |gtk_app| {
         app.start(gtk_app);
