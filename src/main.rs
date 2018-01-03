@@ -35,6 +35,7 @@ struct PlayerContext {
     player: gst_player::Player,
     renderer: gst_player::PlayerVideoOverlayVideoRenderer,
     video_area: gtk::Widget,
+    has_gtkgl: bool,
 }
 
 #[derive(Clone)]
@@ -85,18 +86,18 @@ lazy_static! {
 impl PlayerContext {
     pub fn new() -> Self {
         let dispatcher = gst_player::PlayerGMainContextSignalDispatcher::new(None);
-        let (sink, video_area) = if let Some(gtkglsink) = gst::ElementFactory::make("gtkglsink", None) {
+        let (sink, video_area, has_gtkgl) = if let Some(gtkglsink) = gst::ElementFactory::make("gtkglsink", None) {
             let glsinkbin = gst::ElementFactory::make("glsinkbin", None).unwrap();
             glsinkbin
                 .set_property("sink", &gtkglsink.to_value())
                 .unwrap();
 
             let widget = gtkglsink.get_property("widget").unwrap();
-            (glsinkbin, widget.get::<gtk::Widget>().unwrap())
+            (glsinkbin, widget.get::<gtk::Widget>().unwrap(), true)
         } else {
             let sink = gst::ElementFactory::make("glimagesink", None).unwrap();
             let widget = gtk::DrawingArea::new();
-            (sink, widget.upcast::<gtk::Widget>())
+            (sink, widget.upcast::<gtk::Widget>(), false)
         };
 
         let renderer1 = gst_player::PlayerVideoOverlayVideoRenderer::new_with_sink(&sink);
@@ -115,6 +116,7 @@ impl PlayerContext {
             player,
             renderer,
             video_area,
+            has_gtkgl,
         }
     }
 }
@@ -608,19 +610,21 @@ impl VideoPlayerInner {
 
             // Check if we're using X11 or ...
             if cfg!(target_os = "linux") {
-                // Check if we're using X11 or ...
-                if display_type_name == "GdkX11Display" {
-                    extern "C" {
-                        pub fn gdk_x11_window_get_xid(window: *mut glib::object::GObject) -> *mut c_void;
-                    }
+                if !ctx.has_gtkgl {
+                    // Check if we're using X11 or ...
+                    if display_type_name == "GdkX11Display" {
+                        extern "C" {
+                            pub fn gdk_x11_window_get_xid(window: *mut glib::object::GObject) -> *mut c_void;
+                        }
 
-                    unsafe {
-                        let xid = gdk_x11_window_get_xid(gdk_window.to_glib_none().0);
-                        video_overlay.set_window_handle(xid as usize);
+                        unsafe {
+                            let xid = gdk_x11_window_get_xid(gdk_window.to_glib_none().0);
+                            video_overlay.set_window_handle(xid as usize);
+                        }
+                    } else {
+                        println!("Add support for display type '{}'", display_type_name);
+                        process::exit(-1);
                     }
-                } else {
-                    println!("Add support for display type '{}'", display_type_name);
-                    process::exit(-1);
                 }
             } else if cfg!(target_os = "macos") {
                 if display_type_name == "GdkQuartzDisplay" {
