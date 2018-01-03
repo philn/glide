@@ -237,6 +237,21 @@ impl VideoPlayer {
             }));
             app.add_action(&quit);
 
+            let about = gio::SimpleAction::new("about", None);
+            about.connect_activate(clone_army!([app] move |_, _| {
+                if let Some(window) = app.get_window_by_id(0) {
+                    let dialog = gtk::AboutDialog::new();
+                    dialog.set_authors(&["Philippe Normand"]);
+                    dialog.set_website_label(Some("base-art.net"));
+                    dialog.set_website(Some("http://base-art.net"));
+                    dialog.set_title("About");
+                    dialog.set_transient_for(Some(&window));
+                    dialog.run();
+                    dialog.destroy();
+                }
+            }));
+            app.add_action(&about);
+
             app.set_accels_for_action("app.quit", &*vec!["<Meta>q", "<Ctrl>q"]);
             app.set_accels_for_action("app.fullscreen", &*vec!["<Meta>f", "<Alt>f"]);
             app.set_accels_for_action("app.restore", &*vec!["Escape"]);
@@ -248,6 +263,7 @@ impl VideoPlayer {
             let audio_menu = gio::Menu::new();
             let subtitles_menu = gio::Menu::new();
             menu.append("Quit", "app.quit");
+            menu.append("About", "app.about");
 
             if let Ok(inner) = inner.lock() {
                 subtitles_menu.append_submenu("Subtitle track", &inner.subtitle_track_menu);
