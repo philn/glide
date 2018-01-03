@@ -20,3 +20,4 @@ gtk = { version = "0.3.0", features = ["v3_12"] }
 send-cell = "0.1"
 lazy_static = "1.0"
 closet = "0.2.2"
+self_update = "0.4"

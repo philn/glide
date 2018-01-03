@@ -1,4 +1,6 @@
 extern crate cairo;
+#[macro_use]
+extern crate closet;
 extern crate gdk;
 extern crate gio;
 extern crate glib;
@@ -8,10 +10,9 @@ extern crate gstreamer_video as gst_video;
 extern crate gtk;
 #[macro_use]
 extern crate lazy_static;
-extern crate send_cell;
-
 #[macro_use]
-extern crate closet;
+extern crate self_update;
+extern crate send_cell;
 
 use cairo::Context as CairoContext;
 use gdk::prelude::*;
@@ -416,6 +417,11 @@ impl VideoPlayer {
                 }));
 
             inner.start(app);
+
+            match inner.check_update() {
+                Ok(o) => println!("Update succeeded: {}", o),
+                Err(e) => eprintln!("Update failed: {}", e),
+            };
         }
     }
 }
@@ -810,6 +816,21 @@ impl VideoPlayerInner {
                 // TODO: else quit?
             });
         }
+    }
+
+    pub fn check_update(&self) -> Result<self_update::Status, self_update::errors::Error> {
+        let target = self_update::get_target()?;
+        if let Ok(mut b) = self_update::backends::github::Update::configure() {
+            return b.repo_owner("philn")
+                .repo_name("glide")
+                .bin_name("glide")
+                .target(&target)
+                .current_version(cargo_crate_version!())
+                .build()?
+                .update();
+        }
+
+        Ok(self_update::Status::UpToDate(std::string::String::from("OK")))
     }
 }
 
