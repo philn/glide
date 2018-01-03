@@ -670,7 +670,7 @@ impl VideoPlayerInner {
                     let src_rect = gst_video::VideoRectangle::new(0, 0, video_width, video_height);
 
                     let dst_rect = gst_video::VideoRectangle::new(x, y, width as i32, height as i32);
-                    let rect = gst_video::center_video_rectangle(src_rect, dst_rect, true);
+                    let rect = gst_video::center_video_rectangle(&src_rect, &dst_rect, true);
                     video_overlay.set_render_rectangle(rect.x, rect.y, rect.w, rect.h);
                     video_overlay.expose();
                     let video_window = &ctx.video_area;
