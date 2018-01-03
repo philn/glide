@@ -555,21 +555,54 @@ impl VideoPlayerInner {
         }
     }
 
+    pub fn start_autohide_toolbar(&self) {
+        let toolbar = SendCell::new(self.toolbar_box.clone());
+        let fullscreen_action = &self.fullscreen_action;
+        self.window.connect_motion_notify_event(clone_army!([toolbar, fullscreen_action] move |window, _| {
+            if let Some(is_fullscreen) = fullscreen_action.get_state() {
+                let fullscreen = is_fullscreen.get::<bool>().unwrap();
+                if fullscreen {
+                    let toolbar = toolbar.borrow();
+                    toolbar.set_visible(true);
+                    let gdk_window = window.get_window().unwrap();
+                    gdk_window.set_cursor(None);
+                    println!("show again");
+
+                    let inner_toolbar = SendCell::new(toolbar.clone());
+                    let inner_window = SendCell::new(window.clone());
+                    glib::timeout_add_seconds(5, clone_army!([inner_window, inner_toolbar] move || {
+                        let cursor = gdk::Cursor::new(gdk::CursorType::BlankCursor);
+                        let window = inner_window.borrow();
+                        let gdk_window = window.get_window().unwrap();
+                        let toolbar = inner_toolbar.borrow();
+                        toolbar.set_visible(false);
+                        gdk_window.set_cursor(Some(&cursor));
+                        println!("hide");
+                        glib::Continue(false)
+                    }));
+                }
+            }
+            gtk::Inhibit(false)
+        }));
+    }
+
     pub fn enter_fullscreen(&self, app: &gtk::Application) {
         let fullscreen_action = &self.fullscreen_action;
         if let Some(is_fullscreen) = fullscreen_action.get_state() {
             let fullscreen = is_fullscreen.get::<bool>().unwrap();
             if !fullscreen {
                 let window = &self.window;
-                let gdk_window = window.get_window().unwrap();
                 let flags = gtk::ApplicationInhibitFlags::SUSPEND | gtk::ApplicationInhibitFlags::IDLE;
                 *INHIBIT_COOKIE.lock().unwrap() = Some(app.inhibit(window, flags, None));
                 *INITIAL_SIZE.lock().unwrap() = Some(window.get_size());
                 *INITIAL_POSITION.lock().unwrap() = Some(window.get_position());
-                let cursor = gdk::Cursor::new(gdk::CursorType::BlankCursor);
                 window.fullscreen();
-                gdk_window.set_cursor(Some(&cursor));
+                let cursor = gdk::Cursor::new(gdk::CursorType::BlankCursor);
+                let gdk_window = window.get_window().unwrap();
                 self.toolbar_box.set_visible(false);
+                gdk_window.set_cursor(Some(&cursor));
+                self.start_autohide_toolbar();
+
                 fullscreen_action.set_state(&true.to_variant());
             }
         }
