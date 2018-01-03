@@ -828,7 +828,9 @@ impl VideoPlayerInner {
                 .update();
         }
 
-        Ok(self_update::Status::UpToDate(std::string::String::from("OK")))
+        Ok(self_update::Status::UpToDate(std::string::String::from(
+            "OK",
+        )))
     }
 }
 
