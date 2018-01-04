@@ -42,7 +42,7 @@ struct PlayerContext {
 #[derive(Clone)]
 struct VideoPlayerInner {
     player_context: Option<PlayerContext>,
-    window: gtk::ApplicationWindow,
+    window: gtk::Window,
     main_box: gtk::Box,
     fullscreen_action: gio::SimpleAction,
     restore_action: gio::SimpleAction,
@@ -139,7 +139,7 @@ impl VideoPlayer {
         let seek_backward_action = gio::SimpleAction::new_stateful("seek-backward", None, &false.to_variant());
         gtk_app.add_action(&seek_backward_action);
 
-        let window = gtk::ApplicationWindow::new(gtk_app);
+        let window = gtk::Window::new(gtk::WindowType::Toplevel);
         window.set_default_size(320, 240);
         window.set_resizable(true);
 
