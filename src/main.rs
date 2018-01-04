@@ -24,6 +24,7 @@ use gst::prelude::*;
 use gtk::prelude::*;
 use send_cell::SendCell;
 use std::cell::RefCell;
+use std::cmp;
 use std::env;
 use std::os::raw::c_void;
 use std::process;
@@ -432,6 +433,12 @@ impl VideoPlayerInner {
             ctx.player
                 .connect_video_dimensions_changed(move |_, width, height| {
                     let video_area = video_area_clone.borrow();
+                    let mut width = width;
+                    let mut height = height;
+                    if let Some(screen) = gdk::Screen::get_default() {
+                        width = cmp::max(width, screen.get_width());
+                        height = cmp::max(height, screen.get_height() - 100);
+                    }
                     video_area.set_size_request(width, height);
                 });
 
