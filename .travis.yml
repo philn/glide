@@ -93,6 +93,12 @@ matrix:
 before_install:
   - set -e
   - rustup self update
+  - |
+    # Update Homebrew on macOS and install some deps.
+    if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      brew update
+      brew install gtk+3 gst-plugins-base gst-plugins-bad
+    fi
 
 install:
   - sh ci/install.sh
