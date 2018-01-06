@@ -1,14 +1,18 @@
 extern crate cairo;
+extern crate gdk;
 extern crate glib;
 extern crate gstreamer as gst;
 extern crate gstreamer_player as gst_player;
 extern crate gstreamer_video as gst_video;
 extern crate gtk;
+extern crate send_cell;
 
 use cairo::Context as CairoContext;
 use gdk::prelude::*;
 use glib::translate::ToGlibPtr;
 use gtk::prelude::*;
+use send_cell::SendCell;
+use std::cmp;
 use std::os::raw::c_void;
 use std::process;
 
@@ -20,6 +24,16 @@ pub struct PlayerContext {
     pub renderer: gst_player::PlayerVideoOverlayVideoRenderer,
     pub video_area: gtk::Widget,
     pub has_gtkgl: bool,
+}
+
+pub fn resize_video_area(video_area: &gtk::Widget, width: i32, height: i32) {
+    let mut width = width;
+    let mut height = height;
+    if let Some(screen) = gdk::Screen::get_default() {
+        width = cmp::max(width, screen.get_width());
+        height = cmp::max(height, screen.get_height() - 100);
+    }
+    video_area.set_size_request(width, height);
 }
 
 impl PlayerContext {
@@ -50,6 +64,12 @@ impl PlayerContext {
         let mut config = player.get_config();
         config.set_position_update_interval(250);
         player.set_config(config).unwrap();
+
+        let video_area_clone = SendCell::new(video_area.clone());
+        player.connect_video_dimensions_changed(move |_, width, height| {
+            let video_area = video_area_clone.borrow();
+            resize_video_area(&video_area, width, height);
+        });
 
         PlayerContext {
             player,

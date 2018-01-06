@@ -5,8 +5,10 @@ extern crate gtk;
 extern crate send_cell;
 
 use gdk::prelude::*;
+#[allow(unused_imports)]
 use gio::prelude::*;
 use gtk::prelude::*;
+#[allow(unused_imports)]
 use send_cell::SendCell;
 
 use common::{INHIBIT_COOKIE, INITIAL_POSITION, INITIAL_SIZE};
@@ -91,6 +93,7 @@ impl UIContext {
         }
     }
 
+    #[cfg(target_os = "linux")]
     pub fn start_autohide_toolbar(&self, fullscreen_action: &gio::SimpleAction) {
         let toolbar = SendCell::new(self.toolbar_box.clone());
         self.window
@@ -126,11 +129,11 @@ impl UIContext {
         *INHIBIT_COOKIE.lock().unwrap() = Some(app.inhibit(window, flags, None));
         *INITIAL_SIZE.lock().unwrap() = Some(window.get_size());
         *INITIAL_POSITION.lock().unwrap() = Some(window.get_position());
+        window.set_show_menubar(false);
+        self.toolbar_box.set_visible(false);
         window.fullscreen();
         let cursor = gdk::Cursor::new(gdk::CursorType::BlankCursor);
         let gdk_window = window.get_window().unwrap();
-        window.set_show_menubar(false);
-        self.toolbar_box.set_visible(false);
         gdk_window.set_cursor(Some(&cursor));
     }
 
@@ -144,7 +147,6 @@ impl UIContext {
         window.unfullscreen();
         self.toolbar_box.set_visible(true);
         window.set_show_menubar(true);
-        window.present();
         gdk_window.set_cursor(None);
     }
 }

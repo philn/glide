@@ -23,15 +23,15 @@ use gst::prelude::*;
 use gtk::prelude::*;
 use send_cell::SendCell;
 use std::cell::RefCell;
-use std::cmp;
 use std::env;
+#[allow(unused_imports)]
 use std::os::raw::c_void;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicUsize;
 
 mod player_context;
-use player_context::PlayerContext;
+use player_context::{resize_video_area, PlayerContext};
 
 mod ui_context;
 use ui_context::UIContext;
@@ -331,20 +331,6 @@ impl VideoPlayer {
 impl VideoPlayerInner {
     pub fn setup(&self, gtk_app: &gtk::Application) {
         if let Some(ref ctx) = self.player_context {
-            let video_area = &ctx.video_area;
-            let video_area_clone = SendCell::new(video_area.clone());
-            ctx.player
-                .connect_video_dimensions_changed(move |_, width, height| {
-                    let video_area = video_area_clone.borrow();
-                    let mut width = width;
-                    let mut height = height;
-                    if let Some(screen) = gdk::Screen::get_default() {
-                        width = cmp::max(width, screen.get_width());
-                        height = cmp::max(height, screen.get_height() - 100);
-                    }
-                    video_area.set_size_request(width, height);
-                });
-
             let file_list = Arc::new(Mutex::new(vec![]));
             let inner = SendCell::new(self.clone());
             if let Some(ref ui_ctx) = self.ui_context {
@@ -468,7 +454,21 @@ impl VideoPlayerInner {
             if !fullscreen {
                 if let Some(ref ui_ctx) = self.ui_context {
                     ui_ctx.enter_fullscreen(app);
+
+                    #[cfg(target_os = "linux")]
                     ui_ctx.start_autohide_toolbar(&self.fullscreen_action);
+
+                    #[cfg(target_os = "macos")]
+                    {
+                        if let Some(ref player_ctx) = self.player_context {
+                            if let Some(screen) = gdk::Screen::get_default() {
+                                player_ctx
+                                    .video_area
+                                    .set_size_request(screen.get_width(), screen.get_height());
+                            }
+                        }
+                    }
+
                     fullscreen_action.set_state(&true.to_variant());
                 }
             }
@@ -484,6 +484,14 @@ impl VideoPlayerInner {
                 if let Some(ref ui_ctx) = self.ui_context {
                     ui_ctx.leave_fullscreen(app);
                     fullscreen_action.set_state(&false.to_variant());
+                }
+
+                if let Some(ref player_ctx) = self.player_context {
+                    if let Some(video_track) = player_ctx.player.get_current_video_track() {
+                        let width = video_track.get_width();
+                        let height = video_track.get_height();
+                        resize_video_area(&player_ctx.video_area, width, height);
+                    }
                 }
             }
         }
