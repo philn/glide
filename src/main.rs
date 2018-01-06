@@ -15,6 +15,7 @@ extern crate self_update;
 extern crate send_cell;
 
 use cairo::Context as CairoContext;
+#[allow(unused_imports)]
 use gdk::prelude::*;
 use gio::prelude::*;
 use gio::MenuExt;
