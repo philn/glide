@@ -51,6 +51,7 @@ struct VideoPlayerInner {
     seek_backward_action: gio::SimpleAction,
     subtitle_action: gio::SimpleAction,
     audio_track_action: gio::SimpleAction,
+    open_subtitle_file_action: gio::SimpleAction,
     subtitle_track_menu: gio::Menu,
     audio_track_menu: gio::Menu,
 }
@@ -79,6 +80,9 @@ impl VideoPlayer {
         let seek_backward_action = gio::SimpleAction::new_stateful("seek-backward", None, &false.to_variant());
         gtk_app.add_action(&seek_backward_action);
 
+        let open_subtitle_file_action = gio::SimpleAction::new("open-subtitle-file", None);
+        gtk_app.add_action(&open_subtitle_file_action);
+
         let subtitle_track_menu = gio::Menu::new();
         let subtitle_action = gio::SimpleAction::new_stateful(
             "subtitle",
@@ -105,6 +109,7 @@ impl VideoPlayer {
             seek_backward_action,
             subtitle_action,
             audio_track_action,
+            open_subtitle_file_action,
             subtitle_track_menu,
             audio_track_menu,
         };
@@ -141,6 +146,7 @@ impl VideoPlayer {
             app.set_accels_for_action("app.pause", &*vec!["space"]);
             app.set_accels_for_action("app.seek-forward", &*vec!["<Meta>Right", "<Alt>Right"]);
             app.set_accels_for_action("app.seek-backward", &*vec!["<Meta>Left", "<Alt>Left"]);
+            app.set_accels_for_action("app.open-subtitle-file", &*vec!["<Meta>s", "<Alt>s"]);
 
             let menu = gio::Menu::new();
             let audio_menu = gio::Menu::new();
@@ -152,6 +158,7 @@ impl VideoPlayer {
             }
 
             if let Ok(mut inner) = inner.lock() {
+                subtitles_menu.append("Load a subtitle file", "app.open-subtitle-file");
                 subtitles_menu.append_submenu("Subtitle track", &inner.subtitle_track_menu);
                 audio_menu.append_submenu("Audio track", &inner.audio_track_menu);
                 inner.ui_context = Some(UIContext::new(app));
@@ -312,6 +319,30 @@ impl VideoPlayer {
                             }
                         }
                     }
+                }));
+
+            inner
+                .open_subtitle_file_action
+                .connect_activate(clone_army!([inner] move |_, _| {
+                        if let Some(ref ui_ctx) = inner.ui_context {
+                            let dialog = gtk::FileChooserDialog::new(Some("Choose a file"), Some(&ui_ctx.window),
+                                                                     gtk::FileChooserAction::Open);
+                            dialog.add_buttons(&[
+                                ("Open", gtk::ResponseType::Ok.into()),
+                                ("Cancel", gtk::ResponseType::Cancel.into())
+                            ]);
+
+                            dialog.set_select_multiple(true);
+                            dialog.run();
+
+                            if let Some(uri) = dialog.get_uri() {
+                                if let Some(ref player_ctx) = inner.player_context {
+                                    player_ctx.player.set_subtitle_uri(&uri);
+                                    player_ctx.player.set_subtitle_track_enabled(true);
+                                }
+                            }
+                            dialog.destroy();
+                        }
                 }));
 
             inner.start();
