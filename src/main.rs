@@ -144,8 +144,11 @@ impl VideoPlayer {
             let menu = gio::Menu::new();
             let audio_menu = gio::Menu::new();
             let subtitles_menu = gio::Menu::new();
-            menu.append("Quit", "app.quit");
-            menu.append("About", "app.about");
+
+            if cfg!(not(target_os = "linux")) {
+                menu.append("Quit", "app.quit");
+                menu.append("About", "app.about");
+            }
 
             if let Ok(mut inner) = inner.lock() {
                 subtitles_menu.append_submenu("Subtitle track", &inner.subtitle_track_menu);
@@ -156,6 +159,13 @@ impl VideoPlayer {
             menu.append_submenu("Audio", &audio_menu);
             menu.append_submenu("Subtitles", &subtitles_menu);
 
+            if cfg!(target_os = "linux") {
+                let app_menu = gio::Menu::new();
+                // Only static menus here.
+                app_menu.append("Quit", "app.quit");
+                app_menu.append("About", "app.about");
+                app.set_app_menu(&app_menu);
+            }
             app.set_menubar(&menu);
         }));
 
