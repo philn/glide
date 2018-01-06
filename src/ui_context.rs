@@ -129,6 +129,7 @@ impl UIContext {
         window.fullscreen();
         let cursor = gdk::Cursor::new(gdk::CursorType::BlankCursor);
         let gdk_window = window.get_window().unwrap();
+        window.set_show_menubar(false);
         self.toolbar_box.set_visible(false);
         gdk_window.set_cursor(Some(&cursor));
     }
@@ -142,6 +143,7 @@ impl UIContext {
         }
         window.unfullscreen();
         self.toolbar_box.set_visible(true);
+        window.set_show_menubar(true);
         window.present();
         gdk_window.set_cursor(None);
     }
