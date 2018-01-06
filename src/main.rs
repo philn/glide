@@ -316,7 +316,12 @@ impl VideoPlayer {
             inner.start();
 
             match inner.check_update() {
-                Ok(o) => println!("Update succeeded: {}", o),
+                Ok(o) => {
+                    match o {
+                        self_update::Status::UpToDate(_version) => {},
+                        _ => println!("Update succeeded: {}", o),
+                    };
+                },
                 Err(e) => eprintln!("Update failed: {}", e),
             };
         }
