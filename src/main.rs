@@ -52,6 +52,9 @@ struct VideoPlayerInner {
     subtitle_action: gio::SimpleAction,
     audio_track_action: gio::SimpleAction,
     open_subtitle_file_action: gio::SimpleAction,
+    audio_mute_action: gio::SimpleAction,
+    volume_increase_action: gio::SimpleAction,
+    volume_decrease_action: gio::SimpleAction,
     subtitle_track_menu: gio::Menu,
     audio_track_menu: gio::Menu,
 }
@@ -83,6 +86,17 @@ impl VideoPlayer {
         let open_subtitle_file_action = gio::SimpleAction::new("open-subtitle-file", None);
         gtk_app.add_action(&open_subtitle_file_action);
 
+        let audio_mute_action = gio::SimpleAction::new_stateful("audio-mute", None, &false.to_variant());
+        gtk_app.add_action(&audio_mute_action);
+
+        let volume_increase_action =
+            gio::SimpleAction::new_stateful("audio-volume-increase", None, &false.to_variant());
+        gtk_app.add_action(&volume_increase_action);
+
+        let volume_decrease_action =
+            gio::SimpleAction::new_stateful("audio-volume-decrease", None, &false.to_variant());
+        gtk_app.add_action(&volume_decrease_action);
+
         let subtitle_track_menu = gio::Menu::new();
         let subtitle_action = gio::SimpleAction::new_stateful(
             "subtitle",
@@ -110,6 +124,9 @@ impl VideoPlayer {
             subtitle_action,
             audio_track_action,
             open_subtitle_file_action,
+            audio_mute_action,
+            volume_increase_action,
+            volume_decrease_action,
             subtitle_track_menu,
             audio_track_menu,
         };
@@ -147,6 +164,9 @@ impl VideoPlayer {
             app.set_accels_for_action("app.seek-forward", &*vec!["<Meta>Right", "<Alt>Right"]);
             app.set_accels_for_action("app.seek-backward", &*vec!["<Meta>Left", "<Alt>Left"]);
             app.set_accels_for_action("app.open-subtitle-file", &*vec!["<Meta>s", "<Alt>s"]);
+            app.set_accels_for_action("app.audio-volume-increase", &*vec!["<Meta>Up", "<Alt>Up"]);
+            app.set_accels_for_action("app.audio-volume-decrease", &*vec!["<Meta>Down", "<Alt>Down"]);
+            app.set_accels_for_action("app.audio-mute", &*vec!["<Meta>m", "<Alt>m"]);
 
             let menu = gio::Menu::new();
             let audio_menu = gio::Menu::new();
@@ -158,8 +178,11 @@ impl VideoPlayer {
             }
 
             if let Ok(mut inner) = inner.lock() {
-                subtitles_menu.append("Load a subtitle file", "app.open-subtitle-file");
+                subtitles_menu.append("Add subtitle file...", "app.open-subtitle-file");
                 subtitles_menu.append_submenu("Subtitle track", &inner.subtitle_track_menu);
+                audio_menu.append("Increase Volume", "app.audio-volume-increase");
+                audio_menu.append("Decrease Volume", "app.audio-volume-decrease");
+                audio_menu.append("Mute", "app.audio-mute");
                 audio_menu.append_submenu("Audio track", &inner.audio_track_menu);
                 inner.ui_context = Some(UIContext::new(app));
             }
@@ -277,14 +300,32 @@ impl VideoPlayer {
             inner
                 .fullscreen_action
                 .connect_change_state(clone_army!([inner, app] move |_, _| {
-                        inner.enter_fullscreen(&app);
+                    inner.enter_fullscreen(&app);
                 }));
 
             inner
                 .restore_action
                 .connect_change_state(clone_army!([inner, app] move |_, _| {
-                        inner.leave_fullscreen(&app);
+                    inner.leave_fullscreen(&app);
                 }));
+
+            inner
+                .volume_decrease_action
+                .connect_change_state(clone_army!([inner] move |_, _| {
+                    inner.decrease_volume();
+                }));
+
+            inner
+                .volume_increase_action
+                .connect_change_state(clone_army!([inner] move |_, _| {
+                    inner.increase_volume();
+                }));
+
+            inner
+                .audio_mute_action
+                .connect_change_state(clone_army!([inner] move |_, _| {
+                inner.toggle_mute();
+            }));
 
             inner
                 .subtitle_action
@@ -466,6 +507,29 @@ impl VideoPlayerInner {
     pub fn seek(&self, direction: &SeekDirection, offset: u64) {
         if let Some(ref ctx) = self.player_context {
             ctx.seek(direction, offset);
+        }
+    }
+
+    pub fn increase_volume(&self) {
+        if let Some(ref ctx) = self.player_context {
+            ctx.increase_volume();
+        }
+    }
+
+    pub fn decrease_volume(&self) {
+        if let Some(ref ctx) = self.player_context {
+            ctx.decrease_volume();
+        }
+    }
+
+    pub fn toggle_mute(&self) {
+        if let Some(ref ctx) = self.player_context {
+            let mute_action = &self.audio_mute_action;
+            if let Some(is_enabled) = mute_action.get_state() {
+                let enabled = is_enabled.get::<bool>().unwrap();
+                ctx.toggle_mute(!enabled);
+                mute_action.set_state(&(!enabled).to_variant());
+            }
         }
     }
 

@@ -89,6 +89,30 @@ impl PlayerContext {
             .unwrap();
     }
 
+    pub fn increase_volume(&self) {
+        let value = self.player.get_volume();
+        let offset = 0.07;
+        if value + offset < 1.0 {
+            self.player.set_volume(value + offset);
+        } else {
+            self.player.set_volume(1.0);
+        }
+    }
+
+    pub fn decrease_volume(&self) {
+        let value = self.player.get_volume();
+        let offset = 0.07;
+        if value >= offset {
+            self.player.set_volume(value - offset);
+        } else {
+            self.player.set_volume(0.0);
+        }
+    }
+
+    pub fn toggle_mute(&self, enabled: bool) {
+        self.player.set_mute(enabled);
+    }
+
     pub fn toggle_pause(&self, currently_paused: bool) {
         if currently_paused {
             self.player.play();
