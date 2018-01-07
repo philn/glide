@@ -1,6 +1,8 @@
 extern crate cairo;
 #[macro_use]
 extern crate closet;
+extern crate dirs;
+extern crate failure;
 extern crate gdk;
 extern crate gio;
 extern crate glib;
@@ -13,6 +15,8 @@ extern crate lazy_static;
 #[macro_use]
 extern crate self_update;
 extern crate send_cell;
+#[macro_use]
+extern crate serde_derive;
 
 use cairo::Context as CairoContext;
 #[allow(unused_imports)]
@@ -153,7 +157,12 @@ impl VideoPlayer {
         gtk_app.connect_startup(clone_army!([inner] move |app| {
 
             let quit = gio::SimpleAction::new("quit", None);
-            quit.connect_activate(clone_army!([app] move |_, _| {
+            quit.connect_activate(clone_army!([app, inner] move |_, _| {
+                if let Ok(inner) = inner.lock() {
+                    if let Some(ref player_ctx) = inner.player_context {
+                        player_ctx.write_last_known_media_position();
+                    }
+                }
                 app.quit();
             }));
             app.add_action(&quit);

@@ -1,17 +1,30 @@
 extern crate cairo;
+extern crate dirs;
 extern crate gdk;
 extern crate glib;
 extern crate gstreamer as gst;
 extern crate gstreamer_player as gst_player;
 extern crate gstreamer_video as gst_video;
 extern crate gtk;
+extern crate serde_json;
+extern crate sha2;
 
 use cairo::Context as CairoContext;
+use dirs::Directories;
+use failure::Error;
 use gdk::prelude::*;
 use glib::translate::ToGlibPtr;
 use gtk::prelude::*;
+use std::default::Default;
+use self::sha2::{Digest, Sha256};
+use std::collections::HashMap;
 use std::os::raw::c_void;
+use std::fs::File;
+use std::fs::create_dir_all;
+use std::io::Read;
+use std::io::Write;
 use std::process;
+use std::string;
 
 use common::SeekDirection;
 
@@ -21,6 +34,53 @@ pub struct PlayerContext {
     pub renderer: gst_player::PlayerVideoOverlayVideoRenderer,
     pub video_area: gtk::Widget,
     pub has_gtkgl: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct MediaCache {
+    files: HashMap<string::String, u64>,
+}
+
+fn parse_media_cache() -> Result<MediaCache, Error> {
+    let d = Directories::with_prefix("glide", "Glide")?;
+    create_dir_all(d.cache_home())?;
+    let mut file = File::open(d.cache_home().join("media-cache.json"))?;
+    let mut data = String::new();
+    file.read_to_string(&mut data).unwrap();
+
+    let json: MediaCache = serde_json::from_str(&data)?;
+    Ok(json)
+}
+
+fn write_cache_to_file(data: &MediaCache) -> Result<(), Error> {
+    let d = Directories::with_prefix("glide", "Glide")?;
+    create_dir_all(d.cache_home())?;
+    let mut file = File::create(d.cache_home().join("media-cache.json"))?;
+
+    let json = serde_json::to_string(&data)?;
+    file.write_all(json.as_bytes())?;
+    file.sync_all()?;
+    Ok(())
+}
+
+fn uri_to_sha1(uri: &str) -> string::String {
+    let mut sh = Sha256::default();
+    sh.input(uri.as_bytes());
+    let mut s = string::String::new();
+    for byte in sh.result() {
+        s.push_str(&*format!("{:02x}", byte));
+    }
+    s
+}
+
+fn find_last_position(uri: &str) -> gst::ClockTime {
+    let id = uri_to_sha1(&string::String::from(uri));
+    if let Ok(mut data) = parse_media_cache() {
+        if let Some(position) = data.files.get_mut(&id) {
+            return gst::ClockTime::from_nseconds(*position);
+        }
+    }
+    gst::ClockTime::none()
 }
 
 impl PlayerContext {
@@ -47,6 +107,18 @@ impl PlayerContext {
             Some(&dispatcher.upcast::<gst_player::PlayerSignalDispatcher>()),
         );
 
+        player.connect_end_of_stream(move |player| {
+            if let Some(uri) = player.get_uri() {
+                let id = uri_to_sha1(&uri);
+                if let Ok(mut d) = parse_media_cache() {
+                    if d.files.contains_key(&id) {
+                        d.files.remove(&id);
+                        write_cache_to_file(&d).unwrap();
+                    }
+                }
+            }
+        });
+
         // Get position updates every 250ms.
         let mut config = player.get_config();
         config.set_position_update_interval(250);
@@ -61,13 +133,48 @@ impl PlayerContext {
     }
 
     pub fn play_uri(&self, uri: &str) {
-        self.player.connect_uri_loaded(move |player, _| {
+        self.player.connect_uri_loaded(move |player, uri| {
+            let position = find_last_position(uri);
+            if position != gst::ClockTime::none() {
+                player.seek(position);
+            }
             player.play();
         });
 
         self.player
             .set_property("uri", &glib::Value::from(&uri))
             .unwrap();
+    }
+
+    pub fn write_last_known_media_position(&self) {
+        if let Some(uri) = self.player.get_uri() {
+            let id = uri_to_sha1(&uri);
+            let mut position = 0;
+            if let Some(p) = self.player.get_position().nanoseconds() {
+                position = p;
+            }
+            #[allow(unused_assignments)]
+            let mut data = None;
+            if let Ok(mut d) = parse_media_cache() {
+                if d.files.contains_key(&id) {
+                    if let Some(item) = d.files.get_mut(&id) {
+                        *item = position;
+                    }
+                } else {
+                    d.files.insert(id, position);
+                }
+                data = Some(d);
+            } else {
+                let mut cache = MediaCache {
+                    files: HashMap::new(),
+                };
+                cache.files.insert(id, position);
+                data = Some(cache);
+            }
+            if let Some(d) = data {
+                write_cache_to_file(&d).unwrap();
+            }
+        }
     }
 
     pub fn increase_volume(&self) {
