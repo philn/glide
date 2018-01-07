@@ -236,7 +236,8 @@ impl VideoPlayer {
                         .progress_bar
                         .connect_format_value(clone_army!([ctx] move |_, _| -> std::string::String {
                             let position = ctx.player.get_position();
-                            format!("{:.0}", position)
+                            let duration = ctx.player.get_duration();
+                            format!("{:.0} / {:.0}", position, duration)
                         }));
                 }
 
