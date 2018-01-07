@@ -29,8 +29,7 @@ pub struct UIContext {
 impl UIContext {
     pub fn new(gtk_app: &gtk::Application) -> Self {
         let window = gtk::ApplicationWindow::new(gtk_app);
-        window.set_default_size(320, 240);
-        window.set_resizable(true);
+        window.set_default_size(640, 480);
 
         let main_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
 
