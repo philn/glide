@@ -30,8 +30,8 @@ pub fn resize_video_area(video_area: &gtk::Widget, width: i32, height: i32) {
     let mut width = width;
     let mut height = height;
     if let Some(screen) = gdk::Screen::get_default() {
-        width = cmp::max(width, screen.get_width());
-        height = cmp::max(height, screen.get_height() - 100);
+        width = cmp::min(width, screen.get_width());
+        height = cmp::min(height, screen.get_height() - 100);
     }
     video_area.set_size_request(width, height);
 }
