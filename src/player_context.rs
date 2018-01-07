@@ -63,7 +63,7 @@ fn write_cache_to_file(data: &MediaCache) -> Result<(), Error> {
     Ok(())
 }
 
-fn uri_to_sha1(uri: &str) -> string::String {
+fn uri_to_sha256(uri: &str) -> string::String {
     let mut sh = Sha256::default();
     sh.input(uri.as_bytes());
     let mut s = string::String::new();
@@ -74,7 +74,7 @@ fn uri_to_sha1(uri: &str) -> string::String {
 }
 
 fn find_last_position(uri: &str) -> gst::ClockTime {
-    let id = uri_to_sha1(&string::String::from(uri));
+    let id = uri_to_sha256(&string::String::from(uri));
     if let Ok(mut data) = parse_media_cache() {
         if let Some(position) = data.files.get_mut(&id) {
             return gst::ClockTime::from_nseconds(*position);
@@ -109,7 +109,7 @@ impl PlayerContext {
 
         player.connect_end_of_stream(move |player| {
             if let Some(uri) = player.get_uri() {
-                let id = uri_to_sha1(&uri);
+                let id = uri_to_sha256(&uri);
                 if let Ok(mut d) = parse_media_cache() {
                     if d.files.contains_key(&id) {
                         d.files.remove(&id);
@@ -148,7 +148,7 @@ impl PlayerContext {
 
     pub fn write_last_known_media_position(&self) {
         if let Some(uri) = self.player.get_uri() {
-            let id = uri_to_sha1(&uri);
+            let id = uri_to_sha256(&uri);
             let mut position = 0;
             if let Some(p) = self.player.get_position().nanoseconds() {
                 position = p;
