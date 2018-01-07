@@ -13,7 +13,9 @@ let me know if anyone managed to test it on that platform.
 I aim to keep this project simple and it probably won't grow to become a
 very complicated GUI. If you feel adventurous and willing to help, feel
 free to pick up a task from the TODO list and open a PR. Users are also
-encourage to file issues on the Github bug tracker of course.
+encouraged to file issues on the Github bug tracker of course.
+
+![alt text](https://github.com/philn/glide/raw/master/screenshot.png "Glide screenshot")
 
 Installation
 ------------
