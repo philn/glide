@@ -451,6 +451,25 @@ impl VideoPlayerInner {
                     };
                 });
 
+                let volume_scale = ui_ctx.volume_button.clone().upcast::<gtk::ScaleButton>();
+                let player = &ctx.player;
+                let volume_signal_handler_id =
+                    volume_scale.connect_value_changed(clone_army!([player] move |_, value| {
+                    player.set_volume(value);
+                }));
+
+                let volume_button_clone = SendCell::new(ui_ctx.volume_button.clone());
+                let v_signal_handler_id = Arc::new(Mutex::new(volume_signal_handler_id));
+                ctx.player
+                    .connect_volume_changed(clone_army!([v_signal_handler_id] move |player| {
+                    let button = volume_button_clone.borrow();
+                    let scale = button.clone().upcast::<gtk::ScaleButton>();
+                    let volume_signal_handler_id = v_signal_handler_id.lock().unwrap();
+                    glib::signal_handler_block(&scale, &volume_signal_handler_id);
+                    scale.set_value(player.get_volume());
+                    glib::signal_handler_unblock(&scale, &volume_signal_handler_id);
+                }));
+
                 let range = ui_ctx.progress_bar.clone().upcast::<gtk::Range>();
                 let player = &ctx.player;
                 let seek_signal_handler_id = range.connect_value_changed(clone_army!([player] move |range| {

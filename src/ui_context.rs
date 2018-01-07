@@ -22,6 +22,7 @@ pub struct UIContext {
     pub seek_forward_button: gtk::Button,
     pub fullscreen_button: gtk::Button,
     pub progress_bar: gtk::Scale,
+    pub volume_button: gtk::VolumeButton,
     pub toolbar_box: gtk::Box,
 }
 
@@ -67,6 +68,11 @@ impl UIContext {
 
         toolbar_box.pack_start(&progress_bar, true, true, 10);
 
+        let volume_button = gtk::VolumeButton::new();
+        let volume_orientable = volume_button.clone().upcast::<gtk::Orientable>();
+        volume_orientable.set_orientation(gtk::Orientation::Horizontal);
+        toolbar_box.pack_start(&volume_button, false, false, 5);
+
         let fullscreen_button = gtk::Button::new();
         let fullscreen_image = gtk::Image::new_from_icon_name(
             "view-fullscreen-symbolic",
@@ -89,6 +95,7 @@ impl UIContext {
             pause_button,
             fullscreen_button,
             progress_bar,
+            volume_button,
             toolbar_box,
         }
     }
