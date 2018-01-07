@@ -23,16 +23,16 @@ Installation
 Currently Glide isn't packaged for any Linux distribution or macOS
 package manager. So the only way to install it is with Cargo:
 
-1.  Install [RustUp](https://rustup.rs): :
+1.  Install [RustUp](https://rustup.rs):
 
         $ curl https://sh.rustup.rs -sSf | sh
 
-2.  Install GStreamer and GTK+. On Debian/Linux: :
+2.  Install GStreamer and GTK+. On Debian/Linux:
 
         $ sudo apt install gstreamer1.0-plugins-{base,good,bad} libgstreamer-plugins-{bad,base}1.0-dev
         $ sudo apt install libgtk-3-dev
 
-    On macOS, with [brew](http://brew.sh): :
+    On macOS, with [brew](http://brew.sh):
 
         $ brew install pango gstreamer gtk+3
         $ brew install --build-from-source --with-pango gst-plugins-base
@@ -65,6 +65,9 @@ also some keyboard shortcuts for these actions:
 - exit from fullscreen: escape
 - quit the application: meta-q or ctrl-q
 - load a subtitle file: meta-s or alt-s
+- increase volume: meta-up or alt-up
+- decrease volume: meta-up or alt-down
+- mute the audio track: meta-m or alt-m
 
 Contact
 -------
