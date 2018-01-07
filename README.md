@@ -36,7 +36,7 @@ package manager. So the only way to install it is with Cargo:
 
         $ brew install pango gstreamer gtk+3
         $ brew install --build-from-source --with-pango gst-plugins-base
-        $ gst-plugins-{good,bad}
+        $ brew install gst-plugins-{good,bad}
 
 3.  Install Glide:
 
