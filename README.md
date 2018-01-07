@@ -32,11 +32,13 @@ package manager. So the only way to install it is with Cargo:
 
     On macOS, with [brew](http://brew.sh): :
 
-        $ brew install gst-plugins-{base,good,bad} gstreamer gtk+3
+        $ brew install pango gstreamer gtk+3
+        $ brew install --build-from-source --with-pango gst-plugins-base
+        $ gst-plugins-{good,bad}
 
 3.  Install Glide:
 
-        cargo install glide
+        $ cargo install glide
 
 Using Glide
 -----------
@@ -54,12 +56,13 @@ Once running you can use some menus to switch the subtitle and audio
 tracks, play, pause, seek and switch the window to fullscreen. There are
 also some keyboard shortcuts for these actions:
 
--   play/pause: space
--   seek forward: meta-right or ctrl-left
--   seek backward: meta-left or ctrl-right
--   switch to fullscreen: meta-f or ctrl-f
--   exit from fullscreen: escape
--   quit the application: meta-q or ctrl-q
+- play/pause: space
+- seek forward: meta-right or alt-left
+- seek backward: meta-left or alt-right
+- switch to fullscreen: meta-f or alt-f
+- exit from fullscreen: escape
+- quit the application: meta-q or ctrl-q
+- load a subtitle file: meta-s or alt-s
 
 Contact
 -------
