@@ -4,7 +4,7 @@ version = "0.3.0"
 authors = ["Philippe Normand <phil@base-art.net>"]
 keywords = ["multimedia", "gstreamer", "gtk", "playback"]
 repository = "https://github.com/philn/glide"
-readme = "README.rst"
+readme = "README.md"
 description = "Cross-platform media player based on GStreamer and GTK+"
 license = "MIT"
 

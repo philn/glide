@@ -424,7 +424,7 @@ dependencies = [
 
 [[package]]
 name = "glide"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "cairo-rs 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "closet 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
