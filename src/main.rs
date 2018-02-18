@@ -187,7 +187,8 @@ impl VideoPlayer {
             let audio_menu = gio::Menu::new();
             let subtitles_menu = gio::Menu::new();
 
-            if cfg!(not(target_os = "linux")) {
+            #[cfg(not(target_os = "linux"))]
+            {
                 menu.append("Quit", "app.quit");
                 menu.append("About", "app.about");
             }
@@ -205,7 +206,7 @@ impl VideoPlayer {
             menu.append_submenu("Audio", &audio_menu);
             menu.append_submenu("Subtitles", &subtitles_menu);
 
-            if cfg!(target_os = "linux") {
+            #[cfg(target_os = "linux")] {
                 let app_menu = gio::Menu::new();
                 // Only static menus here.
                 app_menu.append("Quit", "app.quit");
