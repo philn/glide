@@ -13,6 +13,9 @@ use send_cell::SendCell;
 
 use common::{INHIBIT_COOKIE, INITIAL_POSITION, INITIAL_SIZE};
 
+#[cfg(target_os = "macos")]
+use iokit_sleep_disabler;
+
 #[derive(Clone)]
 pub struct UIContext {
     pub window: gtk::ApplicationWindow,
@@ -132,7 +135,15 @@ impl UIContext {
     pub fn enter_fullscreen(&self, app: &gtk::Application) {
         let window = &self.window;
         let flags = gtk::ApplicationInhibitFlags::SUSPEND | gtk::ApplicationInhibitFlags::IDLE;
-        *INHIBIT_COOKIE.lock().unwrap() = Some(app.inhibit(window, flags, None));
+        #[cfg(target_os = "macos")]
+        {
+            *INHIBIT_COOKIE.lock().unwrap() =
+                Some(iokit_sleep_disabler::prevent_display_sleep("Glide full-screen") as u32);
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            *INHIBIT_COOKIE.lock().unwrap() = Some(app.inhibit(window, flags, None));
+        }
         *INITIAL_SIZE.lock().unwrap() = Some(window.get_size());
         *INITIAL_POSITION.lock().unwrap() = Some(window.get_position());
         window.set_show_menubar(false);
@@ -147,6 +158,9 @@ impl UIContext {
         let window = &self.window;
         let gdk_window = window.get_window().unwrap();
         if let Ok(mut cookie) = INHIBIT_COOKIE.lock() {
+            #[cfg(target_os = "macos")]
+            iokit_sleep_disabler::release_sleep_assertion(cookie.unwrap() as iokit_sleep_disabler::IOPMAssertionID);
+            #[cfg(not(target_os = "macos"))]
             app.uninhibit(cookie.unwrap());
             *cookie = None;
         }

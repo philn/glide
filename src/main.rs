@@ -1,6 +1,8 @@
 extern crate cairo;
 #[macro_use]
 extern crate closet;
+#[cfg(target_os = "macos")]
+extern crate core_foundation;
 extern crate dirs;
 extern crate failure;
 extern crate gdk;
@@ -44,6 +46,9 @@ use ui_context::UIContext;
 
 mod common;
 use common::{SeekDirection, INITIAL_POSITION, INITIAL_SIZE};
+
+#[cfg(target_os = "macos")]
+mod iokit_sleep_disabler;
 
 #[derive(Clone)]
 struct VideoPlayerInner {

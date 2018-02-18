@@ -28,3 +28,6 @@ dirs = "0.3.1"
 failure = "0.1"
 failure_derive = "0.1"
 sha2 = "0.7.0"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+core-foundation = "0.5.1"
