@@ -132,9 +132,8 @@ impl UIContext {
         }));
     }
 
-    pub fn enter_fullscreen(&self, app: &gtk::Application) {
+    pub fn enter_fullscreen(&self, _app: &gtk::Application) {
         let window = &self.window;
-        let flags = gtk::ApplicationInhibitFlags::SUSPEND | gtk::ApplicationInhibitFlags::IDLE;
         #[cfg(target_os = "macos")]
         {
             *INHIBIT_COOKIE.lock().unwrap() =
@@ -142,7 +141,8 @@ impl UIContext {
         }
         #[cfg(not(target_os = "macos"))]
         {
-            *INHIBIT_COOKIE.lock().unwrap() = Some(app.inhibit(window, flags, None));
+            let flags = gtk::ApplicationInhibitFlags::SUSPEND | gtk::ApplicationInhibitFlags::IDLE;
+            *INHIBIT_COOKIE.lock().unwrap() = Some(_app.inhibit(window, flags, None));
         }
         *INITIAL_SIZE.lock().unwrap() = Some(window.get_size());
         *INITIAL_POSITION.lock().unwrap() = Some(window.get_position());
@@ -154,14 +154,14 @@ impl UIContext {
         gdk_window.set_cursor(Some(&cursor));
     }
 
-    pub fn leave_fullscreen(&self, app: &gtk::Application) {
+    pub fn leave_fullscreen(&self, _app: &gtk::Application) {
         let window = &self.window;
         let gdk_window = window.get_window().unwrap();
         if let Ok(mut cookie) = INHIBIT_COOKIE.lock() {
             #[cfg(target_os = "macos")]
             iokit_sleep_disabler::release_sleep_assertion(cookie.unwrap() as iokit_sleep_disabler::IOPMAssertionID);
             #[cfg(not(target_os = "macos"))]
-            app.uninhibit(cookie.unwrap());
+            _app.uninhibit(cookie.unwrap());
             *cookie = None;
         }
         window.unfullscreen();
