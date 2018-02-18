@@ -25,7 +25,7 @@ extern "C" {
     pub fn IOPMAssertionRelease(AssertionID: IOPMAssertionID) -> IOReturn;
 }
 
-pub fn prevent_display_sleep(reason: &str) -> IOPMAssertionID {
+pub fn prevent_display_sleep(reason: &str) -> u32 {
     let reason_cf = CFString::new(reason);
     let assertion_type = CFString::from_static_string("PreventUserIdleDisplaySleep");
     let mut assertion_id: IOPMAssertionID = 0;
@@ -41,11 +41,11 @@ pub fn prevent_display_sleep(reason: &str) -> IOPMAssertionID {
             &mut assertion_id,
         );
     }
-    assertion_id
+    assertion_id as u32
 }
 
-pub fn release_sleep_assertion(assertion_id: IOPMAssertionID) {
+pub fn release_sleep_assertion(assertion_id: u32) {
     unsafe {
-        IOPMAssertionRelease(assertion_id);
+        IOPMAssertionRelease(assertion_id as IOPMAssertionID);
     }
 }

@@ -136,8 +136,9 @@ impl UIContext {
         let window = &self.window;
         #[cfg(target_os = "macos")]
         {
-            *INHIBIT_COOKIE.lock().unwrap() =
-                Some(iokit_sleep_disabler::prevent_display_sleep("Glide full-screen") as u32);
+            *INHIBIT_COOKIE.lock().unwrap() = Some(iokit_sleep_disabler::prevent_display_sleep(
+                "Glide full-screen",
+            ));
         }
         #[cfg(not(target_os = "macos"))]
         {
@@ -159,7 +160,7 @@ impl UIContext {
         let gdk_window = window.get_window().unwrap();
         if let Ok(mut cookie) = INHIBIT_COOKIE.lock() {
             #[cfg(target_os = "macos")]
-            iokit_sleep_disabler::release_sleep_assertion(cookie.unwrap() as iokit_sleep_disabler::IOPMAssertionID);
+            iokit_sleep_disabler::release_sleep_assertion(cookie.unwrap());
             #[cfg(not(target_os = "macos"))]
             _app.uninhibit(cookie.unwrap());
             *cookie = None;
