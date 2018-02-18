@@ -418,10 +418,10 @@ impl VideoPlayer {
             match inner.check_update() {
                 Ok(o) => {
                     match o {
-                        self_update::Status::UpToDate(_version) => {},
+                        self_update::Status::UpToDate(_version) => {}
                         _ => println!("Update succeeded: {}", o),
                     };
-                },
+                }
                 Err(e) => eprintln!("Update failed: {}", e),
             };
         }
@@ -465,15 +465,15 @@ impl VideoPlayerInner {
                                 gtk::IconSize::SmallToolbar.into(),
                             );
                             pause_button.set_image(&image);
-                        },
+                        }
                         gst_player::PlayerState::Playing => {
                             let image = gtk::Image::new_from_icon_name(
                                 "media-playback-pause-symbolic",
                                 gtk::IconSize::SmallToolbar.into(),
                             );
                             pause_button.set_image(&image);
-                        },
-                        _ => {},
+                        }
+                        _ => {}
                     };
                 });
 
