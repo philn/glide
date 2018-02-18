@@ -219,7 +219,7 @@ impl PlayerContext {
                 } else {
                     None
                 }
-            },
+            }
             SeekDirection::Forward => {
                 let duration = self.player.get_duration();
                 if duration != gst::ClockTime::none() && position + offset <= duration {
@@ -227,7 +227,7 @@ impl PlayerContext {
                 } else {
                     None
                 }
-            },
+            }
         };
         if let Some(destination) = destination {
             self.player.seek(destination);
