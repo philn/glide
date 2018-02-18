@@ -232,7 +232,8 @@ impl VideoPlayer {
             if let Some(ref ui_ctx) = inner.ui_context {
                 ui_ctx
                     .window
-                    .connect_delete_event(clone_army!([gtk_app] move |_, _| {
+                    .connect_delete_event(clone_army!([inner, gtk_app] move |_, _| {
+                        inner.leave_fullscreen(&gtk_app);
                         gtk_app.quit();
                         Inhibit(false)
                     }));
