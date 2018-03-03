@@ -61,12 +61,14 @@ struct VideoPlayerInner {
     seek_backward_action: gio::SimpleAction,
     subtitle_action: gio::SimpleAction,
     audio_track_action: gio::SimpleAction,
+    video_track_action: gio::SimpleAction,
     open_subtitle_file_action: gio::SimpleAction,
     audio_mute_action: gio::SimpleAction,
     volume_increase_action: gio::SimpleAction,
     volume_decrease_action: gio::SimpleAction,
     subtitle_track_menu: gio::Menu,
     audio_track_menu: gio::Menu,
+    video_track_menu: gio::Menu,
 }
 
 struct VideoPlayer {
@@ -123,6 +125,14 @@ impl VideoPlayer {
         );
         gtk_app.add_action(&audio_track_action);
 
+        let video_track_menu = gio::Menu::new();
+        let video_track_action = gio::SimpleAction::new_stateful(
+            "video-track",
+            glib::VariantTy::new("s").unwrap(),
+            &"video-0".to_variant(),
+        );
+        gtk_app.add_action(&video_track_action);
+
         let video_player = VideoPlayerInner {
             player_context: None,
             ui_context: None,
@@ -133,12 +143,14 @@ impl VideoPlayer {
             seek_backward_action,
             subtitle_action,
             audio_track_action,
+            video_track_action,
             open_subtitle_file_action,
             audio_mute_action,
             volume_increase_action,
             volume_decrease_action,
             subtitle_track_menu,
             audio_track_menu,
+            video_track_menu,
         };
         let inner = Arc::new(Mutex::new(video_player));
 
@@ -185,6 +197,7 @@ impl VideoPlayer {
 
             let menu = gio::Menu::new();
             let audio_menu = gio::Menu::new();
+            let video_menu = gio::Menu::new();
             let subtitles_menu = gio::Menu::new();
 
             #[cfg(not(target_os = "linux"))]
@@ -200,10 +213,12 @@ impl VideoPlayer {
                 audio_menu.append("Decrease Volume", "app.audio-volume-decrease");
                 audio_menu.append("Mute", "app.audio-mute");
                 audio_menu.append_submenu("Audio track", &inner.audio_track_menu);
+                video_menu.append_submenu("Video track", &inner.video_track_menu);
                 inner.ui_context = Some(UIContext::new(app));
             }
 
             menu.append_submenu("Audio", &audio_menu);
+            menu.append_submenu("Video", &video_menu);
             menu.append_submenu("Subtitles", &subtitles_menu);
 
             #[cfg(target_os = "linux")] {
@@ -397,6 +412,24 @@ impl VideoPlayer {
                 }));
 
             inner
+                .video_track_action
+                .connect_change_state(clone_army!([inner] move |action, value| {
+                    if let Some(val) = value.clone() {
+                        if let Some(idx) = val.get::<std::string::String>() {
+                            let (_prefix, idx) = idx.split_at(6);
+                            let idx = idx.parse::<i32>().unwrap();
+                            if let Some(ref ctx) = inner.player_context {
+                                ctx.player.set_video_track_enabled(idx > -1);
+                                if idx >= 0 {
+                                    ctx.player.set_video_track(idx).unwrap();
+                                }
+                                action.set_state(&val);
+                            }
+                        }
+                    }
+                }));
+
+            inner
                 .open_subtitle_file_action
                 .connect_activate(clone_army!([inner] move |_, _| {
                         if let Some(ref ui_ctx) = inner.ui_context {
@@ -459,6 +492,7 @@ impl VideoPlayerInner {
                             let inner = inner.borrow();
                             inner.fill_subtitle_track_menu(info);
                             inner.fill_audio_track_menu(info);
+                            inner.fill_video_track_menu(info);
                         }
                     }));
 
@@ -688,6 +722,25 @@ impl VideoPlayerInner {
             }
         }
         self.audio_track_menu.append_section(None, &section);
+    }
+
+    pub fn fill_video_track_menu(&self, info: &gst_player::PlayerMediaInfo) {
+        let mut i = 0;
+        let section = gio::Menu::new();
+
+        let item = gio::MenuItem::new(&*"Disable", &*"subtitle");
+        item.set_detailed_action("app.video-track::video--1");
+        section.append_item(&item);
+
+        for video_stream in info.get_video_streams() {
+            let action_id = format!("app.video-track::video-{}", i);
+            let description = format!("{}x{}", video_stream.get_width(), video_stream.get_height());
+            let item = gio::MenuItem::new(&*description, &*action_id);
+            item.set_detailed_action(&*action_id);
+            section.append_item(&item);
+            i += 1;
+        }
+        self.video_track_menu.append_section(None, &section);
     }
 
     pub fn play_uri(&self, uri: &str) {
