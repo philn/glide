@@ -9,14 +9,14 @@ description = "Cross-platform media player based on GStreamer and GTK+"
 license = "MIT"
 
 [dependencies]
-cairo-rs = "0.3.0"
-glib = "0.4.0"
-gdk = "0.7.0"
-gio = "0.3.0"
-gstreamer = "0.10.2"
-gstreamer-player = "0.10.1"
-gstreamer-video = "0.10.2"
-gtk = { version = "0.3.0", features = ["v3_12"] }
+cairo-rs = "0.4.1"
+glib = "0.5.0"
+gdk = "0.8.0"
+gio = "0.4.0"
+gstreamer = "0.11"
+gstreamer-player = "0.11"
+gstreamer-video = "0.11"
+gtk = { version = "0.4.0", features = ["v3_12"] }
 send-cell = "0.1"
 lazy_static = "1.0"
 closet = "0.2.2"
