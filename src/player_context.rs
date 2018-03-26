@@ -124,6 +124,14 @@ impl PlayerContext {
         config.set_position_update_interval(250);
         player.set_config(config).unwrap();
 
+        player.connect_uri_loaded(move |player, uri| {
+            let position = find_last_position(uri);
+            if position != gst::ClockTime::none() {
+                player.seek(position);
+            }
+            player.play();
+        });
+
         PlayerContext {
             player,
             renderer,
@@ -133,14 +141,6 @@ impl PlayerContext {
     }
 
     pub fn play_uri(&self, uri: &str) {
-        self.player.connect_uri_loaded(move |player, uri| {
-            let position = find_last_position(uri);
-            if position != gst::ClockTime::none() {
-                player.seek(position);
-            }
-            player.play();
-        });
-
         self.player
             .set_property("uri", &glib::Value::from(&uri))
             .unwrap();

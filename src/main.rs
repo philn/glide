@@ -62,6 +62,7 @@ struct VideoPlayerInner {
     subtitle_action: gio::SimpleAction,
     audio_track_action: gio::SimpleAction,
     video_track_action: gio::SimpleAction,
+    open_media_action: gio::SimpleAction,
     open_subtitle_file_action: gio::SimpleAction,
     audio_mute_action: gio::SimpleAction,
     volume_increase_action: gio::SimpleAction,
@@ -94,6 +95,9 @@ impl VideoPlayer {
 
         let seek_backward_action = gio::SimpleAction::new_stateful("seek-backward", None, &false.to_variant());
         gtk_app.add_action(&seek_backward_action);
+
+        let open_media_action = gio::SimpleAction::new("open-media", None);
+        gtk_app.add_action(&open_media_action);
 
         let open_subtitle_file_action = gio::SimpleAction::new("open-subtitle-file", None);
         gtk_app.add_action(&open_subtitle_file_action);
@@ -144,6 +148,7 @@ impl VideoPlayer {
             subtitle_action,
             audio_track_action,
             video_track_action,
+            open_media_action,
             open_subtitle_file_action,
             audio_mute_action,
             volume_increase_action,
@@ -190,12 +195,14 @@ impl VideoPlayer {
             app.set_accels_for_action("app.pause", &*vec!["space"]);
             app.set_accels_for_action("app.seek-forward", &*vec!["<Meta>Right", "<Alt>Right"]);
             app.set_accels_for_action("app.seek-backward", &*vec!["<Meta>Left", "<Alt>Left"]);
+            app.set_accels_for_action("app.open-media", &*vec!["<Meta>o", "<Alt>o"]);
             app.set_accels_for_action("app.open-subtitle-file", &*vec!["<Meta>s", "<Alt>s"]);
             app.set_accels_for_action("app.audio-volume-increase", &*vec!["<Meta>Up", "<Alt>Up"]);
             app.set_accels_for_action("app.audio-volume-decrease", &*vec!["<Meta>Down", "<Alt>Down"]);
             app.set_accels_for_action("app.audio-mute", &*vec!["<Meta>m", "<Alt>m"]);
 
             let menu = gio::Menu::new();
+            let file_menu = gio::Menu::new();
             let audio_menu = gio::Menu::new();
             let video_menu = gio::Menu::new();
             let subtitles_menu = gio::Menu::new();
@@ -207,6 +214,7 @@ impl VideoPlayer {
             }
 
             if let Ok(mut inner) = inner.lock() {
+                file_menu.append("Open...", "app.open-media");
                 subtitles_menu.append("Add subtitle file...", "app.open-subtitle-file");
                 subtitles_menu.append_submenu("Subtitle track", &inner.subtitle_track_menu);
                 audio_menu.append("Increase Volume", "app.audio-volume-increase");
@@ -217,6 +225,7 @@ impl VideoPlayer {
                 inner.ui_context = Some(UIContext::new(app));
             }
 
+            menu.append_submenu("File", &file_menu);
             menu.append_submenu("Audio", &audio_menu);
             menu.append_submenu("Video", &video_menu);
             menu.append_submenu("Subtitles", &subtitles_menu);
@@ -427,6 +436,29 @@ impl VideoPlayer {
                             }
                         }
                     }
+                }));
+
+            inner
+                .open_media_action
+                .connect_activate(clone_army!([inner] move |_, _| {
+                        if let Some(ref ui_ctx) = inner.ui_context {
+                            let dialog = gtk::FileChooserDialog::new(Some("Choose a file"), Some(&ui_ctx.window),
+                                                                     gtk::FileChooserAction::Open);
+                            dialog.add_buttons(&[
+                                ("Open", gtk::ResponseType::Ok.into()),
+                                ("Cancel", gtk::ResponseType::Cancel.into())
+                            ]);
+
+                            dialog.set_select_multiple(true);
+                            dialog.run();
+
+                            if let Some(uri) = dialog.get_uri() {
+                                inner.stop_player();
+                                println!("loading {}", &uri);
+                                inner.play_uri(&uri);
+                            }
+                            dialog.destroy();
+                        }
                 }));
 
             inner
