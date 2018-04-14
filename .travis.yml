@@ -11,7 +11,6 @@ sudo: required
 
 env:
   global:
-    # TODO Update this to match the name of your project.
     - CRATE_NAME=glide
 
 addons:
@@ -49,7 +48,7 @@ matrix:
     # - env: TARGET=arm-unknown-linux-gnueabi DISABLE_TESTS=1
     # - env: TARGET=armv7-unknown-linux-gnueabihf DISABLE_TESTS=1
     - env: TARGET=i686-unknown-linux-gnu DISABLE_TESTS=1
-    - env: TARGET=i686-unknown-linux-musl DISABLE_TESTS=1
+    # - env: TARGET=i686-unknown-linux-musl DISABLE_TESTS=1
     # - env: TARGET=mips-unknown-linux-gnu DISABLE_TESTS=1
     # - env: TARGET=mips64-unknown-linux-gnuabi64 DISABLE_TESTS=1
     # - env: TARGET=mips64el-unknown-linux-gnuabi64 DISABLE_TESTS=1
@@ -59,18 +58,18 @@ matrix:
     # - env: TARGET=powerpc64le-unknown-linux-gnu DISABLE_TESTS=1
     # - env: TARGET=s390x-unknown-linux-gnu DISABLE_TESTS=1
     - env: TARGET=x86_64-unknown-linux-gnu DISABLE_TESTS=1
-    - env: TARGET=x86_64-unknown-linux-musl DISABLE_TESTS=1
+    # - env: TARGET=x86_64-unknown-linux-musl DISABLE_TESTS=1
 
     # OSX
-    - env: TARGET=i686-apple-darwin
-      os: osx
+    # - env: TARGET=i686-apple-darwin
+    #   os: osx
     - env: TARGET=x86_64-apple-darwin
       os: osx
 
     # *BSD
-    - env: TARGET=i686-unknown-freebsd DISABLE_TESTS=1
-    - env: TARGET=x86_64-unknown-freebsd DISABLE_TESTS=1
-    - env: TARGET=x86_64-unknown-netbsd DISABLE_TESTS=1
+    # - env: TARGET=i686-unknown-freebsd DISABLE_TESTS=1
+    # - env: TARGET=x86_64-unknown-freebsd DISABLE_TESTS=1
+    # - env: TARGET=x86_64-unknown-netbsd DISABLE_TESTS=1
 
     # Windows
     # - env: TARGET=x86_64-pc-windows-gnu
@@ -139,7 +138,7 @@ before_cache:
 branches:
   only:
     # release tags
-    - /^v\d+\.\d+\.\d+.*$/
+    - /^\d+\.\d+\.\d+.*$/
     - master
 
 notifications:
