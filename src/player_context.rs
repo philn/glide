@@ -153,6 +153,11 @@ impl PlayerContext {
             if let Some(p) = self.player.get_position().nanoseconds() {
                 position = p;
             }
+            if let Some(duration) = self.player.get_duration().nanoseconds() {
+                if position == duration {
+                    return;
+                }
+            }
             #[allow(unused_assignments)]
             let mut data = None;
             if let Ok(mut d) = parse_media_cache() {
