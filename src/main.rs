@@ -731,6 +731,7 @@ impl VideoPlayerInner {
                 i += 1;
             }
         }
+        self.subtitle_track_menu.remove_all();
         self.subtitle_track_menu.append_section(None, &section);
         self.subtitle_action.change_state(&("sub--1").to_variant());
     }
@@ -753,6 +754,7 @@ impl VideoPlayerInner {
                 i += 1;
             }
         }
+        self.audio_track_menu.remove_all();
         self.audio_track_menu.append_section(None, &section);
     }
 
@@ -772,6 +774,7 @@ impl VideoPlayerInner {
             section.append_item(&item);
             i += 1;
         }
+        self.video_track_menu.remove_all();
         self.video_track_menu.append_section(None, &section);
     }
 
