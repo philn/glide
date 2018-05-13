@@ -301,7 +301,11 @@ impl VideoPlayer {
                         .connect_format_value(clone_army!([ctx] move |_, _| -> std::string::String {
                             let position = ctx.player.get_position();
                             let duration = ctx.player.get_duration();
-                            format!("{:.0} / {:.0}", position, duration)
+                            if duration != gst::ClockTime::none() {
+                                format!("{:.0} / {:.0}", position, duration)
+                            } else {
+                                format!("{:.0}", position)
+                            }
                         }));
                 }
 
