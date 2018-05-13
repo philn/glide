@@ -157,6 +157,10 @@ impl PlayerContext {
                 if position == duration {
                     return;
                 }
+            } else {
+                // This likely is a live stream. Seek to last known
+                // position will likely fail.
+                return;
             }
             #[allow(unused_assignments)]
             let mut data = None;
