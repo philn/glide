@@ -9,20 +9,20 @@ extern crate gtk;
 extern crate serde_json;
 extern crate sha2;
 
+use self::sha2::{Digest, Sha256};
 use cairo::Context as CairoContext;
 use dirs::Directories;
 use failure::Error;
 use gdk::prelude::*;
 use glib::translate::ToGlibPtr;
 use gtk::prelude::*;
-use std::default::Default;
-use self::sha2::{Digest, Sha256};
 use std::collections::HashMap;
-use std::os::raw::c_void;
+use std::default::Default;
 use std::fs::File;
 use std::fs::create_dir_all;
 use std::io::Read;
 use std::io::Write;
+use std::os::raw::c_void;
 use std::process;
 use std::string;
 
@@ -88,9 +88,7 @@ impl PlayerContext {
         let dispatcher = gst_player::PlayerGMainContextSignalDispatcher::new(None);
         let (sink, video_area, has_gtkgl) = if let Some(gtkglsink) = gst::ElementFactory::make("gtkglsink", None) {
             let glsinkbin = gst::ElementFactory::make("glsinkbin", None).unwrap();
-            glsinkbin
-                .set_property("sink", &gtkglsink.to_value())
-                .unwrap();
+            glsinkbin.set_property("sink", &gtkglsink.to_value()).unwrap();
 
             let widget = gtkglsink.get_property("widget").unwrap();
             (glsinkbin, widget.get::<gtk::Widget>().unwrap(), true)
@@ -141,9 +139,7 @@ impl PlayerContext {
     }
 
     pub fn play_uri(&self, uri: &str) {
-        self.player
-            .set_property("uri", &glib::Value::from(&uri))
-            .unwrap();
+        self.player.set_property("uri", &glib::Value::from(&uri)).unwrap();
     }
 
     pub fn write_last_known_media_position(&self) {
@@ -174,9 +170,7 @@ impl PlayerContext {
                 }
                 data = Some(d);
             } else {
-                let mut cache = MediaCache {
-                    files: HashMap::new(),
-                };
+                let mut cache = MediaCache { files: HashMap::new() };
                 cache.files.insert(id, position);
                 data = Some(cache);
             }
@@ -305,8 +299,7 @@ impl PlayerContext {
                 let src_rect = gst_video::VideoRectangle::new(0, 0, video_width, video_height);
 
                 let rect = gst_video::center_video_rectangle(&src_rect, dst_rect, true);
-                self.renderer
-                    .set_render_rectangle(rect.x, rect.y, rect.w, rect.h);
+                self.renderer.set_render_rectangle(rect.x, rect.y, rect.w, rect.h);
                 self.renderer.expose();
                 self.video_area.queue_draw();
             }

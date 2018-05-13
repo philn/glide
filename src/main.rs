@@ -23,9 +23,9 @@ extern crate serde_derive;
 use cairo::Context as CairoContext;
 #[allow(unused_imports)]
 use gdk::prelude::*;
-use gio::prelude::*;
 use gio::MenuExt;
 use gio::MenuItemExt;
+use gio::prelude::*;
 use gst::prelude::*;
 use gtk::prelude::*;
 use send_cell::SendCell;
@@ -114,11 +114,8 @@ impl VideoPlayer {
         gtk_app.add_action(&volume_decrease_action);
 
         let subtitle_track_menu = gio::Menu::new();
-        let subtitle_action = gio::SimpleAction::new_stateful(
-            "subtitle",
-            glib::VariantTy::new("s").unwrap(),
-            &"".to_variant(),
-        );
+        let subtitle_action =
+            gio::SimpleAction::new_stateful("subtitle", glib::VariantTy::new("s").unwrap(), &"".to_variant());
         gtk_app.add_action(&subtitle_action);
 
         let audio_track_menu = gio::Menu::new();
@@ -828,9 +825,7 @@ impl VideoPlayerInner {
                 .update();
         }
 
-        Ok(self_update::Status::UpToDate(std::string::String::from(
-            "OK",
-        )))
+        Ok(self_update::Status::UpToDate(std::string::String::from("OK")))
     }
 }
 

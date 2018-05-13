@@ -45,19 +45,15 @@ impl UIContext {
         let seek_backward_button = gtk::Button::new();
         let seek_bw_actionable = seek_backward_button.clone().upcast::<gtk::Actionable>();
         seek_bw_actionable.set_action_name("app.seek-backward");
-        let backward_image = gtk::Image::new_from_icon_name(
-            "media-seek-backward-symbolic",
-            gtk::IconSize::SmallToolbar.into(),
-        );
+        let backward_image =
+            gtk::Image::new_from_icon_name("media-seek-backward-symbolic", gtk::IconSize::SmallToolbar.into());
         seek_backward_button.set_image(&backward_image);
 
         let seek_forward_button = gtk::Button::new();
         let seek_fw_actionable = seek_forward_button.clone().upcast::<gtk::Actionable>();
         seek_fw_actionable.set_action_name("app.seek-forward");
-        let forward_image = gtk::Image::new_from_icon_name(
-            "media-seek-forward-symbolic",
-            gtk::IconSize::SmallToolbar.into(),
-        );
+        let forward_image =
+            gtk::Image::new_from_icon_name("media-seek-forward-symbolic", gtk::IconSize::SmallToolbar.into());
         seek_forward_button.set_image(&forward_image);
 
         toolbar_box.pack_start(&seek_backward_button, false, false, 0);
@@ -76,10 +72,8 @@ impl UIContext {
         toolbar_box.pack_start(&volume_button, false, false, 5);
 
         let fullscreen_button = gtk::Button::new();
-        let fullscreen_image = gtk::Image::new_from_icon_name(
-            "view-fullscreen-symbolic",
-            gtk::IconSize::SmallToolbar.into(),
-        );
+        let fullscreen_image =
+            gtk::Image::new_from_icon_name("view-fullscreen-symbolic", gtk::IconSize::SmallToolbar.into());
         fullscreen_button.set_image(&fullscreen_image);
         let fs_actionable = fullscreen_button.clone().upcast::<gtk::Actionable>();
         fs_actionable.set_action_name("app.fullscreen");
@@ -136,9 +130,7 @@ impl UIContext {
         let window = &self.window;
         #[cfg(target_os = "macos")]
         {
-            *INHIBIT_COOKIE.lock().unwrap() = Some(iokit_sleep_disabler::prevent_display_sleep(
-                "Glide full-screen",
-            ));
+            *INHIBIT_COOKIE.lock().unwrap() = Some(iokit_sleep_disabler::prevent_display_sleep("Glide full-screen"));
         }
         #[cfg(not(target_os = "macos"))]
         {

@@ -1,7 +1,7 @@
 #![allow(non_camel_case_types)]
-use core_foundation::string::{CFString, CFStringRef};
-use core_foundation::date::CFTimeInterval;
 use core_foundation::base::TCFType;
+use core_foundation::date::CFTimeInterval;
+use core_foundation::string::{CFString, CFStringRef};
 use std::ptr;
 
 pub type kern_return_t = ::std::os::raw::c_int;
