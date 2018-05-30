@@ -142,6 +142,10 @@ impl PlayerContext {
         self.player.set_property("uri", &glib::Value::from(&uri)).unwrap();
     }
 
+    pub fn get_current_uri(&self) -> Option<string::String> {
+        self.player.get_uri()
+    }
+
     pub fn write_last_known_media_position(&self) {
         if let Some(uri) = self.player.get_uri() {
             let id = uri_to_sha256(&uri);
