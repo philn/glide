@@ -318,7 +318,9 @@ impl VideoPlayer {
                     }
                     if let Some(ref ui_ctx) = inner.ui_context {
                         // FIXME: Somehow resize video_area to avoid black borders.
-                        ui_ctx.window.resize(width, height);
+                        if width > 0 && height > 0 {
+                            ui_ctx.window.resize(width, height);
+                        }
                     }
                 }));
 
