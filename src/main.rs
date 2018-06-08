@@ -23,9 +23,9 @@ extern crate serde_derive;
 use cairo::Context as CairoContext;
 #[allow(unused_imports)]
 use gdk::prelude::*;
+use gio::prelude::*;
 use gio::MenuExt;
 use gio::MenuItemExt;
-use gio::prelude::*;
 use gst::prelude::*;
 use gtk::prelude::*;
 use send_cell::SendCell;
@@ -34,9 +34,9 @@ use std::cmp;
 use std::env;
 #[allow(unused_imports)]
 use std::os::raw::c_void;
+use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::sync::atomic::AtomicUsize;
 
 mod player_context;
 use player_context::PlayerContext;
