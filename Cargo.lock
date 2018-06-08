@@ -462,7 +462,7 @@ dependencies = [
  "gio 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glib 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gstreamer 0.11.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "gstreamer-player 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gstreamer-player 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "gstreamer-video 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gtk 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -531,7 +531,7 @@ dependencies = [
 
 [[package]]
 name = "gstreamer-player"
-version = "0.11.0"
+version = "0.11.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1694,7 +1694,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum gstreamer 0.11.2 (registry+https://github.com/rust-lang/crates.io-index)" = "90d7cde9eae8f6bf4d41c254915976b236143935ec2c0b027636274e998e54b4"
 "checksum gstreamer-base 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)" = "05ec7a84b4160b61c72ea27ccf3f46eb9c8f996c5991746623e69e3e532e3cb5"
 "checksum gstreamer-base-sys 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "501a7add44f256aab6cb5b65ef121c449197cf55087d6a7586846c8d1e42e88b"
-"checksum gstreamer-player 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)" = "d831e2c4aa1296a8d0f3b4caa0b5ae8d6f5c0eed67ed20236f8647010005c63e"
+"checksum gstreamer-player 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)" = "63e81d78e9e7ee5d448ba50c52722005bbbf1bfe606767c4c407f45e8996f050"
 "checksum gstreamer-player-sys 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3b9476078cc76164446e88b2c4331e81e24a07f7b7c3a8b4bf8975a47998ebd4"
 "checksum gstreamer-sys 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "7b2f51e25a6f97dd4bfd640cba96f192f8759b8766afd66d6d9ea0f82ca14a37"
 "checksum gstreamer-video 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)" = "76c6c8971688f530ae93e96ea29fe6051658bb4d00b4b40d30575ca1d8a25a18"
