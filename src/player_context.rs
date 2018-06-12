@@ -218,6 +218,9 @@ impl PlayerContext {
 
     pub fn seek(&self, direction: &SeekDirection, offset: u64) {
         let position = self.player.get_position();
+        if position == gst::ClockTime::none() {
+            return;
+        }
         let offset = gst::ClockTime::from_mseconds(offset);
         let destination = match *direction {
             SeekDirection::Backward => {
