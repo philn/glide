@@ -60,6 +60,7 @@ struct VideoPlayerInner {
     seek_forward_action: gio::SimpleAction,
     seek_backward_action: gio::SimpleAction,
     subtitle_action: gio::SimpleAction,
+    audio_visualization_action: gio::SimpleAction,
     audio_track_action: gio::SimpleAction,
     video_track_action: gio::SimpleAction,
     open_media_action: gio::SimpleAction,
@@ -68,6 +69,7 @@ struct VideoPlayerInner {
     volume_increase_action: gio::SimpleAction,
     volume_decrease_action: gio::SimpleAction,
     subtitle_track_menu: gio::Menu,
+    audio_visualization_menu: gio::Menu,
     audio_track_menu: gio::Menu,
     video_track_menu: gio::Menu,
 }
@@ -118,6 +120,14 @@ impl VideoPlayer {
             gio::SimpleAction::new_stateful("subtitle", glib::VariantTy::new("s").unwrap(), &"".to_variant());
         gtk_app.add_action(&subtitle_action);
 
+        let audio_visualization_menu = gio::Menu::new();
+        let audio_visualization_action = gio::SimpleAction::new_stateful(
+            "audio-visualization",
+            glib::VariantTy::new("s").unwrap(),
+            &"none".to_variant(),
+        );
+        gtk_app.add_action(&audio_visualization_action);
+
         let audio_track_menu = gio::Menu::new();
         let audio_track_action = gio::SimpleAction::new_stateful(
             "audio-track",
@@ -143,6 +153,7 @@ impl VideoPlayer {
             seek_forward_action,
             seek_backward_action,
             subtitle_action,
+            audio_visualization_action,
             audio_track_action,
             video_track_action,
             open_media_action,
@@ -151,6 +162,7 @@ impl VideoPlayer {
             volume_increase_action,
             volume_decrease_action,
             subtitle_track_menu,
+            audio_visualization_menu,
             audio_track_menu,
             video_track_menu,
         };
@@ -218,6 +230,7 @@ impl VideoPlayer {
                 audio_menu.append("Decrease Volume", "app.audio-volume-decrease");
                 audio_menu.append("Mute", "app.audio-mute");
                 audio_menu.append_submenu("Audio track", &inner.audio_track_menu);
+                audio_menu.append_submenu("Visualization", &inner.audio_visualization_menu);
                 video_menu.append_submenu("Video track", &inner.video_track_menu);
                 inner.ui_context = Some(UIContext::new(app));
             }
@@ -406,6 +419,24 @@ impl VideoPlayer {
                 }));
 
             inner
+                .audio_visualization_action
+                .connect_change_state(clone_army!([inner] move |action, value| {
+                    if let Some(val) = value.clone() {
+                        if let Some(name) = val.get::<std::string::String>() {
+                            if let Some(ref ctx) = inner.player_context {
+                                if name == "none" {
+                                    ctx.player.set_visualization_enabled(false);
+                                } else {
+                                    ctx.player.set_visualization(Some(name.as_str())).unwrap();
+                                    ctx.player.set_visualization_enabled(true);
+                                }
+                                action.set_state(&val);
+                            }
+                        }
+                    }
+                }));
+
+            inner
                 .audio_track_action
                 .connect_change_state(clone_army!([inner] move |action, value| {
                     if let Some(val) = value.clone() {
@@ -536,6 +567,16 @@ impl VideoPlayerInner {
                             inner.fill_subtitle_track_menu(info);
                             inner.fill_audio_track_menu(info);
                             inner.fill_video_track_menu(info);
+
+                            if info.get_number_of_video_streams() == 0 {
+                                inner.fill_audio_visualization_menu();
+                                // TODO: Might be nice to enable the first audio
+                                // visualization by default but it doesn't work
+                                // yet. See also
+                                // https://bugzilla.gnome.org/show_bug.cgi?id=796552
+                            } else {
+                                inner.audio_visualization_menu.remove_all();
+                            }
                         }
                     }));
 
@@ -745,6 +786,27 @@ impl VideoPlayerInner {
         self.subtitle_track_menu.remove_all();
         self.subtitle_track_menu.append_section(None, &section);
         self.subtitle_action.change_state(&("sub--1").to_variant());
+    }
+
+    pub fn fill_audio_visualization_menu(&self) {
+        if !self.audio_visualization_menu.is_mutable() {
+            return;
+        }
+        let section = gio::Menu::new();
+
+        let item = gio::MenuItem::new(&*"Disable", &*"none");
+        item.set_detailed_action("app.audio-visualization::none");
+        section.append_item(&item);
+
+        for vis in gst_player::Player::visualizations_get() {
+            let action_id = format!("app.audio-visualization::{}", vis.name());
+            let item = gio::MenuItem::new(vis.description(), &*action_id);
+            item.set_detailed_action(&*action_id);
+            section.append_item(&item);
+        }
+
+        self.audio_visualization_menu.append_section(None, &section);
+        self.audio_visualization_menu.freeze();
     }
 
     pub fn fill_audio_track_menu(&self, info: &gst_player::PlayerMediaInfo) {
