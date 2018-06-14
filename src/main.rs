@@ -778,8 +778,8 @@ impl VideoPlayerInner {
 
         for sub_stream in info.get_subtitle_streams() {
             let title = match sub_stream.get_tags() {
-                Some(tags) => match tags.get::<gst::tags::Title>().unwrap().get() {
-                    Some(title) => Some(std::string::String::from(title)),
+                Some(tags) => match tags.get::<gst::tags::Title>() {
+                    Some(val) => Some(std::string::String::from(val.get().unwrap())),
                     None => sub_stream.get_language(),
                 },
                 None => sub_stream.get_language(),
