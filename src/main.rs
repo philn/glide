@@ -41,6 +41,8 @@ use std::sync::Mutex;
 mod player_context;
 use player_context::PlayerContext;
 
+use gst_player::PlayerStreamInfoExt;
+
 mod ui_context;
 use ui_context::UIContext;
 
@@ -775,9 +777,17 @@ impl VideoPlayerInner {
         section.append_item(&item);
 
         for sub_stream in info.get_subtitle_streams() {
-            if let Some(lang) = sub_stream.get_language() {
+            let title = match sub_stream.get_tags() {
+                Some(tags) => match tags.get::<gst::tags::Title>().unwrap().get() {
+                    Some(title) => Some(std::string::String::from(title)),
+                    None => None,
+                },
+                None => sub_stream.get_language(),
+            };
+
+            if let Some(title) = title {
                 let action_id = format!("app.subtitle::sub-{}", i);
-                let item = gio::MenuItem::new(&*lang, &*action_id);
+                let item = gio::MenuItem::new(&*title, &*action_id);
                 item.set_detailed_action(&*action_id);
                 section.append_item(&item);
                 i += 1;
