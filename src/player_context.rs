@@ -124,7 +124,7 @@ impl PlayerContext {
 
         player.connect_uri_loaded(move |player, uri| {
             let position = find_last_position(uri);
-            if position != gst::ClockTime::none() {
+            if position.is_some() {
                 player.seek(position);
             }
             player.play();
@@ -218,7 +218,7 @@ impl PlayerContext {
 
     pub fn seek(&self, direction: &SeekDirection, offset: u64) {
         let position = self.player.get_position();
-        if position == gst::ClockTime::none() {
+        if position.is_none() {
             return;
         }
         let offset = gst::ClockTime::from_mseconds(offset);
@@ -232,7 +232,7 @@ impl PlayerContext {
             }
             SeekDirection::Forward => {
                 let duration = self.player.get_duration();
-                if duration != gst::ClockTime::none() && position + offset <= duration {
+                if duration.is_some() && position + offset <= duration {
                     Some(position + offset)
                 } else {
                     None
