@@ -654,6 +654,9 @@ impl VideoPlayerInner {
                         glib::signal_handler_block(&range, &seek_signal_handler_id);
                         range.set_range(0.0, duration.seconds().unwrap() as f64);
                         glib::signal_handler_unblock(&range, &seek_signal_handler_id);
+                        // Force the GtkScale to recompute its label widget size.
+                        progress_bar.set_draw_value(false);
+                        progress_bar.set_draw_value(true);
                     }));
 
                 let progress_bar_clone = SendCell::new(ui_ctx.progress_bar.clone());
