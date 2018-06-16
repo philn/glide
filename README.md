@@ -16,6 +16,7 @@ free to pick up a task from the TODO list and open a PR. Users are also
 encouraged to file issues on the Github bug tracker of course.
 
 ![alt text](https://github.com/philn/glide/raw/master/screenshot.png "Glide screenshot")
+![alt text](https://github.com/philn/glide/raw/master/audio-screenshot.png "Glide audio playback screenshot")
 
 Installation
 ------------
@@ -30,7 +31,7 @@ package manager. So the only way to install it is with Cargo:
 2.  Install GStreamer and GTK+. On Debian/Linux:
 
         $ sudo apt install gstreamer1.0-plugins-{base,good,bad} libgstreamer-plugins-{bad,base}1.0-dev
-        $ sudo apt install libgtk-3-dev
+        $ sudo apt install libgtk-3-dev gstreamer1.0-{gl,gtk3}
 
     On macOS, with [brew](http://brew.sh):
 
@@ -68,6 +69,7 @@ also some keyboard shortcuts for these actions:
 - increase volume: meta-up or alt-up
 - decrease volume: meta-up or alt-down
 - mute the audio track: meta-m or alt-m
+- open a new file: meta-o or alt-o
 
 Contact
 -------
