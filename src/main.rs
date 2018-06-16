@@ -314,17 +314,17 @@ impl VideoPlayer {
                     ui_ctx.main_box.reorder_child(&*video_area, 0);
                     video_area.show();
 
-                    ui_ctx
-                        .progress_bar
-                        .connect_format_value(clone_army!([ctx] move |_, _| -> std::string::String {
-                            let position = ctx.player.get_position();
+                    ui_ctx.progress_bar.connect_format_value(
+                        clone_army!([ctx] move |_, value| -> std::string::String {
+                            let position = gst::ClockTime::from_seconds(value as u64);
                             let duration = ctx.player.get_duration();
                             if duration.is_some() {
                                 format!("{:.0} / {:.0}", position, duration)
                             } else {
                                 format!("{:.0}", position)
                             }
-                        }));
+                        }),
+                    );
                 }
 
                 let inner_clone = SendCell::new(inner.clone());
