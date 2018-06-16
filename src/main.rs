@@ -486,18 +486,21 @@ impl VideoPlayer {
                         if let Some(ref ui_ctx) = inner.ui_context {
                             let dialog = gtk::FileChooserDialog::new(Some("Choose a file"), Some(&ui_ctx.window),
                                                                      gtk::FileChooserAction::Open);
+                            let ok = gtk::ResponseType::Ok.into();
                             dialog.add_buttons(&[
-                                ("Open", gtk::ResponseType::Ok.into()),
+                                ("Open", ok),
                                 ("Cancel", gtk::ResponseType::Cancel.into())
                             ]);
 
                             dialog.set_select_multiple(true);
-                            dialog.run();
+                            let response = dialog.run();
 
-                            if let Some(uri) = dialog.get_uri() {
-                                inner.stop_player();
-                                println!("loading {}", &uri);
-                                inner.play_uri(&uri);
+                            if response == ok {
+                                if let Some(uri) = dialog.get_uri() {
+                                    inner.stop_player();
+                                    println!("loading {}", &uri);
+                                    inner.play_uri(&uri);
+                                }
                             }
                             dialog.destroy();
                         }
