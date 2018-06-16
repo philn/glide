@@ -70,6 +70,7 @@ struct VideoPlayerInner {
     audio_mute_action: gio::SimpleAction,
     volume_increase_action: gio::SimpleAction,
     volume_decrease_action: gio::SimpleAction,
+    dump_pipeline_action: gio::SimpleAction,
     subtitle_track_menu: gio::Menu,
     audio_visualization_menu: gio::Menu,
     audio_track_menu: gio::Menu,
@@ -117,6 +118,9 @@ impl VideoPlayer {
             gio::SimpleAction::new_stateful("audio-volume-decrease", None, &false.to_variant());
         gtk_app.add_action(&volume_decrease_action);
 
+        let dump_pipeline_action = gio::SimpleAction::new_stateful("dump-pipeline", None, &false.to_variant());
+        gtk_app.add_action(&dump_pipeline_action);
+
         let subtitle_track_menu = gio::Menu::new();
         let subtitle_action =
             gio::SimpleAction::new_stateful("subtitle", glib::VariantTy::new("s").unwrap(), &"".to_variant());
@@ -163,6 +167,7 @@ impl VideoPlayer {
             audio_mute_action,
             volume_increase_action,
             volume_decrease_action,
+            dump_pipeline_action,
             subtitle_track_menu,
             audio_visualization_menu,
             audio_track_menu,
@@ -211,6 +216,7 @@ impl VideoPlayer {
             app.set_accels_for_action("app.audio-volume-increase", &*vec!["<Meta>Up", "<Alt>Up"]);
             app.set_accels_for_action("app.audio-volume-decrease", &*vec!["<Meta>Down", "<Alt>Down"]);
             app.set_accels_for_action("app.audio-mute", &*vec!["<Meta>m", "<Alt>m"]);
+            app.set_accels_for_action("app.dump-pipeline", &*vec!["<Ctrl>d"]);
 
             let menu = gio::Menu::new();
             let file_menu = gio::Menu::new();
@@ -528,6 +534,14 @@ impl VideoPlayer {
                             dialog.destroy();
                         }
                 }));
+
+            inner
+                .dump_pipeline_action
+                .connect_activate(clone_army!([inner] move |_, _| {
+                    if let Some(ref player_context) = inner.player_context {
+                        player_context.dump_pipeline();
+                    }
+            }));
 
             inner.start();
 

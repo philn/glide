@@ -244,6 +244,13 @@ impl PlayerContext {
         }
     }
 
+    pub fn dump_pipeline(&self) {
+        let element = self.player.get_pipeline();
+        if let Ok(pipeline) = element.downcast::<gst::Pipeline>() {
+            gst::debug_bin_to_dot_file_with_ts(&pipeline, gst::DebugGraphDetails::all(), "glide");
+        }
+    }
+
     pub fn prepare_video_overlay(&self) {
         let gdk_window = self.video_area.get_window().unwrap();
         let video_overlay = &self.renderer;
