@@ -216,32 +216,22 @@ impl PlayerContext {
         }
     }
 
-    pub fn seek(&self, direction: &SeekDirection, offset: u64) {
+    pub fn seek(&self, direction: SeekDirection, offset: gst::ClockTime) {
         let position = self.player.get_position();
-        if position.is_none() {
+        if position.is_none() || offset.is_none() {
             return;
         }
-        let offset = gst::ClockTime::from_mseconds(offset);
-        let destination = match *direction {
-            SeekDirection::Backward => {
-                if position >= offset {
-                    Some(position - offset)
-                } else {
-                    None
-                }
+
+        let duration = self.player.get_duration();
+        let destination = match direction {
+            SeekDirection::Backward if position >= offset => Some(position - offset),
+            SeekDirection::Forward if !duration.is_none() && position + offset <= duration => {
+                Some(position + offset)
             }
-            SeekDirection::Forward => {
-                let duration = self.player.get_duration();
-                if duration.is_some() && position + offset <= duration {
-                    Some(position + offset)
-                } else {
-                    None
-                }
-            }
+            _ => None,
         };
-        if let Some(destination) = destination {
-            self.player.seek(destination);
-        }
+
+        destination.map(|d| self.player.seek(d));
     }
 
     pub fn dump_pipeline(&self) {

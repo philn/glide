@@ -1,5 +1,6 @@
 use std::sync::Mutex;
 
+#[derive(Clone, Debug, Copy)]
 pub enum SeekDirection {
     Backward,
     Forward,
