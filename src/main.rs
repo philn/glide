@@ -81,8 +81,12 @@ struct VideoPlayer {
     inner: Arc<Mutex<VideoPlayerInner>>,
 }
 
-static SEEK_BACKWARD_OFFSET: u64 = 2000;
-static SEEK_FORWARD_OFFSET: u64 = 5000;
+// Only possible in nightly
+// static SEEK_BACKWARD_OFFSET: gst::ClockTime = gst::ClockTime::from_mseconds(2000);
+// static SEEK_FORWARD_OFFSET: gst::ClockTime = gst::ClockTime::from_mseconds(5000);
+
+static SEEK_BACKWARD_OFFSET: gst::ClockTime = gst::ClockTime(Some(2000000000));
+static SEEK_FORWARD_OFFSET: gst::ClockTime = gst::ClockTime(Some(5000000000));
 
 impl VideoPlayer {
     pub fn new(gtk_app: &gtk::Application) -> Self {
@@ -369,13 +373,13 @@ impl VideoPlayer {
             inner
                 .seek_forward_action
                 .connect_change_state(clone_army!([inner] move |_, _| {
-                    inner.seek(&SeekDirection::Forward, SEEK_FORWARD_OFFSET);
+                    inner.seek(SeekDirection::Forward, SEEK_FORWARD_OFFSET);
                 }));
 
             inner
                 .seek_backward_action
                 .connect_change_state(clone_army!([inner] move |_, _| {
-                    inner.seek(&SeekDirection::Backward, SEEK_BACKWARD_OFFSET);
+                    inner.seek(SeekDirection::Backward, SEEK_BACKWARD_OFFSET);
                 }));
 
             inner
@@ -696,7 +700,7 @@ impl VideoPlayerInner {
         }
     }
 
-    pub fn seek(&self, direction: &SeekDirection, offset: u64) {
+    pub fn seek(&self, direction: SeekDirection, offset: gst::ClockTime) {
         if let Some(ref ctx) = self.player_context {
             ctx.seek(direction, offset);
         }
