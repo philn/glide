@@ -225,9 +225,7 @@ impl PlayerContext {
         let duration = self.player.get_duration();
         let destination = match direction {
             SeekDirection::Backward if position >= offset => Some(position - offset),
-            SeekDirection::Forward if !duration.is_none() && position + offset <= duration => {
-                Some(position + offset)
-            }
+            SeekDirection::Forward if !duration.is_none() && position + offset <= duration => Some(position + offset),
             _ => None,
         };
 
