@@ -516,8 +516,9 @@ impl VideoPlayer {
                         if let Some(ref ui_ctx) = inner.ui_context {
                             let dialog = gtk::FileChooserDialog::new(Some("Choose a file"), Some(&ui_ctx.window),
                                                                      gtk::FileChooserAction::Open);
+                            let ok = gtk::ResponseType::Ok.into();
                             dialog.add_buttons(&[
-                                ("Open", gtk::ResponseType::Ok.into()),
+                                ("Open", ok),
                                 ("Cancel", gtk::ResponseType::Cancel.into())
                             ]);
 
@@ -530,12 +531,13 @@ impl VideoPlayer {
                                     }
                                 }
                             }
-                            dialog.run();
-
-                            if let Some(uri) = dialog.get_uri() {
-                                if let Some(ref player_ctx) = inner.player_context {
-                                    player_ctx.player.set_subtitle_uri(&uri);
-                                    player_ctx.player.set_subtitle_track_enabled(true);
+                            let response = dialog.run();
+                            if response == ok {
+                                if let Some(uri) = dialog.get_uri() {
+                                    if let Some(ref player_ctx) = inner.player_context {
+                                        player_ctx.player.set_subtitle_uri(&uri);
+                                        player_ctx.player.set_subtitle_track_enabled(true);
+                                    }
                                 }
                             }
                             dialog.destroy();
