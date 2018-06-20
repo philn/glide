@@ -497,8 +497,17 @@ impl VideoPlayer {
                             ]);
 
                             dialog.set_select_multiple(true);
-                            let response = dialog.run();
+                            if let Some(ref player_ctx) = inner.player_context {
+                                if let Some(uri) = player_ctx.get_current_uri() {
+                                    if let Ok((filename, _)) = glib::filename_from_uri(&uri) {
+                                        if let Some(folder) = filename.parent() {
+                                            dialog.set_current_folder(folder);
+                                        }
+                                    }
+                                }
+                            }
 
+                            let response = dialog.run();
                             if response == ok {
                                 if let Some(uri) = dialog.get_uri() {
                                     inner.stop_player();
