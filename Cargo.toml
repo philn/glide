@@ -17,7 +17,7 @@ gstreamer = "0.11.1"
 gstreamer-player = "0.11"
 gstreamer-video = "0.11"
 gtk = { version = "0.4.0", features = ["v3_12"] }
-send-cell = "0.1"
+fragile = "0.2.1"
 lazy_static = "1.0"
 closet = "0.2.2"
 self_update = "0.4"

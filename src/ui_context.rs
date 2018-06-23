@@ -1,15 +1,15 @@
+extern crate fragile;
 extern crate gdk;
 extern crate gio;
 extern crate glib;
 extern crate gtk;
-extern crate send_cell;
 
+#[allow(unused_imports)]
+use fragile::Fragile;
 use gdk::prelude::*;
 #[allow(unused_imports)]
 use gio::prelude::*;
 use gtk::prelude::*;
-#[allow(unused_imports)]
-use send_cell::SendCell;
 
 use common::{INHIBIT_COOKIE, INITIAL_POSITION, INITIAL_SIZE};
 
@@ -98,24 +98,24 @@ impl UIContext {
 
     #[cfg(target_os = "linux")]
     pub fn start_autohide_toolbar(&self, fullscreen_action: &gio::SimpleAction) {
-        let toolbar = SendCell::new(self.toolbar_box.clone());
+        let toolbar = Fragile::new(self.toolbar_box.clone());
         self.window
             .connect_motion_notify_event(clone_army!([toolbar, fullscreen_action] move |window, _| {
             if let Some(is_fullscreen) = fullscreen_action.get_state() {
                 let fullscreen = is_fullscreen.get::<bool>().unwrap();
                 if fullscreen {
-                    let toolbar = toolbar.borrow();
+                    let toolbar = &*toolbar.get();
                     toolbar.set_visible(true);
                     let gdk_window = window.get_window().unwrap();
                     gdk_window.set_cursor(None);
 
-                    let inner_toolbar = SendCell::new(toolbar.clone());
-                    let inner_window = SendCell::new(window.clone());
+                    let inner_toolbar = Fragile::new(toolbar.clone());
+                    let inner_window = Fragile::new(window.clone());
                     glib::timeout_add_seconds(5, clone_army!([inner_window, inner_toolbar] move || {
                         let cursor = gdk::Cursor::new(gdk::CursorType::BlankCursor);
-                        let window = inner_window.borrow();
+                        let window = &*inner_window.get();
                         let gdk_window = window.get_window().unwrap();
-                        let toolbar = inner_toolbar.borrow();
+                        let toolbar = &*inner_toolbar.get();
                         toolbar.set_visible(false);
                         gdk_window.set_cursor(Some(&cursor));
                         glib::Continue(false)

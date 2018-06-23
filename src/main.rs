@@ -16,11 +16,13 @@ extern crate gtk;
 extern crate lazy_static;
 #[macro_use]
 extern crate self_update;
-extern crate send_cell;
+extern crate fragile;
+
 #[macro_use]
 extern crate serde_derive;
 
 use cairo::Context as CairoContext;
+use fragile::Fragile;
 #[allow(unused_imports)]
 use gdk::prelude::*;
 use gio::prelude::*;
@@ -28,7 +30,6 @@ use gio::MenuExt;
 use gio::MenuItemExt;
 use gst::prelude::*;
 use gtk::prelude::*;
-use send_cell::SendCell;
 use std::cell::RefCell;
 use std::cmp;
 use std::env;
@@ -331,10 +332,10 @@ impl VideoPlayer {
                     );
                 }
 
-                let inner_clone = SendCell::new(inner.clone());
+                let inner_clone = Fragile::new(inner.clone());
                 ctx.player
                     .connect_video_dimensions_changed(clone_army!([inner_clone] move |_, width, height| {
-                    let inner = inner_clone.borrow();
+                    let inner = &*inner_clone.get();
                     let mut width = width;
                     let mut height = height;
                     if let Some(screen) = gdk::Screen::get_default() {
@@ -580,9 +581,9 @@ impl VideoPlayerInner {
     pub fn setup(&self, gtk_app: &gtk::Application) {
         if let Some(ref ctx) = self.player_context {
             let file_list = Arc::new(Mutex::new(vec![]));
-            let inner = SendCell::new(self.clone());
+            let inner = Fragile::new(self.clone());
             if let Some(ref ui_ctx) = self.ui_context {
-                let window_clone = SendCell::new(ui_ctx.window.clone());
+                let window_clone = Fragile::new(ui_ctx.window.clone());
                 ctx.player
                     .connect_media_info_updated(clone_army!([file_list, inner] move |_, info| {
                         let uri = info.get_uri();
@@ -590,14 +591,14 @@ impl VideoPlayerInner {
                         // Call this only once per asset.
                         if !&file_list.contains(&uri) {
                             file_list.push(uri.clone());
-                            let window = window_clone.borrow();
+                            let window = &*window_clone.get();
                             if let Some(title) = info.get_title() {
                                 window.set_title(&*title);
                             } else {
                                 window.set_title(&*info.get_uri());
                             }
 
-                            let inner = inner.borrow();
+                            let inner = &*inner.get();
                             inner.fill_subtitle_track_menu(info);
                             inner.fill_audio_track_menu(info);
                             inner.fill_video_track_menu(info);
@@ -614,9 +615,9 @@ impl VideoPlayerInner {
                         }
                     }));
 
-                let pause_button_clone = SendCell::new(ui_ctx.pause_button.clone());
+                let pause_button_clone = Fragile::new(ui_ctx.pause_button.clone());
                 ctx.player.connect_state_changed(move |_, state| {
-                    let pause_button = pause_button_clone.borrow();
+                    let pause_button = &*pause_button_clone.get();
                     match state {
                         gst_player::PlayerState::Paused => {
                             let image = gtk::Image::new_from_icon_name(
@@ -643,11 +644,11 @@ impl VideoPlayerInner {
                     player.set_volume(value);
                 }));
 
-                let volume_button_clone = SendCell::new(ui_ctx.volume_button.clone());
+                let volume_button_clone = Fragile::new(ui_ctx.volume_button.clone());
                 let v_signal_handler_id = Arc::new(Mutex::new(volume_signal_handler_id));
                 ctx.player
                     .connect_volume_changed(clone_army!([v_signal_handler_id] move |player| {
-                    let button = volume_button_clone.borrow();
+                    let button = &*volume_button_clone.get();
                     let scale = button.clone().upcast::<gtk::ScaleButton>();
                     let volume_signal_handler_id = v_signal_handler_id.lock().unwrap();
                     glib::signal_handler_block(&scale, &volume_signal_handler_id);
@@ -662,11 +663,11 @@ impl VideoPlayerInner {
                     player.seek(gst::ClockTime::from_seconds(value as u64));
                 }));
 
-                let progress_bar_clone = SendCell::new(ui_ctx.progress_bar.clone());
+                let progress_bar_clone = Fragile::new(ui_ctx.progress_bar.clone());
                 let signal_handler_id = Arc::new(Mutex::new(seek_signal_handler_id));
                 ctx.player
                     .connect_duration_changed(clone_army!([signal_handler_id] move |_, duration| {
-                        let progress_bar = progress_bar_clone.borrow();
+                        let progress_bar = &*progress_bar_clone.get();
                         let range = progress_bar.clone().upcast::<gtk::Range>();
                         let seek_signal_handler_id = signal_handler_id.lock().unwrap();
                         glib::signal_handler_block(&range, &seek_signal_handler_id);
@@ -677,10 +678,10 @@ impl VideoPlayerInner {
                         progress_bar.set_draw_value(true);
                     }));
 
-                let progress_bar_clone = SendCell::new(ui_ctx.progress_bar.clone());
+                let progress_bar_clone = Fragile::new(ui_ctx.progress_bar.clone());
                 ctx.player
                     .connect_position_updated(clone_army!([signal_handler_id] move |_, position| {
-                        let progress_bar = progress_bar_clone.borrow();
+                        let progress_bar = &*progress_bar_clone.get();
                         let range = progress_bar.clone().upcast::<gtk::Range>();
                         let seek_signal_handler_id = signal_handler_id.lock().unwrap();
                         glib::signal_handler_block(&range, &seek_signal_handler_id);
@@ -689,11 +690,11 @@ impl VideoPlayerInner {
                     }));
             }
 
-            let app_clone = SendCell::new(gtk_app.clone());
+            let app_clone = Fragile::new(gtk_app.clone());
             ctx.player.connect_error(move |_, error| {
                 // FIXME: display some GTK error dialog...
                 eprintln!("Error! {}", error);
-                let app = &app_clone.borrow();
+                let app = &*app_clone.get();
                 app.quit();
             });
         }
@@ -913,7 +914,7 @@ impl VideoPlayerInner {
         assert!(!files.is_empty());
         self.play_uri(&*playlist[0]);
 
-        let inner_clone = SendCell::new(self.clone());
+        let inner_clone = Fragile::new(self.clone());
         let index_cell = RefCell::new(AtomicUsize::new(0));
         if let Some(ref ctx) = self.player_context {
             let player = &ctx.player;
@@ -922,7 +923,7 @@ impl VideoPlayerInner {
                 let index = cell.get_mut();
                 *index += 1;
                 if *index < playlist.len() {
-                    let inner_clone = inner_clone.borrow();
+                    let inner_clone = &*inner_clone.get();
                     inner_clone.play_uri(&*playlist[*index]);
                 }
                 // TODO: else quit?
