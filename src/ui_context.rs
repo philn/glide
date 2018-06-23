@@ -9,6 +9,7 @@ use fragile::Fragile;
 use gdk::prelude::*;
 #[allow(unused_imports)]
 use gio::prelude::*;
+#[allow(unused_imports)]
 use glib::translate::ToGlib;
 use glib::translate::ToGlibPtr;
 use gobject_sys;
@@ -164,8 +165,10 @@ impl UIContext {
             *cookie = None;
         }
         if let Ok(mut signal_handler_id) = MOUSE_NOTIFY_SIGNAL_ID.lock() {
-            unsafe {
-                gobject_sys::g_signal_handler_disconnect(window.to_glib_none().0, signal_handler_id.unwrap());
+            if let Some(handler) = *signal_handler_id {
+                unsafe {
+                    gobject_sys::g_signal_handler_disconnect(window.to_glib_none().0, handler);
+                }
             }
             *signal_handler_id = None;
         }
