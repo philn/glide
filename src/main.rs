@@ -17,6 +17,7 @@ extern crate lazy_static;
 #[macro_use]
 extern crate self_update;
 extern crate fragile;
+extern crate gobject_sys;
 
 #[macro_use]
 extern crate serde_derive;
@@ -759,10 +760,6 @@ impl VideoPlayerInner {
             if !fullscreen {
                 if let Some(ref ui_ctx) = self.ui_context {
                     ui_ctx.enter_fullscreen(app);
-
-                    #[cfg(target_os = "linux")]
-                    ui_ctx.start_autohide_toolbar(&self.fullscreen_action);
-
                     fullscreen_action.set_state(&true.to_variant());
                 }
             }

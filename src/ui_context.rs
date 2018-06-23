@@ -9,9 +9,12 @@ use fragile::Fragile;
 use gdk::prelude::*;
 #[allow(unused_imports)]
 use gio::prelude::*;
+use glib::translate::ToGlib;
+use glib::translate::ToGlibPtr;
+use gobject_sys;
 use gtk::prelude::*;
 
-use common::{INHIBIT_COOKIE, INITIAL_POSITION, INITIAL_SIZE};
+use common::{INHIBIT_COOKIE, INITIAL_POSITION, INITIAL_SIZE, MOUSE_NOTIFY_SIGNAL_ID};
 
 #[cfg(target_os = "macos")]
 use iokit_sleep_disabler;
@@ -97,33 +100,33 @@ impl UIContext {
     }
 
     #[cfg(target_os = "linux")]
-    pub fn start_autohide_toolbar(&self, fullscreen_action: &gio::SimpleAction) {
+    pub fn start_autohide_toolbar(&self) {
         let toolbar = Fragile::new(self.toolbar_box.clone());
-        self.window
-            .connect_motion_notify_event(clone_army!([toolbar, fullscreen_action] move |window, _| {
-            if let Some(is_fullscreen) = fullscreen_action.get_state() {
-                let fullscreen = is_fullscreen.get::<bool>().unwrap();
-                if fullscreen {
-                    let toolbar = &*toolbar.get();
-                    toolbar.set_visible(true);
-                    let gdk_window = window.get_window().unwrap();
-                    gdk_window.set_cursor(None);
+        let notify_signal_id = self.window.connect_motion_notify_event(move |window, _| {
+            let toolbar = &*toolbar.get();
+            toolbar.set_visible(true);
+            let gdk_window = window.get_window().unwrap();
+            gdk_window.set_cursor(None);
 
-                    let inner_toolbar = Fragile::new(toolbar.clone());
-                    let inner_window = Fragile::new(window.clone());
-                    glib::timeout_add_seconds(5, clone_army!([inner_window, inner_toolbar] move || {
-                        let cursor = gdk::Cursor::new(gdk::CursorType::BlankCursor);
-                        let window = &*inner_window.get();
+            let inner_toolbar = Fragile::new(toolbar.clone());
+            let inner_window = Fragile::new(window.clone());
+            glib::timeout_add_seconds(
+                5,
+                clone_army!([inner_window, inner_toolbar] move || {
+                    let cursor = gdk::Cursor::new(gdk::CursorType::BlankCursor);
+                    let window = &*inner_window.get();
+                    if window.is_maximized() {
                         let gdk_window = window.get_window().unwrap();
                         let toolbar = &*inner_toolbar.get();
                         toolbar.set_visible(false);
                         gdk_window.set_cursor(Some(&cursor));
-                        glib::Continue(false)
-                    }));
-                }
-            }
+                    }
+                    glib::Continue(false)
+                }),
+            );
             gtk::Inhibit(false)
-        }));
+        });
+        *MOUSE_NOTIFY_SIGNAL_ID.lock().unwrap() = Some(notify_signal_id.to_glib());
     }
 
     pub fn enter_fullscreen(&self, _app: &gtk::Application) {
@@ -145,6 +148,9 @@ impl UIContext {
         let cursor = gdk::Cursor::new(gdk::CursorType::BlankCursor);
         let gdk_window = window.get_window().unwrap();
         gdk_window.set_cursor(Some(&cursor));
+
+        #[cfg(target_os = "linux")]
+        self.start_autohide_toolbar();
     }
 
     pub fn leave_fullscreen(&self, _app: &gtk::Application) {
@@ -156,6 +162,12 @@ impl UIContext {
             #[cfg(not(target_os = "macos"))]
             _app.uninhibit(cookie.unwrap());
             *cookie = None;
+        }
+        if let Ok(mut signal_handler_id) = MOUSE_NOTIFY_SIGNAL_ID.lock() {
+            unsafe {
+                gobject_sys::g_signal_handler_disconnect(window.to_glib_none().0, signal_handler_id.unwrap());
+            }
+            *signal_handler_id = None;
         }
         window.unfullscreen();
         self.toolbar_box.set_visible(true);
