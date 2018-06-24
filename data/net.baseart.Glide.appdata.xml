@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop">
+  <id>org.baseart.Glide</id>
+  <launchable type="desktop">net.baseart.Glide</launchable>
+  <metadata_license>CC-BY-3.0</metadata_license>
+  <project_license>MIT</project_license>
+  <_name>Glide</_name>
+  <_summary>Play movies and audio files</_summary>
+  <description>A GStreamer video player.</description>
+  <update_contact>phil@base-art.net</update_contact>
+  <_developer_name>The Glide Team</_developer_name>
+</component>

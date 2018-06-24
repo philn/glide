@@ -967,7 +967,7 @@ fn main() {
     gst::init().expect("Failed to initialize GStreamer.");
     gtk::init().expect("Failed to initialize GTK.");
 
-    let gtk_app = gtk::Application::new("net.base-art.glide", gio::ApplicationFlags::HANDLES_OPEN)
+    let gtk_app = gtk::Application::new("net.baseart.Glide", gio::ApplicationFlags::HANDLES_OPEN)
         .expect("Application initialization failed");
 
     if let Some(settings) = gtk::Settings::get_default() {
