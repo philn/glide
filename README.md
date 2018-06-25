@@ -78,3 +78,30 @@ Contact
 I usually hang out on Freenode IRC, in \#gstreamer using the philn
 nickname. Feel free to also reach out by mail (check git logs to find my
 address).
+
+Release procedure
+-----------------
+
+- Bump version in `Cargo.toml` and `meson.build`
+- Commit and tag new version:
+
+        $ git ci -am "Bump to ..."
+        $ git tag -s "version..."
+
+- Build tarball:
+
+        $ mkdir -p _build
+        $ ninja -C _build release
+
+- Publish version and tag:
+
+        $ git push --tags
+        $ git push
+
+- Update crate on crates.io:
+
+        $ cargo package
+        $ cargo publish
+
+- Upload tarball from `_build/dist/` to Github
+- TODO: Upload self-update binaries to Github
