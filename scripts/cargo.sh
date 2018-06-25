@@ -1,7 +1,6 @@
 #!/bin/sh
 
 export CARGO_HOME=$1/target/cargo-home
-export FRACTAL_LOCALEDIR="$3"
 
 if [[ $DEBUG = true ]]
 then
