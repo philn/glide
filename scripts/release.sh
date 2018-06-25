@@ -9,7 +9,7 @@ cd "${MESON_SOURCE_ROOT}"
 mkdir -p $DIST
 
 # copying files
-cp -R --parents $(git ls-files) $DIST
+rsync -rR $(git ls-files) $DIST
 
 # cargo vendor
 mkdir $DIST/.cargo
