@@ -586,7 +586,7 @@ impl VideoPlayerInner {
             if let Some(ref ui_ctx) = self.ui_context {
                 let window_clone = Fragile::new(ui_ctx.window.clone());
                 ctx.player
-                    .connect_media_info_updated(clone_army!([file_list, inner] move |_, info| {
+                    .connect_media_info_updated(clone_army!([file_list, inner] move |player, info| {
                         let uri = info.get_uri();
                         let mut file_list = file_list.lock().unwrap();
                         // Call this only once per asset.
@@ -612,6 +612,18 @@ impl VideoPlayerInner {
                                 // https://bugzilla.gnome.org/show_bug.cgi?id=796552
                             } else {
                                 inner.audio_visualization_menu.remove_all();
+                            }
+
+                            // Look for a matching subtitle file in same directory.
+                            if let Ok((mut path, _)) = glib::filename_from_uri(&uri) {
+                                path.set_extension("srt");
+                                let subfile = path.as_path();
+                                if subfile.is_file() {
+                                    if let Ok(suburi) = glib::filename_to_uri(subfile, None) {
+                                        player.set_subtitle_uri(&suburi);
+                                        player.set_subtitle_track_enabled(true);
+                                    }
+                                }
                             }
                         }
                     }));
