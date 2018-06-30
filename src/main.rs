@@ -610,8 +610,10 @@ impl VideoPlayerInner {
                                 // visualization by default but it doesn't work
                                 // yet. See also
                                 // https://bugzilla.gnome.org/show_bug.cgi?id=796552
+                                inner.audio_visualization_action.set_enabled(true);
                             } else {
                                 inner.audio_visualization_menu.remove_all();
+                                inner.audio_visualization_action.set_enabled(false);
                             }
 
                             // Look for a matching subtitle file in same directory.
