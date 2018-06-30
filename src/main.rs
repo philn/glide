@@ -90,6 +90,14 @@ struct VideoPlayer {
 static SEEK_BACKWARD_OFFSET: gst::ClockTime = gst::ClockTime(Some(2000000000));
 static SEEK_FORWARD_OFFSET: gst::ClockTime = gst::ClockTime(Some(5000000000));
 
+fn set_dialog_folder_relative_to_uri(dialog: &gtk::FileChooserDialog, uri: &str) {
+    if let Ok((filename, _)) = glib::filename_from_uri(&uri) {
+        if let Some(folder) = filename.parent() {
+            dialog.set_current_folder(folder);
+        }
+    }
+}
+
 impl VideoPlayer {
     pub fn new(gtk_app: &gtk::Application) -> Self {
         let fullscreen_action = gio::SimpleAction::new_stateful("fullscreen", None, &false.to_variant());
@@ -501,11 +509,7 @@ impl VideoPlayer {
                             dialog.set_select_multiple(true);
                             if let Some(ref player_ctx) = inner.player_context {
                                 if let Some(uri) = player_ctx.get_current_uri() {
-                                    if let Ok((filename, _)) = glib::filename_from_uri(&uri) {
-                                        if let Some(folder) = filename.parent() {
-                                            dialog.set_current_folder(folder);
-                                        }
-                                    }
+                                    set_dialog_folder_relative_to_uri(&dialog, &uri);
                                 }
                             }
 
@@ -535,11 +539,7 @@ impl VideoPlayer {
 
                             if let Some(ref player_ctx) = inner.player_context {
                                 if let Some(uri) = player_ctx.get_current_uri() {
-                                    if let Ok((filename, _)) = glib::filename_from_uri(&uri) {
-                                        if let Some(folder) = filename.parent() {
-                                            dialog.set_current_folder(folder);
-                                        }
-                                    }
+                                    set_dialog_folder_relative_to_uri(&dialog, &uri);
                                 }
                             }
                             let response = dialog.run();
