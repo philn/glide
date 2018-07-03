@@ -165,13 +165,7 @@ impl PlayerContext {
             #[allow(unused_assignments)]
             let mut data = None;
             if let Ok(mut d) = parse_media_cache() {
-                if d.files.contains_key(&id) {
-                    if let Some(item) = d.files.get_mut(&id) {
-                        *item = position;
-                    }
-                } else {
-                    d.files.insert(id, position);
-                }
+                d.files.entry(id).or_insert(position);
                 data = Some(d);
             } else {
                 let mut cache = MediaCache { files: HashMap::new() };
@@ -228,8 +222,9 @@ impl PlayerContext {
             SeekDirection::Forward if !duration.is_none() && position + offset <= duration => Some(position + offset),
             _ => None,
         };
-
-        destination.map(|d| self.player.seek(d));
+        if let Some(d) = destination {
+            self.player.seek(d)
+        }
     }
 
     pub fn dump_pipeline(&self) {

@@ -36,7 +36,7 @@ pub fn prevent_display_sleep(reason: &str) -> u32 {
             ptr::null(),
             ptr::null(),
             ptr::null(),
-            0 as f64,
+            f64::from(0),
             ptr::null(),
             &mut assertion_id,
         );

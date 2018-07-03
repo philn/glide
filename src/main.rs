@@ -87,8 +87,8 @@ struct VideoPlayer {
 // static SEEK_BACKWARD_OFFSET: gst::ClockTime = gst::ClockTime::from_mseconds(2000);
 // static SEEK_FORWARD_OFFSET: gst::ClockTime = gst::ClockTime::from_mseconds(5000);
 
-static SEEK_BACKWARD_OFFSET: gst::ClockTime = gst::ClockTime(Some(2000000000));
-static SEEK_FORWARD_OFFSET: gst::ClockTime = gst::ClockTime(Some(5000000000));
+static SEEK_BACKWARD_OFFSET: gst::ClockTime = gst::ClockTime(Some(2_000_000_000));
+static SEEK_FORWARD_OFFSET: gst::ClockTime = gst::ClockTime(Some(5_000_000_000));
 
 fn set_dialog_folder_relative_to_uri(dialog: &gtk::FileChooserDialog, uri: &str) {
     if let Ok((filename, _)) = glib::filename_from_uri(&uri) {
