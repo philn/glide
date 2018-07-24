@@ -587,16 +587,20 @@ impl VideoPlayerInner {
                 let window_clone = Fragile::new(ui_ctx.window.clone());
                 ctx.player
                     .connect_media_info_updated(clone_army!([file_list, inner] move |player, info| {
-                        let uri = info.get_uri();
+                        let uri = &info.get_uri();
                         let mut file_list = file_list.lock().unwrap();
                         // Call this only once per asset.
-                        if !&file_list.contains(&uri) {
+                        if !&file_list.contains(uri) {
                             file_list.push(uri.clone());
                             let window = &*window_clone.get();
                             if let Some(title) = info.get_title() {
                                 window.set_title(&*title);
                             } else {
-                                window.set_title(&*info.get_uri());
+                                if let Ok((filename, _)) = glib::filename_from_uri(uri) {
+                                    window.set_title(&filename.as_os_str().to_string_lossy());
+                                } else {
+                                    window.set_title(uri);
+                                }
                             }
 
                             let inner = &*inner.get();
