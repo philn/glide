@@ -595,12 +595,10 @@ impl VideoPlayerInner {
                             let window = &*window_clone.get();
                             if let Some(title) = info.get_title() {
                                 window.set_title(&*title);
+                            } else if let Ok((filename, _)) = glib::filename_from_uri(uri) {
+                                window.set_title(&filename.as_os_str().to_string_lossy());
                             } else {
-                                if let Ok((filename, _)) = glib::filename_from_uri(uri) {
-                                    window.set_title(&filename.as_os_str().to_string_lossy());
-                                } else {
-                                    window.set_title(uri);
-                                }
+                                window.set_title(uri);
                             }
 
                             let inner = &*inner.get();
@@ -900,6 +898,7 @@ impl VideoPlayerInner {
         item.set_detailed_action("app.video-track::video--1");
         section.append_item(&item);
 
+        #[cfg_attr(feature = "cargo-clippy", allow(explicit_counter_loop))]
         for video_stream in info.get_video_streams() {
             let action_id = format!("app.video-track::video-{}", i);
             let description = format!("{}x{}", video_stream.get_width(), video_stream.get_height());
