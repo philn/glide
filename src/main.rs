@@ -949,7 +949,8 @@ impl VideoPlayerInner {
     pub fn check_update(&self) -> Result<self_update::Status, self_update::errors::Error> {
         let target = self_update::get_target()?;
         if let Ok(mut b) = self_update::backends::github::Update::configure() {
-            return b.repo_owner("philn")
+            return b
+                .repo_owner("philn")
                 .repo_name("glide")
                 .bin_name("glide")
                 .target(&target)
