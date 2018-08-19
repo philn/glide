@@ -39,6 +39,12 @@ pub enum PlaybackState {
     Playing,
 }
 
+pub enum SubtitleTrack {
+    None,
+    Inband(i32),
+    External(String),
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum PlayerEvent {
     MediaInfoUpdated,
@@ -398,6 +404,23 @@ impl ChannelPlayer {
         if let Some(d) = destination {
             self.player.seek(d)
         }
+    }
+
+    pub fn configure_subtitle_track(&self, track: SubtitleTrack) {
+        let enabled = match track {
+            SubtitleTrack::None => {
+                false
+            }
+            SubtitleTrack::External(uri) => {
+                self.player.set_subtitle_uri(&uri);
+                true
+            }
+            SubtitleTrack::Inband(idx) => {
+                self.player.set_subtitle_track(idx).unwrap();
+                true
+            }
+        };
+        self.player.set_subtitle_track_enabled(enabled);
     }
 
     pub fn write_last_known_media_position(&self) {

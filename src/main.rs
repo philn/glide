@@ -33,7 +33,7 @@ use std::sync::mpsc;
 use std::{thread, time};
 
 mod channel_player;
-use channel_player::{ChannelPlayer, PlaybackState, PlayerEvent};
+use channel_player::{ChannelPlayer, PlaybackState, PlayerEvent, SubtitleTrack};
 
 use gst_player::PlayerStreamInfoExt;
 
@@ -500,24 +500,12 @@ impl VideoPlayer {
             });
         });
 
-        self.subtitle_action.connect_change_state(|_action, value| {
-            if let Some(val) = value.clone() {
-                if let Some(idx) = val.get::<std::string::String>() {
-                    let (_prefix, idx) = idx.split_at(4);
-                    let idx = idx.parse::<i32>().unwrap();
-                    GLOBAL.with(|global| {
-                        if let Some((ref video_player, ref _state)) = *global.borrow() {
-                            if let Some(ref ctx) = video_player.player_context {
-                                ctx.player.set_subtitle_track_enabled(idx > -1);
-                                if idx >= 0 {
-                                    ctx.player.set_subtitle_track(idx).unwrap();
-                                }
-                                //action.set_state(&val);
-                            }
-                        }
-                    });
+        self.subtitle_action.connect_change_state(|_, value| {
+            GLOBAL.with(|global| {
+                if let Some((ref video_player, ref _state)) = *global.borrow() {
+                    video_player.update_subtitle_track(value);
                 }
-            }
+            });
         });
 
         self.audio_visualization_action.connect_change_state(|action, value| {
@@ -638,12 +626,12 @@ impl VideoPlayer {
                         if response == ok {
                             if let Some(uri) = dialog.get_uri() {
                                 if let Some(ref player_ctx) = video_player.player_context {
-                                    player_ctx.player.set_subtitle_uri(&uri);
-                                    player_ctx.player.set_subtitle_track_enabled(true);
+                                    player_ctx.configure_subtitle_track(SubtitleTrack::External(uri));
                                 }
                             }
                         }
                         dialog.destroy();
+                        video_player.refresh_subtitle_track_menu();
                     }
                 }
             });
@@ -787,13 +775,12 @@ impl VideoPlayer {
                         let subfile = path.as_path();
                         if subfile.is_file() {
                             if let Ok(suburi) = glib::filename_to_uri(subfile, None) {
-                                player.player.set_subtitle_uri(&suburi);
-                                player.player.set_subtitle_track_enabled(true);
+                                player.configure_subtitle_track(SubtitleTrack::External(suburi));
                             }
                         }
                     }
                 }
-                self.fill_subtitle_track_menu(&info);
+                self.refresh_subtitle_track_menu();
                 self.fill_audio_track_menu(&info);
                 self.fill_video_track_menu(&info);
 
@@ -827,34 +814,86 @@ impl VideoPlayer {
         }
     }
 
-    pub fn fill_subtitle_track_menu(&self, info: &gst_player::PlayerMediaInfo) {
-        let mut i = 0;
+    pub fn update_subtitle_track(&self, value: &Option<glib::Variant>) {
+        if let Some(val) = value {
+            if let Some(val) = val.get::<std::string::String>() {
+                let track = if val == "none" {
+                    SubtitleTrack::None
+                } else {
+                    let (prefix, asset) = val.split_at(4);
+                    if prefix == "ext-" {
+                        SubtitleTrack::External(asset.to_string())
+                    } else {
+                        let idx = asset.parse::<i32>().unwrap();
+                        SubtitleTrack::Inband(idx)
+                    }
+                };
+                if let Some(ref ctx) = self.player_context {
+                    ctx.configure_subtitle_track(track);
+                }
+            }
+            self.subtitle_action.set_state(&val);
+        }
+    }
+
+    pub fn refresh_subtitle_track_menu(&self) {
         let section = gio::Menu::new();
 
-        let item = gio::MenuItem::new(&*"Disable", &*"subtitle");
-        item.set_detailed_action("app.subtitle::sub--1");
-        section.append_item(&item);
-
-        for sub_stream in info.get_subtitle_streams() {
-            let title = match sub_stream.get_tags() {
-                Some(tags) => match tags.get::<gst::tags::Title>() {
-                    Some(val) => Some(std::string::String::from(val.get().unwrap())),
-                    None => sub_stream.get_language(),
-                },
-                None => sub_stream.get_language(),
-            };
-
-            if let Some(title) = title {
-                let action_id = format!("app.subtitle::sub-{}", i);
-                let item = gio::MenuItem::new(&*title, &*action_id);
-                item.set_detailed_action(&*action_id);
+        if let Some(ref player) = self.player_context {
+            if let Some(info) = player.player.get_media_info() {
+                let mut i = 0;
+                let item = gio::MenuItem::new(&*"Disable", &*"none");
+                item.set_detailed_action("app.subtitle::none");
                 section.append_item(&item);
-                i += 1;
+
+                for sub_stream in info.get_subtitle_streams() {
+                    let title = match sub_stream.get_tags() {
+                        Some(tags) => match tags.get::<gst::tags::Title>() {
+                            Some(val) => Some(std::string::String::from(val.get().unwrap())),
+                            None => sub_stream.get_language(),
+                        },
+                        None => sub_stream.get_language(),
+                    };
+
+                    if let Some(title) = title {
+                        let action_id = format!("app.subtitle::sub-{}", i);
+                        let item = gio::MenuItem::new(&*title, &*action_id);
+                        item.set_detailed_action(&*action_id);
+                        section.append_item(&item);
+                        i += 1;
+                    }
+                }
             }
         }
+
+        let mut selected_action: Option<std::string::String> = None;
+        if let Some(ref ctx) = self.player_context {
+            if let Some(uri) = ctx.player.get_subtitle_uri() {
+                if let Ok((path, _)) = glib::filename_from_uri(&uri) {
+                    let subfile = path.as_path();
+                    if let Some(filename) = subfile.file_name() {
+                        if let Some(f) = filename.to_str() {
+                            let v = format!("ext-{}", uri);
+                            let action_id = format!("app.subtitle::{}", v);
+                            let item = gio::MenuItem::new(f, &*action_id);
+                            item.set_detailed_action(&*action_id);
+                            section.append_item(&item);
+                            selected_action = Some(v);
+                        }
+                    }
+                }
+            }
+        }
+
+        // TODO: Would be nice to keep previous external subs in the menu.
         self.subtitle_track_menu.remove_all();
         self.subtitle_track_menu.append_section(None, &section);
-        //self.subtitle_action.change_state(&("sub--1").to_variant());
+
+        let v = match selected_action {
+            Some(a) => a.to_variant(),
+            None => ("none").to_variant(),
+        };
+        self.subtitle_action.change_state(&v);
     }
 
     pub fn fill_audio_visualization_menu(&self) {
