@@ -76,16 +76,13 @@ struct VideoPlayer {
     video_track_menu: gio::Menu,
     volume_signal_handler_id: Option<glib::SignalHandlerId>,
     position_signal_handler_id: Option<glib::SignalHandlerId>,
-}
-
-struct AppState {
     sender: mpsc::Sender<UIAction>,
     receiver: mpsc::Receiver<UIAction>,
     app: gtk::Application,
 }
 
 thread_local!(
-    static GLOBAL: RefCell<Option<(VideoPlayer, AppState)>> = RefCell::new(None)
+    static GLOBAL: RefCell<Option<VideoPlayer>> = RefCell::new(None)
 );
 
 // Only possible in nightly
@@ -105,14 +102,14 @@ fn set_dialog_folder_relative_to_uri(dialog: &gtk::FileChooserDialog, uri: &str)
 
 fn ui_action_handle() -> glib::Continue {
     GLOBAL.with(|global| {
-        if let Some((ref player, ref state)) = *global.borrow() {
-            if let Ok(action) = &state.receiver.try_recv() {
+        if let Some(ref player) = *global.borrow() {
+            if let Ok(action) = &player.receiver.try_recv() {
                 match action {
                     UIAction::Quit => {
-                        player.quit(state);
+                        player.quit();
                     }
                     UIAction::ForwardedPlayerEvent(event) => {
-                        player.dispatch_event(event, state);
+                        player.dispatch_event(event);
                     }
                 }
             }
@@ -122,8 +119,7 @@ fn ui_action_handle() -> glib::Continue {
 }
 
 impl VideoPlayer {
-    pub fn new(state: &AppState) -> Self {
-        let gtk_app = &state.app;
+    pub fn new(gtk_app: gtk::Application) -> Self {
 
         let fullscreen_action = gio::SimpleAction::new_stateful("fullscreen", None, &false.to_variant());
         gtk_app.add_action(&fullscreen_action);
@@ -198,7 +194,7 @@ impl VideoPlayer {
             dialog.set_title("About");
 
             GLOBAL.with(|global| {
-                if let Some((ref player, ref _state)) = *global.borrow() {
+                if let Some(ref player) = *global.borrow() {
                     if let Some(ref ui_ctx) = player.ui_context {
                         dialog.set_transient_for(Some(&ui_ctx.window));
                     }
@@ -211,8 +207,8 @@ impl VideoPlayer {
 
         gtk_app.connect_activate(|_| {
             GLOBAL.with(|global| {
-                if let Some((ref mut player, ref state)) = *global.borrow_mut() {
-                    player.start(state);
+                if let Some(ref mut player) = *global.borrow_mut() {
+                    player.start();
                 }
             });
         });
@@ -221,8 +217,8 @@ impl VideoPlayer {
             let quit = gio::SimpleAction::new("quit", None);
             quit.connect_activate(|_, _| {
                 GLOBAL.with(|global| {
-                    if let Some((ref player, ref state)) = *global.borrow() {
-                        player.quit(state);
+                    if let Some(ref player) = *global.borrow() {
+                        player.quit();
                     }
                 });
             });
@@ -254,7 +250,7 @@ impl VideoPlayer {
             }
 
             GLOBAL.with(|global| {
-                if let Some((ref mut player, ref _state)) = *global.borrow_mut() {
+                if let Some(ref mut player) = *global.borrow_mut() {
                     file_menu.append("Open...", "app.open-media");
                     subtitles_menu.append("Add subtitle file...", "app.open-subtitle-file");
                     subtitles_menu.append_submenu("Subtitle track", &player.subtitle_track_menu);
@@ -287,11 +283,13 @@ impl VideoPlayer {
         gtk_app.connect_open(move |app, files, _| {
             app.activate();
             GLOBAL.with(|global| {
-                if let Some((ref player, ref _state)) = *global.borrow() {
+                if let Some(ref player) = *global.borrow() {
                     player.open_files(files);
                 }
             });
         });
+
+        let (sender, receiver) = mpsc::channel();
 
         Self {
             player_context: None,
@@ -317,18 +315,21 @@ impl VideoPlayer {
             video_track_menu,
             volume_signal_handler_id: None,
             position_signal_handler_id: None,
+            sender,
+            receiver,
+            app: gtk_app,
         }
     }
 
-    pub fn quit(&self, state: &AppState) {
+    pub fn quit(&self) {
         if let Some(ref player_context) = self.player_context {
             player_context.write_last_known_media_position();
         }
-        self.leave_fullscreen(&state.app);
-        state.app.quit();
+        self.leave_fullscreen();
+        self.app.quit();
     }
 
-    pub fn start(&mut self, state: &AppState) {
+    pub fn start(&mut self) {
         let player = ChannelPlayer::new();
         let (sender, receiver) = mpsc::channel();
         player.register_event_handler(sender);
@@ -336,7 +337,7 @@ impl VideoPlayer {
 
         let callback = || glib::idle_add(ui_action_handle);
 
-        let sender = state.sender.clone();
+        let sender = self.sender.clone();
         thread::spawn(move || loop {
             if let Ok(event) = receiver.try_recv() {
                 // if let PlayerEvent::EndOfPlaylist = event {
@@ -401,7 +402,7 @@ impl VideoPlayer {
                     let paused = is_paused.get::<bool>().unwrap();
 
                     GLOBAL.with(|global| {
-                        if let Some((ref video_player, ref _state)) = *global.borrow() {
+                        if let Some(ref video_player) = *global.borrow() {
                             if let Some(ref player) = video_player.player_context {
                                 player.toggle_pause(paused);
                             }
@@ -414,7 +415,7 @@ impl VideoPlayer {
 
         self.dump_pipeline_action.connect_activate(|_, _| {
             GLOBAL.with(|global| {
-                if let Some((ref video_player, ref _state)) = *global.borrow() {
+                if let Some(ref video_player) = *global.borrow() {
                     if let Some(ref player) = video_player.player_context {
                         player.dump_pipeline("glide");
                     }
@@ -424,7 +425,7 @@ impl VideoPlayer {
 
         self.seek_forward_action.connect_change_state(|_, _| {
             GLOBAL.with(|global| {
-                if let Some((ref video_player, ref _state)) = *global.borrow() {
+                if let Some(ref video_player) = *global.borrow() {
                     if let Some(ref player) = video_player.player_context {
                         player.seek(SeekDirection::Forward, SEEK_FORWARD_OFFSET);
                     }
@@ -434,7 +435,7 @@ impl VideoPlayer {
 
         self.seek_backward_action.connect_change_state(|_, _| {
             GLOBAL.with(|global| {
-                if let Some((ref video_player, ref _state)) = *global.borrow() {
+                if let Some(ref video_player) = *global.borrow() {
                     if let Some(ref player) = video_player.player_context {
                         player.seek(SeekDirection::Backward, SEEK_BACKWARD_OFFSET);
                     }
@@ -444,7 +445,7 @@ impl VideoPlayer {
 
         self.volume_decrease_action.connect_change_state(|_, _| {
             GLOBAL.with(|global| {
-                if let Some((ref video_player, ref _state)) = *global.borrow() {
+                if let Some(ref video_player) = *global.borrow() {
                     if let Some(ref player) = video_player.player_context {
                         player.decrease_volume();
                     }
@@ -454,7 +455,7 @@ impl VideoPlayer {
 
         self.volume_increase_action.connect_change_state(|_, _| {
             GLOBAL.with(|global| {
-                if let Some((ref video_player, ref _state)) = *global.borrow() {
+                if let Some(ref video_player) = *global.borrow() {
                     if let Some(ref player) = video_player.player_context {
                         player.increase_volume();
                     }
@@ -464,7 +465,7 @@ impl VideoPlayer {
 
         self.audio_mute_action.connect_change_state(|mute_action, _| {
             GLOBAL.with(|global| {
-                if let Some((ref video_player, ref _state)) = *global.borrow() {
+                if let Some(ref video_player) = *global.borrow() {
                     if let Some(ref player) = video_player.player_context {
                         if let Some(is_enabled) = mute_action.get_state() {
                             let enabled = is_enabled.get::<bool>().unwrap();
@@ -481,9 +482,9 @@ impl VideoPlayer {
                 let fullscreen = is_fullscreen.get::<bool>().unwrap();
                 if !fullscreen {
                     GLOBAL.with(|global| {
-                        if let Some((ref video_player, ref state)) = *global.borrow() {
+                        if let Some(ref video_player) = *global.borrow() {
                             if let Some(ref ui_ctx) = video_player.ui_context {
-                                ui_ctx.enter_fullscreen(&state.app);
+                                ui_ctx.enter_fullscreen(&video_player.app);
                                 fullscreen_action.set_state(&true.to_variant());
                             }
                         }
@@ -494,15 +495,15 @@ impl VideoPlayer {
 
         self.restore_action.connect_change_state(|_, _| {
             GLOBAL.with(|global| {
-                if let Some((ref video_player, ref state)) = *global.borrow() {
-                    video_player.leave_fullscreen(&state.app);
+                if let Some(ref video_player) = *global.borrow() {
+                    video_player.leave_fullscreen();
                 }
             });
         });
 
         self.subtitle_action.connect_change_state(|_, value| {
             GLOBAL.with(|global| {
-                if let Some((ref video_player, ref _state)) = *global.borrow() {
+                if let Some(ref video_player) = *global.borrow() {
                     video_player.update_subtitle_track(value);
                 }
             });
@@ -512,7 +513,7 @@ impl VideoPlayer {
             if let Some(val) = value.clone() {
                 if let Some(name) = val.get::<std::string::String>() {
                     GLOBAL.with(|global| {
-                        if let Some((ref video_player, ref _state)) = *global.borrow() {
+                        if let Some(ref video_player) = *global.borrow() {
                             if let Some(ref ctx) = video_player.player_context {
                                 if name == "none" {
                                     ctx.player.set_visualization_enabled(false);
@@ -535,7 +536,7 @@ impl VideoPlayer {
                     let idx = idx.parse::<i32>().unwrap();
 
                     GLOBAL.with(|global| {
-                        if let Some((ref video_player, ref _state)) = *global.borrow() {
+                        if let Some(ref video_player) = *global.borrow() {
                             if let Some(ref ctx) = video_player.player_context {
                                 ctx.player.set_audio_track_enabled(idx > -1);
                                 if idx >= 0 {
@@ -556,7 +557,7 @@ impl VideoPlayer {
                     let idx = idx.parse::<i32>().unwrap();
 
                     GLOBAL.with(|global| {
-                        if let Some((ref video_player, ref _state)) = *global.borrow() {
+                        if let Some(ref video_player) = *global.borrow() {
                             if let Some(ref ctx) = video_player.player_context {
                                 ctx.player.set_video_track_enabled(idx > -1);
                                 if idx >= 0 {
@@ -572,7 +573,7 @@ impl VideoPlayer {
 
         self.open_media_action.connect_activate(|_, _| {
             GLOBAL.with(|global| {
-                if let Some((ref video_player, ref _state)) = *global.borrow() {
+                if let Some(ref video_player) = *global.borrow() {
                     if let Some(ref ui_ctx) = video_player.ui_context {
                         let dialog = gtk::FileChooserDialog::new(
                             Some("Choose a file"),
@@ -607,7 +608,7 @@ impl VideoPlayer {
 
         self.open_subtitle_file_action.connect_activate(|_, _| {
             GLOBAL.with(|global| {
-                if let Some((ref video_player, ref _state)) = *global.borrow() {
+                if let Some(ref video_player) = *global.borrow() {
                     if let Some(ref ui_ctx) = video_player.ui_context {
                         let dialog = gtk::FileChooserDialog::new(
                             Some("Choose a file"),
@@ -642,8 +643,8 @@ impl VideoPlayer {
 
             ui_ctx.window.connect_delete_event(|_, _| {
                 GLOBAL.with(|global| {
-                    if let Some((ref video_player, ref state)) = *global.borrow() {
-                        video_player.quit(state);
+                    if let Some(ref video_player) = *global.borrow() {
+                        video_player.quit();
                     }
                 });
                 Inhibit(false)
@@ -661,7 +662,7 @@ impl VideoPlayer {
         };
     }
 
-    pub fn dispatch_event(&self, event: &PlayerEvent, state: &AppState) {
+    pub fn dispatch_event(&self, event: &PlayerEvent) {
         match event {
             PlayerEvent::MediaInfoUpdated => {
                 self.media_info_updated();
@@ -679,16 +680,16 @@ impl VideoPlayer {
                 self.volume_changed(*volume);
             }
             PlayerEvent::Error => {
-                self.player_error(state);
+                self.player_error();
             }
             _ => {}
         };
     }
 
-    pub fn player_error(&self, state: &AppState) {
+    pub fn player_error(&self) {
         // FIXME: display some GTK error dialog...
         eprintln!("Error!");
-        self.quit(state);
+        self.quit();
     }
 
     pub fn volume_changed(&self, volume: f64) {
@@ -990,14 +991,14 @@ impl VideoPlayer {
         Ok(self_update::Status::UpToDate(std::string::String::from("OK")))
     }
 
-    pub fn leave_fullscreen(&self, app: &gtk::Application) {
+    pub fn leave_fullscreen(&self) {
         let fullscreen_action = &self.fullscreen_action;
         if let Some(is_fullscreen) = fullscreen_action.get_state() {
             let fullscreen = is_fullscreen.get::<bool>().unwrap();
 
             if fullscreen {
                 if let Some(ref ui_ctx) = self.ui_context {
-                    ui_ctx.leave_fullscreen(app);
+                    ui_ctx.leave_fullscreen(&self.app);
                     fullscreen_action.set_state(&false.to_variant());
                 }
             }
@@ -1039,19 +1040,11 @@ fn main() {
 
     glib::set_application_name("Glide");
 
-    let (sender, receiver) = mpsc::channel();
-
     let gtk_app_clone = gtk_app.clone();
-
-    let state = AppState {
-        app: gtk_app,
-        sender,
-        receiver,
-    };
-    let app = VideoPlayer::new(&state);
+    let app = VideoPlayer::new(gtk_app);
 
     GLOBAL.with(move |global| {
-        *global.borrow_mut() = Some((app, state));
+        *global.borrow_mut() = Some(app);
     });
 
     let args = env::args().collect::<Vec<_>>();
