@@ -25,7 +25,6 @@ use gio::MenuExt;
 use gio::MenuItemExt;
 use gtk::prelude::*;
 use std::cell::RefCell;
-use std::cmp;
 use std::env;
 #[allow(unused_imports)]
 use std::os::raw::c_void;
@@ -74,8 +73,6 @@ struct VideoPlayer {
     audio_visualization_menu: gio::Menu,
     audio_track_menu: gio::Menu,
     video_track_menu: gio::Menu,
-    volume_signal_handler_id: Option<glib::SignalHandlerId>,
-    position_signal_handler_id: Option<glib::SignalHandlerId>,
     sender: mpsc::Sender<UIAction>,
     receiver: mpsc::Receiver<UIAction>,
     app: gtk::Application,
@@ -91,14 +88,6 @@ thread_local!(
 
 static SEEK_BACKWARD_OFFSET: gst::ClockTime = gst::ClockTime(Some(2_000_000_000));
 static SEEK_FORWARD_OFFSET: gst::ClockTime = gst::ClockTime(Some(5_000_000_000));
-
-fn set_dialog_folder_relative_to_uri(dialog: &gtk::FileChooserDialog, uri: &str) {
-    if let Ok((filename, _)) = glib::filename_from_uri(&uri) {
-        if let Some(folder) = filename.parent() {
-            dialog.set_current_folder(folder);
-        }
-    }
-}
 
 fn ui_action_handle() -> glib::Continue {
     GLOBAL.with(|global| {
@@ -313,8 +302,6 @@ impl VideoPlayer {
             audio_visualization_menu,
             audio_track_menu,
             video_track_menu,
-            volume_signal_handler_id: None,
-            position_signal_handler_id: None,
             sender,
             receiver,
             app: gtk_app,
@@ -351,67 +338,20 @@ impl VideoPlayer {
             thread::sleep(time::Duration::from_millis(50));
         });
 
-        if let Some(player_ctx) = &self.player_context {
-            let video_area = &player_ctx.video_area;
-            if let Some(ui_ctx) = &self.ui_context {
-                ui_ctx.main_box.pack_start(&*video_area, true, true, 0);
-                ui_ctx.main_box.reorder_child(&*video_area, 0);
-                video_area.show();
+        self.pause_action.connect_change_state(|pause_action, _| {
+            if let Some(is_paused) = pause_action.get_state() {
+                let paused = is_paused.get::<bool>().unwrap();
 
-                let player_weak = player_ctx.player.downgrade();
-                ui_ctx
-                    .progress_bar
-                    .connect_format_value(move |_, value| -> std::string::String {
-                        let player = match player_weak.upgrade() {
-                            Some(player) => player,
-                            None => return std::string::String::from(""),
-                        };
-                        let position = gst::ClockTime::from_seconds(value as u64);
-                        let duration = player.get_duration();
-                        if duration.is_some() {
-                            format!("{:.0} / {:.0}", position, duration)
-                        } else {
-                            format!("{:.0}", position)
+                GLOBAL.with(|global| {
+                    if let Some(ref video_player) = *global.borrow() {
+                        if let Some(ref player) = video_player.player_context {
+                            player.toggle_pause(paused);
                         }
-                    });
-
-                let player_weak = player_ctx.player.downgrade();
-                let volume_scale = ui_ctx.volume_button.clone().upcast::<gtk::ScaleButton>();
-                self.volume_signal_handler_id = Some(volume_scale.connect_value_changed(move |_, value| {
-                    let player = match player_weak.upgrade() {
-                        Some(player) => player,
-                        None => return,
-                    };
-                    player.set_volume(value);
-                }));
-
-                let player_weak = player_ctx.player.downgrade();
-                let range = ui_ctx.progress_bar.clone().upcast::<gtk::Range>();
-                self.position_signal_handler_id = Some(range.connect_value_changed(move |range| {
-                    let player = match player_weak.upgrade() {
-                        Some(player) => player,
-                        None => return,
-                    };
-                    let value = range.get_value();
-                    player.seek(gst::ClockTime::from_seconds(value as u64));
-                }));
+                    }
+                });
+                pause_action.set_state(&(!paused).to_variant());
             }
-
-            self.pause_action.connect_change_state(|pause_action, _| {
-                if let Some(is_paused) = pause_action.get_state() {
-                    let paused = is_paused.get::<bool>().unwrap();
-
-                    GLOBAL.with(|global| {
-                        if let Some(ref video_player) = *global.borrow() {
-                            if let Some(ref player) = video_player.player_context {
-                                player.toggle_pause(paused);
-                            }
-                        }
-                    });
-                    pause_action.set_state(&(!paused).to_variant());
-                }
-            });
-        }
+        });
 
         self.dump_pipeline_action.connect_activate(|_, _| {
             GLOBAL.with(|global| {
@@ -575,32 +515,13 @@ impl VideoPlayer {
             GLOBAL.with(|global| {
                 if let Some(ref video_player) = *global.borrow() {
                     if let Some(ref ui_ctx) = video_player.ui_context {
-                        let dialog = gtk::FileChooserDialog::new(
-                            Some("Choose a file"),
-                            Some(&ui_ctx.window),
-                            gtk::FileChooserAction::Open,
-                        );
-                        let ok = gtk::ResponseType::Ok.into();
-                        dialog.add_buttons(&[("Open", ok), ("Cancel", gtk::ResponseType::Cancel.into())]);
-
-                        dialog.set_select_multiple(true);
                         if let Some(ref player_ctx) = video_player.player_context {
-                            if let Some(uri) = player_ctx.get_current_uri() {
-                                set_dialog_folder_relative_to_uri(&dialog, &uri);
-                            }
-                        }
-
-                        let response = dialog.run();
-                        if response == ok {
-                            if let Some(uri) = dialog.get_uri() {
+                            if let Some(uri) = ui_ctx.dialog_result(player_ctx.get_current_uri()) {
                                 println!("loading {}", &uri);
-                                if let Some(ref player_ctx) = video_player.player_context {
-                                    player_ctx.stop();
-                                    player_ctx.load_uri(&uri);
-                                }
+                                player_ctx.stop();
+                                player_ctx.load_uri(&uri);
                             }
                         }
-                        dialog.destroy();
                     }
                 }
             });
@@ -610,44 +531,63 @@ impl VideoPlayer {
             GLOBAL.with(|global| {
                 if let Some(ref video_player) = *global.borrow() {
                     if let Some(ref ui_ctx) = video_player.ui_context {
-                        let dialog = gtk::FileChooserDialog::new(
-                            Some("Choose a file"),
-                            Some(&ui_ctx.window),
-                            gtk::FileChooserAction::Open,
-                        );
-                        let ok = gtk::ResponseType::Ok.into();
-                        dialog.add_buttons(&[("Open", ok), ("Cancel", gtk::ResponseType::Cancel.into())]);
-
                         if let Some(ref player_ctx) = video_player.player_context {
-                            if let Some(uri) = player_ctx.get_current_uri() {
-                                set_dialog_folder_relative_to_uri(&dialog, &uri);
+                            if let Some(uri) = ui_ctx.dialog_result(player_ctx.get_current_uri()) {
+                                player_ctx.configure_subtitle_track(SubtitleTrack::External(uri));
                             }
                         }
-                        let response = dialog.run();
-                        if response == ok {
-                            if let Some(uri) = dialog.get_uri() {
-                                if let Some(ref player_ctx) = video_player.player_context {
-                                    player_ctx.configure_subtitle_track(SubtitleTrack::External(uri));
-                                }
-                            }
-                        }
-                        dialog.destroy();
                         video_player.refresh_subtitle_track_menu();
                     }
                 }
             });
         });
 
-        if let Some(ref ui_ctx) = self.ui_context {
-            ui_ctx.window.show_all();
+        if let Some(ref mut ui_ctx) = self.ui_context {
+            if let Some(ref player_ctx) = self.player_context {
+                ui_ctx.set_video_area(player_ctx.video_area());
 
-            ui_ctx.window.connect_delete_event(|_, _| {
+                let player_weak = player_ctx.player.downgrade();
+                ui_ctx.set_progress_bar_format_callback(move |value| {
+                    let player = match player_weak.upgrade() {
+                        Some(player) => player,
+                        None => return std::string::String::from(""),
+                    };
+                    let position = gst::ClockTime::from_seconds(value as u64);
+                    let duration = player.get_duration();
+                    if duration.is_some() {
+                        return format!("{:.0} / {:.0}", position, duration)
+                    } else {
+                        return format!("{:.0}", position)
+                    }
+                });
+            }
+
+            ui_ctx.set_volume_value_changed_callback(|value| {
+                GLOBAL.with(|global| {
+                    if let Some(ref video_player) = *global.borrow() {
+                        if let Some(ref player) = video_player.player_context {
+                            player.set_volume(value);
+                        }
+                    }
+                });
+            });
+
+            ui_ctx.set_position_changed_callback(|value| {
+                GLOBAL.with(|global| {
+                    if let Some(ref video_player) = *global.borrow() {
+                        if let Some(ref player) = video_player.player_context {
+                            player.seek_to(gst::ClockTime::from_seconds(value));
+                        }
+                    }
+                });
+            });
+
+            ui_ctx.start(|| {
                 GLOBAL.with(|global| {
                     if let Some(ref video_player) = *global.borrow() {
                         video_player.quit();
                     }
                 });
-                Inhibit(false)
             });
         }
 
@@ -694,13 +634,7 @@ impl VideoPlayer {
 
     pub fn volume_changed(&self, volume: f64) {
         if let Some(ref ui_context) = self.ui_context {
-            let button = &ui_context.volume_button;
-            let scale = button.clone().upcast::<gtk::ScaleButton>();
-            if let Some(ref handler_id) = self.volume_signal_handler_id {
-                glib::signal_handler_block(&scale, &handler_id);
-                scale.set_value(volume);
-                glib::signal_handler_unblock(&scale, &handler_id);
-            }
+            ui_context.volume_changed(volume);
         }
     }
     pub fn playback_state_changed(&self, playback_state: &PlaybackState) {
@@ -727,18 +661,8 @@ impl VideoPlayer {
     }
 
     pub fn video_dimensions_changed(&self, width: i32, height: i32) {
-        let mut width = width;
-        let mut height = height;
-        if let Some(screen) = gdk::Screen::get_default() {
-            width = cmp::min(width, screen.get_width());
-            height = cmp::min(height, screen.get_height() - 100);
-        }
-        // FIXME: Somehow resize video_area to avoid black borders.
-        if width > 0 && height > 0 {
-            if let Some(ref ui_context) = self.ui_context {
-                let window = &ui_context.window;
-                window.resize(width, height);
-            }
+        if let Some(ref ui_context) = self.ui_context {
+            ui_context.resize_window(width, height);
         }
     }
 
@@ -747,27 +671,17 @@ impl VideoPlayer {
             if let Some(info) = player.get_media_info() {
                 if let Some(uri) = player.get_current_uri() {
                     if let Some(ref ui_context) = self.ui_context {
-                        let window = &ui_context.window;
                         if let Some(title) = info.get_title() {
-                            window.set_title(&*title);
+                            ui_context.set_window_title(&*title);
                         } else if let Ok((filename, _)) = glib::filename_from_uri(&uri) {
-                            window.set_title(&filename.as_os_str().to_string_lossy());
+                            ui_context.set_window_title(&filename.as_os_str().to_string_lossy());
                         } else {
-                            window.set_title(&uri);
+                            ui_context.set_window_title(&uri);
                         }
 
-                        let progress_bar = &ui_context.progress_bar;
-                        let range = progress_bar.clone().upcast::<gtk::Range>();
-                        let duration = info.get_duration();
-                        if let Some(ref handler_id) = self.position_signal_handler_id {
-                            glib::signal_handler_block(&range, &handler_id);
-                            range.set_range(0.0, duration.seconds().unwrap() as f64);
-                            glib::signal_handler_unblock(&range, &handler_id);
+                        if let Some(duration) = info.get_duration().seconds() {
+                            ui_context.set_position_range_end(duration as f64);
                         }
-
-                        // Force the GtkScale to recompute its label widget size.
-                        progress_bar.set_draw_value(false);
-                        progress_bar.set_draw_value(true);
                     }
 
                     // Look for a matching subtitle file in same directory.
@@ -802,14 +716,9 @@ impl VideoPlayer {
 
     pub fn position_updated(&self) {
         if let Some(ref player) = self.player_context {
-            let position = player.player.get_position();
             if let Some(ref ui_context) = self.ui_context {
-                let progress_bar = &ui_context.progress_bar;
-                let range = progress_bar.clone().upcast::<gtk::Range>();
-                if let Some(ref handler_id) = self.position_signal_handler_id {
-                    glib::signal_handler_block(&range, &handler_id);
-                    range.set_value(position.seconds().unwrap() as f64);
-                    glib::signal_handler_unblock(&range, &handler_id);
+                if let Some(position) = player.player.get_position().seconds() {
+                    ui_context.set_position_range_value(position);
                 }
             }
         }

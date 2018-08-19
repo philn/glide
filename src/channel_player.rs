@@ -61,7 +61,7 @@ pub enum PlayerEvent {
 pub struct ChannelPlayer {
     pub player: gst_player::Player,
     subscribers: Vec<Mutex<mpsc::Sender<PlayerEvent>>>,
-    pub video_area: gtk::Widget,
+    video_area: gtk::Widget,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -334,6 +334,10 @@ impl ChannelPlayer {
         });
     }
 
+    pub fn video_area(&self) -> &gtk::Widget {
+        &self.video_area
+    }
+
     pub fn load_uri(&self, uri: &str) {
         self.player.set_property("uri", &glib::Value::from(&uri)).unwrap();
     }
@@ -348,6 +352,10 @@ impl ChannelPlayer {
 
     pub fn get_media_info(&self) -> Option<gst_player::PlayerMediaInfo> {
         self.player.get_media_info()
+    }
+
+    pub fn set_volume(&self, volume: f64) {
+        self.player.set_volume(volume);
     }
 
     pub fn toggle_pause(&self, currently_paused: bool) {
@@ -404,6 +412,10 @@ impl ChannelPlayer {
         if let Some(d) = destination {
             self.player.seek(d)
         }
+    }
+
+    pub fn seek_to(&self, position: gst::ClockTime) {
+        self.player.seek(position);
     }
 
     pub fn configure_subtitle_track(&self, track: SubtitleTrack) {

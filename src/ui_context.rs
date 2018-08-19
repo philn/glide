@@ -13,6 +13,8 @@ use glib::translate::ToGlibPtr;
 use glib::SendWeakRef;
 use gobject_sys;
 use gtk::prelude::*;
+use std::string;
+use std::cmp;
 
 use common::{INHIBIT_COOKIE, INITIAL_POSITION, INITIAL_SIZE, MOUSE_NOTIFY_SIGNAL_ID};
 
@@ -29,6 +31,9 @@ pub struct UIContext {
     pub progress_bar: gtk::Scale,
     pub volume_button: gtk::VolumeButton,
     pub toolbar_box: gtk::Box,
+    volume_signal_handler_id: Option<glib::SignalHandlerId>,
+    position_signal_handler_id: Option<glib::SignalHandlerId>,
+
 }
 
 impl UIContext {
@@ -109,6 +114,8 @@ impl UIContext {
             progress_bar,
             volume_button,
             toolbar_box,
+            volume_signal_handler_id: None,
+            position_signal_handler_id: None,
         }
     }
 
@@ -198,4 +205,119 @@ impl UIContext {
         window.set_show_menubar(true);
         gdk_window.set_cursor(None);
     }
+
+    pub fn dialog_result(&self, relative_uri: Option<string::String>) -> Option<string::String> {
+        let dialog = gtk::FileChooserDialog::new(
+            Some("Choose a file"),
+            Some(&self.window),
+            gtk::FileChooserAction::Open,
+        );
+        let ok = gtk::ResponseType::Ok.into();
+        dialog.add_buttons(&[("Open", ok), ("Cancel", gtk::ResponseType::Cancel.into())]);
+
+        dialog.set_select_multiple(true);
+        if let Some(uri) = relative_uri {
+            if let Ok((filename, _)) = glib::filename_from_uri(&uri) {
+                if let Some(folder) = filename.parent() {
+                    dialog.set_current_folder(folder);
+                }
+            }
+        }
+
+        let mut result_uri: Option<string::String> = None;
+        let response = dialog.run();
+        if response == ok {
+            if let Some(uri) = dialog.get_uri() {
+                result_uri = Some(uri);
+            }
+        }
+        dialog.destroy();
+        result_uri
+    }
+
+    pub fn start<F: Fn() + Send + Sync + 'static>(&self, f: F) {
+        self.window.show_all();
+
+        self.window.connect_delete_event(move |_, _| {
+            f();
+            Inhibit(false)
+        });
+    }
+
+    pub fn set_progress_bar_format_callback<F>(&self, f: F) where F: Fn(f64) -> string::String + Send + Sync + 'static {
+        self.progress_bar.connect_format_value(move |_, value| -> string::String {
+                f(value)
+            });
+
+    }
+    pub fn set_volume_value_changed_callback<F: Fn(f64) + Send + Sync + 'static>(&mut self, f: F) {
+        let volume_scale = self.volume_button.clone().upcast::<gtk::ScaleButton>();
+        self.volume_signal_handler_id = Some(volume_scale.connect_value_changed(move |_, value| {
+            f(value);
+        }));
+
+    }
+    pub fn set_position_changed_callback<F: Fn(u64) + Send + Sync + 'static>(&mut self, f: F) {
+        let range = self.progress_bar.clone().upcast::<gtk::Range>();
+        self.position_signal_handler_id = Some(range.connect_value_changed(move |range| {
+            f(range.get_value() as u64);
+        }));
+    }
+
+    pub fn volume_changed(&self, volume: f64) {
+        let button = &self.volume_button;
+        let scale = button.clone().upcast::<gtk::ScaleButton>();
+        if let Some(ref handler_id) = self.volume_signal_handler_id {
+            glib::signal_handler_block(&scale, &handler_id);
+            scale.set_value(volume);
+            glib::signal_handler_unblock(&scale, &handler_id);
+        }
+    }
+
+    pub fn set_position_range_value(&self, position: u64) {
+        let range = self.progress_bar.clone().upcast::<gtk::Range>();
+        if let Some(ref handler_id) = self.position_signal_handler_id {
+            glib::signal_handler_block(&range, &handler_id);
+            range.set_value(position as f64);
+            glib::signal_handler_unblock(&range, &handler_id);
+        }
+    }
+
+    pub fn set_video_area(&self, video_area: &gtk::Widget) {
+        self.main_box.pack_start(&*video_area, true, true, 0);
+        self.main_box.reorder_child(&*video_area, 0);
+        video_area.show();
+    }
+
+    pub fn resize_window(&self, width: i32, height: i32) {
+        let mut width = width;
+        let mut height = height;
+        if let Some(screen) = gdk::Screen::get_default() {
+            width = cmp::min(width, screen.get_width());
+            height = cmp::min(height, screen.get_height() - 100);
+        }
+        // FIXME: Somehow resize video_area to avoid black borders.
+        if width > 0 && height > 0 {
+            self.window.resize(width, height);
+        }
+    }
+
+    pub fn set_window_title(&self, title: &str) {
+        self.window.set_title(title);
+    }
+
+    pub fn set_position_range_end(&self, end: f64) {
+        let progress_bar = &self.progress_bar;
+        let range = progress_bar.clone().upcast::<gtk::Range>();
+        if let Some(ref handler_id) = self.position_signal_handler_id {
+            glib::signal_handler_block(&range, &handler_id);
+            range.set_range(0.0, end);
+            glib::signal_handler_unblock(&range, &handler_id);
+        }
+
+        // Force the GtkScale to recompute its label widget size.
+        progress_bar.set_draw_value(false);
+        progress_bar.set_draw_value(true);
+    }
+
 }
