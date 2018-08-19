@@ -1,17 +1,16 @@
-extern crate fragile;
 extern crate gdk;
 extern crate gio;
 extern crate glib;
 extern crate gtk;
 
-#[allow(unused_imports)]
-use fragile::Fragile;
 use gdk::prelude::*;
 #[allow(unused_imports)]
 use gio::prelude::*;
 #[allow(unused_imports)]
 use glib::translate::ToGlib;
 use glib::translate::ToGlibPtr;
+#[allow(unused_imports)]
+use glib::SendWeakRef;
 use gobject_sys;
 use gtk::prelude::*;
 
@@ -20,7 +19,6 @@ use common::{INHIBIT_COOKIE, INITIAL_POSITION, INITIAL_SIZE, MOUSE_NOTIFY_SIGNAL
 #[cfg(target_os = "macos")]
 use iokit_sleep_disabler;
 
-#[derive(Clone)]
 pub struct UIContext {
     pub window: gtk::ApplicationWindow,
     pub main_box: gtk::Box,
@@ -87,7 +85,21 @@ impl UIContext {
         main_box.pack_start(&toolbar_box, false, false, 10);
         window.add(&main_box);
 
-        UIContext {
+        window.connect_map_event(move |widget, _| {
+            if let Ok(size) = INITIAL_SIZE.lock() {
+                if let Some((width, height)) = *size {
+                    widget.resize(width, height);
+                }
+            }
+            if let Ok(position) = INITIAL_POSITION.lock() {
+                if let Some((x, y)) = *position {
+                    widget.move_(x, y);
+                }
+            }
+            Inhibit(false)
+        });
+
+        Self {
             window,
             main_box,
             seek_backward_button,
@@ -102,29 +114,38 @@ impl UIContext {
 
     #[cfg(target_os = "linux")]
     pub fn start_autohide_toolbar(&self) {
-        let toolbar = Fragile::new(self.toolbar_box.clone());
+        let toolbar_weak = self.toolbar_box.downgrade();
         let notify_signal_id = self.window.connect_motion_notify_event(move |window, _| {
-            let toolbar = &*toolbar.get();
+            let toolbar = match toolbar_weak.upgrade() {
+                Some(t) => t,
+                None => return gtk::Inhibit(false),
+            };
+
             toolbar.set_visible(true);
             let gdk_window = window.get_window().unwrap();
             gdk_window.set_cursor(None);
 
-            let inner_toolbar = Fragile::new(toolbar.clone());
-            let inner_window = Fragile::new(window.clone());
-            glib::timeout_add_seconds(
-                5,
-                clone_army!([inner_window, inner_toolbar] move || {
-                    let cursor = gdk::Cursor::new(gdk::CursorType::BlankCursor);
-                    let window = &*inner_window.get();
-                    if window.is_maximized() {
+            let window_weak = SendWeakRef::from(window.downgrade());
+            let toolbar_weak = SendWeakRef::from(toolbar.downgrade());
+            glib::timeout_add_seconds(5, move || {
+                let cursor = gdk::Cursor::new(gdk::CursorType::BlankCursor);
+                let window = match window_weak.upgrade() {
+                    Some(w) => w,
+                    None => return glib::Continue(false),
+                };
+                if let Ok(cookie) = INHIBIT_COOKIE.lock() {
+                    if cookie.is_some() {
                         let gdk_window = window.get_window().unwrap();
-                        let toolbar = &*inner_toolbar.get();
+                        let toolbar = match toolbar_weak.upgrade() {
+                            Some(t) => t,
+                            None => return glib::Continue(false),
+                        };
                         toolbar.set_visible(false);
                         gdk_window.set_cursor(Some(&cursor));
                     }
-                    glib::Continue(false)
-                }),
-            );
+                }
+                glib::Continue(false)
+            });
             gtk::Inhibit(false)
         });
         *MOUSE_NOTIFY_SIGNAL_ID.lock().unwrap() = Some(notify_signal_id.to_glib());
