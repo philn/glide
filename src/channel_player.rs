@@ -9,7 +9,6 @@ extern crate serde_json;
 extern crate sha2;
 
 use self::sha2::{Digest, Sha256};
-use dirs::Directories;
 use failure::Error;
 use gdk::prelude::*;
 use glib::translate::ToGlibPtr;
@@ -18,11 +17,11 @@ use gtk::prelude::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::default::Default;
-use std::fs::create_dir_all;
 use std::fs::File;
 use std::io::Read;
 use std::io::Write;
 use std::os::raw::c_void;
+use std::path;
 use std::process;
 use std::string;
 use std::sync::mpsc;
@@ -61,6 +60,7 @@ pub enum PlayerEvent {
 pub struct ChannelPlayer {
     player: gst_player::Player,
     video_area: gtk::Widget,
+    cache_file_path: path::PathBuf,
 }
 
 pub struct PlayerData {
@@ -77,10 +77,8 @@ pub struct MediaCache {
     files: HashMap<string::String, u64>,
 }
 
-fn parse_media_cache() -> Result<MediaCache, Error> {
-    let d = Directories::with_prefix("glide", "Glide")?;
-    create_dir_all(d.cache_home())?;
-    let mut file = File::open(d.cache_home().join("media-cache.json"))?;
+fn parse_media_cache(path: &path::PathBuf) -> Result<MediaCache, Error> {
+    let mut file = File::open(path)?;
     let mut data = String::new();
     file.read_to_string(&mut data).unwrap();
 
@@ -88,10 +86,8 @@ fn parse_media_cache() -> Result<MediaCache, Error> {
     Ok(json)
 }
 
-fn write_cache_to_file(data: &MediaCache) -> Result<(), Error> {
-    let d = Directories::with_prefix("glide", "Glide")?;
-    create_dir_all(d.cache_home())?;
-    let mut file = File::create(d.cache_home().join("media-cache.json"))?;
+fn write_cache_to_file(path: &path::PathBuf, data: &MediaCache) -> Result<(), Error> {
+    let mut file = File::create(path)?;
 
     let json = serde_json::to_string(&data)?;
     file.write_all(json.as_bytes())?;
@@ -109,9 +105,9 @@ fn uri_to_sha256(uri: &str) -> string::String {
     s
 }
 
-fn find_last_position(uri: &str) -> gst::ClockTime {
+fn find_last_position(path: &path::PathBuf, uri: &str) -> gst::ClockTime {
     let id = uri_to_sha256(&string::String::from(uri));
-    if let Ok(data) = parse_media_cache() {
+    if let Ok(data) = parse_media_cache(path) {
         if let Some(position) = data.files.get(&id) {
             return gst::ClockTime::from_nseconds(*position);
         }
@@ -210,7 +206,7 @@ impl PlayerData {
 }
 
 impl ChannelPlayer {
-    pub fn new(sender: mpsc::Sender<PlayerEvent>) -> Self {
+    pub fn new(sender: mpsc::Sender<PlayerEvent>, cache_file_path: path::PathBuf) -> Self {
         let dispatcher = gst_player::PlayerGMainContextSignalDispatcher::new(None);
         let (sink, video_area, has_gtkgl) = if let Some(gtkglsink) = gst::ElementFactory::make("gtkglsink", None) {
             let glsinkbin = gst::ElementFactory::make("glsinkbin", None).unwrap();
@@ -236,8 +232,10 @@ impl ChannelPlayer {
         config.set_position_update_interval(250);
         player.set_config(config).unwrap();
 
+        let cache_file_path_clone = cache_file_path.clone();
         player.connect_uri_loaded(move |player, uri| {
-            let position = find_last_position(uri);
+            player.pause();
+            let position = find_last_position(&cache_file_path_clone, uri);
             if position.is_some() {
                 player.seek(position);
             }
@@ -380,7 +378,11 @@ impl ChannelPlayer {
             registry.borrow_mut().insert(player_id, player_data);
         });
 
-        Self { player, video_area }
+        Self {
+            player,
+            video_area,
+            cache_file_path,
+        }
     }
 
     pub fn load_playlist(&self, playlist: Vec<string::String>) {
@@ -548,16 +550,14 @@ impl ChannelPlayer {
             }
             #[allow(unused_assignments)]
             let mut data = None;
-            if let Ok(mut d) = parse_media_cache() {
-                d.files.entry(id).or_insert(position);
+            if let Ok(d) = parse_media_cache(&self.cache_file_path) {
                 data = Some(d);
             } else {
-                let mut cache = MediaCache { files: HashMap::new() };
-                cache.files.insert(id, position);
-                data = Some(cache);
+                data = Some(MediaCache { files: HashMap::new() });
             }
-            if let Some(d) = data {
-                write_cache_to_file(&d).unwrap();
+            if let Some(mut d) = data {
+                d.files.insert(id, position);
+                write_cache_to_file(&self.cache_file_path, &d).unwrap();
             }
         }
     }

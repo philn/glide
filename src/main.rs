@@ -18,6 +18,7 @@ extern crate gobject_sys;
 #[macro_use]
 extern crate serde_derive;
 
+use dirs::Directories;
 #[allow(unused_imports)]
 use gdk::prelude::*;
 use gio::prelude::*;
@@ -26,6 +27,7 @@ use gio::MenuItemExt;
 use gtk::prelude::*;
 use std::cell::RefCell;
 use std::env;
+use std::fs::create_dir_all;
 #[allow(unused_imports)]
 use std::os::raw::c_void;
 use std::sync::mpsc;
@@ -315,7 +317,10 @@ impl VideoPlayer {
 
     pub fn start(&mut self) {
         let (sender, receiver) = mpsc::channel();
-        let player = ChannelPlayer::new(sender);
+        let d = Directories::with_prefix("glide", "Glide").unwrap();
+        create_dir_all(d.cache_home()).unwrap();
+
+        let player = ChannelPlayer::new(sender, d.cache_home().join("media-cache.json"));
         self.player_context = Some(player);
 
         let callback = || glib::idle_add(ui_action_handle);
