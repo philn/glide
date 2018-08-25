@@ -60,7 +60,14 @@ pub enum PlayerEvent {
 pub struct ChannelPlayer {
     player: gst_player::Player,
     video_area: gtk::Widget,
-    cache_file_path: path::PathBuf,
+}
+
+#[derive(Serialize, Deserialize)]
+struct MediaCacheData(pub HashMap<string::String, u64>);
+
+struct MediaCache {
+    path: path::PathBuf,
+    data: MediaCacheData,
 }
 
 struct PlayerDataHolder {
@@ -68,33 +75,56 @@ struct PlayerDataHolder {
     playlist: Vec<string::String>,
     current_uri: string::String,
     index: usize,
+    cache: MediaCache,
 }
 
 thread_local!(
     static PLAYER_REGISTRY: RefCell<HashMap<string::String, PlayerDataHolder>> = RefCell::new(HashMap::new());
 );
 
-#[derive(Serialize, Deserialize)]
-struct MediaCache {
-    files: HashMap<string::String, u64>,
-}
+impl MediaCache {
+    fn open(path: &path::PathBuf) -> Result<Self, Error> {
+        MediaCache::read(path).or_else(|_| {
+            Ok(Self {
+                path: path.to_path_buf(),
+                data: MediaCacheData(HashMap::new()),
+            })
+        })
+    }
 
-fn parse_media_cache(path: &path::PathBuf) -> Result<MediaCache, Error> {
-    let mut file = File::open(path)?;
-    let mut data = String::new();
-    file.read_to_string(&mut data).unwrap();
+    fn read(path: &path::PathBuf) -> Result<Self, Error> {
+        let mut file = File::open(path)?;
+        let mut data = String::new();
+        file.read_to_string(&mut data).unwrap();
 
-    let json: MediaCache = serde_json::from_str(&data)?;
-    Ok(json)
-}
+        let json: MediaCacheData = serde_json::from_str(&data)?;
+        Ok(Self {
+            path: path.to_path_buf(),
+            data: json,
+        })
+    }
 
-fn write_cache_to_file(path: &path::PathBuf, data: &MediaCache) -> Result<(), Error> {
-    let mut file = File::create(path)?;
+    fn update(&mut self, id: string::String, value: u64) {
+        self.data.0.insert(id, value);
+    }
 
-    let json = serde_json::to_string(&data)?;
-    file.write_all(json.as_bytes())?;
-    file.sync_all()?;
-    Ok(())
+    fn write(&self) -> Result<(), Error> {
+        let mut file = File::create(&self.path)?;
+
+        let json = serde_json::to_string(&self.data)?;
+        file.write_all(json.as_bytes())?;
+        file.sync_all()?;
+        Ok(())
+    }
+
+    fn find_last_position(&self, uri: &str) -> gst::ClockTime {
+        let id = uri_to_sha256(&string::String::from(uri));
+        if let Some(position) = self.data.0.get(&id) {
+            return gst::ClockTime::from_nseconds(*position);
+        }
+
+        gst::ClockTime::none()
+    }
 }
 
 fn uri_to_sha256(uri: &str) -> string::String {
@@ -105,16 +135,6 @@ fn uri_to_sha256(uri: &str) -> string::String {
         s.push_str(&*format!("{:02x}", byte));
     }
     s
-}
-
-fn find_last_position(path: &path::PathBuf, uri: &str) -> gst::ClockTime {
-    let id = uri_to_sha256(&string::String::from(uri));
-    if let Ok(data) = parse_media_cache(path) {
-        if let Some(position) = data.files.get(&id) {
-            return gst::ClockTime::from_nseconds(*position);
-        }
-    }
-    gst::ClockTime::none()
 }
 
 fn prepare_video_overlay(
@@ -205,10 +225,15 @@ impl PlayerDataHolder {
             }
         }
     }
+
+    fn update_cache_and_write(&mut self, id: string::String, position: u64) {
+        self.cache.update(id, position);
+        self.cache.write().unwrap();
+    }
 }
 
 impl ChannelPlayer {
-    pub fn new(sender: mpsc::Sender<PlayerEvent>, cache_file_path: path::PathBuf) -> Self {
+    pub fn new(sender: mpsc::Sender<PlayerEvent>, cache_file_path: &path::PathBuf) -> Self {
         let dispatcher = gst_player::PlayerGMainContextSignalDispatcher::new(None);
         let (sink, video_area, has_gtkgl) = if let Some(gtkglsink) = gst::ElementFactory::make("gtkglsink", None) {
             let glsinkbin = gst::ElementFactory::make("glsinkbin", None).unwrap();
@@ -233,16 +258,6 @@ impl ChannelPlayer {
         let mut config = player.get_config();
         config.set_position_update_interval(250);
         player.set_config(config).unwrap();
-
-        let cache_file_path_clone = cache_file_path.clone();
-        player.connect_uri_loaded(move |player, uri| {
-            player.pause();
-            let position = find_last_position(&cache_file_path_clone, uri);
-            if position.is_some() {
-                player.seek(position);
-            }
-            player.play();
-        });
 
         let renderer_weak = renderer.downgrade();
         video_area.connect_realize(move |video_area| {
@@ -294,7 +309,21 @@ impl ChannelPlayer {
             true
         });
 
-        player.connect_end_of_stream(move |player| {
+        player.connect_uri_loaded(|player, uri| {
+            player.pause();
+            let player_id = player.get_name();
+            PLAYER_REGISTRY.with(|registry| {
+                if let Some(ref mut player_data) = registry.borrow_mut().get_mut(&player_id) {
+                    let position = player_data.cache.find_last_position(uri);
+                    if position.is_some() {
+                        player.seek(position);
+                    }
+                }
+            });
+            player.play();
+        });
+
+        player.connect_end_of_stream(|player| {
             let player_id = player.get_name();
             PLAYER_REGISTRY.with(|registry| {
                 if let Some(ref mut player_data) = registry.borrow_mut().get_mut(&player_id) {
@@ -303,7 +332,7 @@ impl ChannelPlayer {
             });
         });
 
-        player.connect_media_info_updated(move |player, info| {
+        player.connect_media_info_updated(|player, info| {
             let player_id = player.get_name();
             PLAYER_REGISTRY.with(|registry| {
                 if let Some(ref mut player_data) = registry.borrow_mut().get_mut(&player_id) {
@@ -369,22 +398,20 @@ impl ChannelPlayer {
         let player_id = player.get_name();
         let mut subscribers = Vec::new();
         subscribers.push(sender);
+        let cache = MediaCache::read_or_create(&cache_file_path).unwrap();
         let player_data = PlayerDataHolder {
             subscribers,
             playlist: vec![],
             current_uri: "".to_string(),
             index: 0,
+            cache,
         };
 
         PLAYER_REGISTRY.with(move |registry| {
             registry.borrow_mut().insert(player_id, player_data);
         });
 
-        Self {
-            player,
-            video_area,
-            cache_file_path,
-        }
+        Self { player, video_area }
     }
 
     #[allow(dead_code)]
@@ -481,7 +508,9 @@ impl ChannelPlayer {
         let duration = self.player.get_duration();
         let destination = match direction {
             SeekDirection::Backward(offset) if position >= *offset => Some(position - *offset),
-            SeekDirection::Forward(offset) if !duration.is_none() && position + *offset <= duration => Some(position + *offset),
+            SeekDirection::Forward(offset) if !duration.is_none() && position + *offset <= duration => {
+                Some(position + *offset)
+            }
             _ => None,
         };
         if let Some(d) = destination {
@@ -560,17 +589,13 @@ impl ChannelPlayer {
                 // position will likely fail.
                 return;
             }
-            #[allow(unused_assignments)]
-            let mut data = None;
-            if let Ok(d) = parse_media_cache(&self.cache_file_path) {
-                data = Some(d);
-            } else {
-                data = Some(MediaCache { files: HashMap::new() });
-            }
-            if let Some(mut d) = data {
-                d.files.insert(id, position);
-                write_cache_to_file(&self.cache_file_path, &d).unwrap();
-            }
+
+            let player_id = self.player.get_name();
+            PLAYER_REGISTRY.with(|registry| {
+                if let Some(ref mut player_data) = registry.borrow_mut().get_mut(&player_id) {
+                    player_data.update_cache_and_write(id, position);
+                }
+            });
         }
     }
 }
