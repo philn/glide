@@ -33,13 +33,14 @@ pub struct UIContext {
     pub toolbar_box: gtk::Box,
     volume_signal_handler_id: Option<glib::SignalHandlerId>,
     position_signal_handler_id: Option<glib::SignalHandlerId>,
-
 }
+
+static MINIMAL_WINDOW_SIZE: (i32, i32) = (640, 480);
 
 impl UIContext {
     pub fn new(gtk_app: &gtk::Application) -> Self {
         let window = gtk::ApplicationWindow::new(gtk_app);
-        window.set_default_size(640, 480);
+        window.set_default_size(MINIMAL_WINDOW_SIZE.0, MINIMAL_WINDOW_SIZE.1);
 
         let main_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
 
@@ -297,7 +298,7 @@ impl UIContext {
             height = cmp::min(height, screen.get_height() - 100);
         }
         // FIXME: Somehow resize video_area to avoid black borders.
-        if width > 0 && height > 0 {
+        if width > MINIMAL_WINDOW_SIZE.0 && height > MINIMAL_WINDOW_SIZE.1 {
             self.window.resize(width, height);
         }
     }
