@@ -544,18 +544,13 @@ impl VideoPlayer {
             if let Some(ref player_ctx) = self.player_context {
                 ui_ctx.set_video_area(player_ctx.video_area());
 
-                let player_weak = player_ctx.player.downgrade();
-                ui_ctx.set_progress_bar_format_callback(move |value| {
-                    let player = match player_weak.upgrade() {
-                        Some(player) => player,
-                        None => return std::string::String::from(""),
-                    };
+                ui_ctx.set_progress_bar_format_callback(|value, duration| {
                     let position = gst::ClockTime::from_seconds(value as u64);
-                    let duration = player.get_duration();
+                    let duration = gst::ClockTime::from_seconds(duration as u64);
                     if duration.is_some() {
-                        return format!("{:.0} / {:.0}", position, duration);
+                        format!("{:.0} / {:.0}", position, duration)
                     } else {
-                        return format!("{:.0}", position);
+                        format!("{:.0}", position)
                     }
                 });
             }

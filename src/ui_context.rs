@@ -244,10 +244,14 @@ impl UIContext {
 
     pub fn set_progress_bar_format_callback<F>(&self, f: F)
     where
-        F: Fn(f64) -> string::String + Send + Sync + 'static,
+        F: Fn(f64, f64) -> string::String + Send + Sync + 'static,
     {
         self.progress_bar
-            .connect_format_value(move |_, value| -> string::String { f(value) });
+            .connect_format_value(move |bar, value| -> string::String {
+                let range = bar.clone().upcast::<gtk::Range>();
+                let adj = range.get_adjustment();
+                f(value, adj.get_upper())
+            });
     }
     pub fn set_volume_value_changed_callback<F: Fn(f64) + Send + Sync + 'static>(&mut self, f: F) {
         let volume_scale = self.volume_button.clone().upcast::<gtk::ScaleButton>();
