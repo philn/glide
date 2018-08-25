@@ -109,7 +109,6 @@ fn ui_action_handle() -> glib::Continue {
 
 impl VideoPlayer {
     pub fn new(gtk_app: gtk::Application) -> Self {
-
         let fullscreen_action = gio::SimpleAction::new_stateful("fullscreen", None, &false.to_variant());
         gtk_app.add_action(&fullscreen_action);
 
@@ -555,9 +554,9 @@ impl VideoPlayer {
                     let position = gst::ClockTime::from_seconds(value as u64);
                     let duration = player.get_duration();
                     if duration.is_some() {
-                        return format!("{:.0} / {:.0}", position, duration)
+                        return format!("{:.0} / {:.0}", position, duration);
                     } else {
-                        return format!("{:.0}", position)
+                        return format!("{:.0}", position);
                     }
                 });
             }

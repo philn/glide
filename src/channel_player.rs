@@ -420,9 +420,7 @@ impl ChannelPlayer {
 
     pub fn configure_subtitle_track(&self, track: SubtitleTrack) {
         let enabled = match track {
-            SubtitleTrack::None => {
-                false
-            }
+            SubtitleTrack::None => false,
             SubtitleTrack::External(uri) => {
                 self.player.set_subtitle_uri(&uri);
                 true

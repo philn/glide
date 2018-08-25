@@ -13,8 +13,8 @@ use glib::translate::ToGlibPtr;
 use glib::SendWeakRef;
 use gobject_sys;
 use gtk::prelude::*;
-use std::string;
 use std::cmp;
+use std::string;
 
 use common::{INHIBIT_COOKIE, INITIAL_POSITION, INITIAL_SIZE, MOUSE_NOTIFY_SIGNAL_ID};
 
@@ -208,11 +208,8 @@ impl UIContext {
     }
 
     pub fn dialog_result(&self, relative_uri: Option<string::String>) -> Option<string::String> {
-        let dialog = gtk::FileChooserDialog::new(
-            Some("Choose a file"),
-            Some(&self.window),
-            gtk::FileChooserAction::Open,
-        );
+        let dialog =
+            gtk::FileChooserDialog::new(Some("Choose a file"), Some(&self.window), gtk::FileChooserAction::Open);
         let ok = gtk::ResponseType::Ok.into();
         dialog.add_buttons(&[("Open", ok), ("Cancel", gtk::ResponseType::Cancel.into())]);
 
@@ -245,18 +242,18 @@ impl UIContext {
         });
     }
 
-    pub fn set_progress_bar_format_callback<F>(&self, f: F) where F: Fn(f64) -> string::String + Send + Sync + 'static {
-        self.progress_bar.connect_format_value(move |_, value| -> string::String {
-                f(value)
-            });
-
+    pub fn set_progress_bar_format_callback<F>(&self, f: F)
+    where
+        F: Fn(f64) -> string::String + Send + Sync + 'static,
+    {
+        self.progress_bar
+            .connect_format_value(move |_, value| -> string::String { f(value) });
     }
     pub fn set_volume_value_changed_callback<F: Fn(f64) + Send + Sync + 'static>(&mut self, f: F) {
         let volume_scale = self.volume_button.clone().upcast::<gtk::ScaleButton>();
         self.volume_signal_handler_id = Some(volume_scale.connect_value_changed(move |_, value| {
             f(value);
         }));
-
     }
     pub fn set_position_changed_callback<F: Fn(u64) + Send + Sync + 'static>(&mut self, f: F) {
         let range = self.progress_bar.clone().upcast::<gtk::Range>();
@@ -320,5 +317,4 @@ impl UIContext {
         progress_bar.set_draw_value(false);
         progress_bar.set_draw_value(true);
     }
-
 }
