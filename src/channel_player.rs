@@ -27,8 +27,6 @@ use std::process;
 use std::string;
 use std::sync::mpsc;
 
-use common::SeekDirection;
-
 #[derive(Serialize, Deserialize, Clone)]
 pub enum PlaybackState {
     Stopped,
@@ -36,11 +34,17 @@ pub enum PlaybackState {
     Playing,
 }
 
+pub enum SeekDirection {
+    Backward,
+    Forward,
+}
+
 pub enum SubtitleTrack {
-    None,
     Inband(i32),
     External(String),
 }
+
+pub struct AudioVisualization(pub string::String);
 
 #[derive(Serialize, Deserialize, Clone)]
 pub enum PlayerEvent {
@@ -55,7 +59,7 @@ pub enum PlayerEvent {
 }
 
 pub struct ChannelPlayer {
-    pub player: gst_player::Player,
+    player: gst_player::Player,
     video_area: gtk::Widget,
 }
 
@@ -475,19 +479,55 @@ impl ChannelPlayer {
         self.player.seek(position);
     }
 
-    pub fn configure_subtitle_track(&self, track: SubtitleTrack) {
+    pub fn get_position(&self) -> gst::ClockTime {
+        self.player.get_position()
+    }
+
+    pub fn configure_subtitle_track(&self, track: Option<SubtitleTrack>) {
         let enabled = match track {
-            SubtitleTrack::None => false,
-            SubtitleTrack::External(uri) => {
-                self.player.set_subtitle_uri(&uri);
-                true
-            }
-            SubtitleTrack::Inband(idx) => {
-                self.player.set_subtitle_track(idx).unwrap();
-                true
-            }
+            Some(track) => match track {
+                SubtitleTrack::External(uri) => {
+                    self.player.set_subtitle_uri(&uri);
+                    true
+                }
+                SubtitleTrack::Inband(idx) => {
+                    self.player.set_subtitle_track(idx).unwrap();
+                    true
+                }
+            },
+            None => false,
         };
         self.player.set_subtitle_track_enabled(enabled);
+    }
+
+    pub fn get_subtitle_uri(&self) -> Option<string::String> {
+        self.player.get_subtitle_uri()
+    }
+
+    pub fn set_audio_track_index(&self, idx: i32) {
+        self.player.set_audio_track_enabled(idx > -1);
+        if idx >= 0 {
+            self.player.set_audio_track(idx).unwrap();
+        }
+    }
+
+    pub fn set_video_track_index(&self, idx: i32) {
+        self.player.set_video_track_enabled(idx > -1);
+        if idx >= 0 {
+            self.player.set_video_track(idx).unwrap();
+        }
+    }
+
+    pub fn set_audio_visualization(&self, vis: Option<AudioVisualization>) {
+        match vis {
+            Some(v) => {
+                self.player.set_visualization(Some(v.0.as_str())).unwrap();
+                self.player.set_visualization_enabled(true);
+            }
+            None => {
+                self.player.set_visualization_enabled(false);
+            }
+        };
     }
 
     pub fn write_last_known_media_position(&self) {

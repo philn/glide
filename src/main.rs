@@ -32,15 +32,13 @@ use std::sync::mpsc;
 use std::{thread, time};
 
 mod channel_player;
-use channel_player::{ChannelPlayer, PlaybackState, PlayerEvent, SubtitleTrack};
+mod common;
+use channel_player::{AudioVisualization, ChannelPlayer, PlaybackState, PlayerEvent, SeekDirection, SubtitleTrack};
 
 use gst_player::PlayerStreamInfoExt;
 
 mod ui_context;
 use ui_context::UIContext;
-
-mod common;
-use common::SeekDirection;
 
 #[cfg(target_os = "macos")]
 mod iokit_sleep_disabler;
@@ -454,10 +452,9 @@ impl VideoPlayer {
                         if let Some(ref video_player) = *global.borrow() {
                             if let Some(ref ctx) = video_player.player_context {
                                 if name == "none" {
-                                    ctx.player.set_visualization_enabled(false);
+                                    ctx.set_audio_visualization(None);
                                 } else {
-                                    ctx.player.set_visualization(Some(name.as_str())).unwrap();
-                                    ctx.player.set_visualization_enabled(true);
+                                    ctx.set_audio_visualization(Some(AudioVisualization(name)));
                                 }
                                 action.set_state(&val);
                             }
@@ -476,10 +473,7 @@ impl VideoPlayer {
                     GLOBAL.with(|global| {
                         if let Some(ref video_player) = *global.borrow() {
                             if let Some(ref ctx) = video_player.player_context {
-                                ctx.player.set_audio_track_enabled(idx > -1);
-                                if idx >= 0 {
-                                    ctx.player.set_audio_track(idx).unwrap();
-                                }
+                                ctx.set_audio_track_index(idx);
                                 action.set_state(&val);
                             }
                         }
@@ -497,10 +491,7 @@ impl VideoPlayer {
                     GLOBAL.with(|global| {
                         if let Some(ref video_player) = *global.borrow() {
                             if let Some(ref ctx) = video_player.player_context {
-                                ctx.player.set_video_track_enabled(idx > -1);
-                                if idx >= 0 {
-                                    ctx.player.set_video_track(idx).unwrap();
-                                }
+                                ctx.set_video_track_index(idx);
                                 action.set_state(&val);
                             }
                         }
@@ -531,7 +522,7 @@ impl VideoPlayer {
                     if let Some(ref ui_ctx) = video_player.ui_context {
                         if let Some(ref player_ctx) = video_player.player_context {
                             if let Some(uri) = ui_ctx.dialog_result(player_ctx.get_current_uri()) {
-                                player_ctx.configure_subtitle_track(SubtitleTrack::External(uri));
+                                player_ctx.configure_subtitle_track(Some(SubtitleTrack::External(uri)));
                             }
                         }
                         video_player.refresh_subtitle_track_menu();
@@ -683,7 +674,7 @@ impl VideoPlayer {
                         let subfile = path.as_path();
                         if subfile.is_file() {
                             if let Ok(suburi) = glib::filename_to_uri(subfile, None) {
-                                player.configure_subtitle_track(SubtitleTrack::External(suburi));
+                                player.configure_subtitle_track(Some(SubtitleTrack::External(suburi)));
                             }
                         }
                     }
@@ -710,7 +701,7 @@ impl VideoPlayer {
     pub fn position_updated(&self) {
         if let Some(ref player) = self.player_context {
             if let Some(ref ui_context) = self.ui_context {
-                if let Some(position) = player.player.get_position().seconds() {
+                if let Some(position) = player.get_position().seconds() {
                     ui_context.set_position_range_value(position);
                 }
             }
@@ -721,14 +712,14 @@ impl VideoPlayer {
         if let Some(val) = value {
             if let Some(val) = val.get::<std::string::String>() {
                 let track = if val == "none" {
-                    SubtitleTrack::None
+                    None
                 } else {
                     let (prefix, asset) = val.split_at(4);
                     if prefix == "ext-" {
-                        SubtitleTrack::External(asset.to_string())
+                        Some(SubtitleTrack::External(asset.to_string()))
                     } else {
                         let idx = asset.parse::<i32>().unwrap();
-                        SubtitleTrack::Inband(idx)
+                        Some(SubtitleTrack::Inband(idx))
                     }
                 };
                 if let Some(ref ctx) = self.player_context {
@@ -743,7 +734,7 @@ impl VideoPlayer {
         let section = gio::Menu::new();
 
         if let Some(ref player) = self.player_context {
-            if let Some(info) = player.player.get_media_info() {
+            if let Some(info) = player.get_media_info() {
                 let mut i = 0;
                 let item = gio::MenuItem::new(&*"Disable", &*"none");
                 item.set_detailed_action("app.subtitle::none");
@@ -771,7 +762,7 @@ impl VideoPlayer {
 
         let mut selected_action: Option<std::string::String> = None;
         if let Some(ref ctx) = self.player_context {
-            if let Some(uri) = ctx.player.get_subtitle_uri() {
+            if let Some(uri) = ctx.get_subtitle_uri() {
                 if let Ok((path, _)) = glib::filename_from_uri(&uri) {
                     let subfile = path.as_path();
                     if let Some(filename) = subfile.file_name() {
