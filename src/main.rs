@@ -319,7 +319,7 @@ impl VideoPlayer {
         let d = Directories::with_prefix("glide", "Glide").unwrap();
         create_dir_all(d.cache_home()).unwrap();
 
-        let player = ChannelPlayer::new(sender, &d.cache_home().join("media-cache.json"));
+        let player = ChannelPlayer::new(sender, Some(&d.cache_home().join("media-cache.json")));
         self.player_context = Some(player);
 
         let callback = || glib::idle_add(ui_action_handle);

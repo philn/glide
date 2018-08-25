@@ -75,7 +75,7 @@ struct PlayerDataHolder {
     playlist: Vec<string::String>,
     current_uri: string::String,
     index: usize,
-    cache: MediaCache,
+    cache: Option<MediaCache>,
 }
 
 thread_local!(
@@ -227,13 +227,15 @@ impl PlayerDataHolder {
     }
 
     fn update_cache_and_write(&mut self, id: string::String, position: u64) {
-        self.cache.update(id, position);
-        self.cache.write().unwrap();
+        if let Some(ref mut cache) = self.cache {
+            cache.update(id, position);
+            cache.write().unwrap();
+        }
     }
 }
 
 impl ChannelPlayer {
-    pub fn new(sender: mpsc::Sender<PlayerEvent>, cache_file_path: &path::PathBuf) -> Self {
+    pub fn new(sender: mpsc::Sender<PlayerEvent>, cache_file_path: Option<&path::PathBuf>) -> Self {
         let dispatcher = gst_player::PlayerGMainContextSignalDispatcher::new(None);
         let (sink, video_area, has_gtkgl) = if let Some(gtkglsink) = gst::ElementFactory::make("gtkglsink", None) {
             let glsinkbin = gst::ElementFactory::make("glsinkbin", None).unwrap();
@@ -314,9 +316,11 @@ impl ChannelPlayer {
             let player_id = player.get_name();
             PLAYER_REGISTRY.with(|registry| {
                 if let Some(ref mut player_data) = registry.borrow_mut().get_mut(&player_id) {
-                    let position = player_data.cache.find_last_position(uri);
-                    if position.is_some() {
-                        player.seek(position);
+                    if let Some(ref cache) = player_data.cache {
+                        let position = cache.find_last_position(uri);
+                        if position.is_some() {
+                            player.seek(position);
+                        }
                     }
                 }
             });
@@ -398,7 +402,10 @@ impl ChannelPlayer {
         let player_id = player.get_name();
         let mut subscribers = Vec::new();
         subscribers.push(sender);
-        let cache = MediaCache::read_or_create(&cache_file_path).unwrap();
+        let mut cache = None;
+        if let Some(ref path) = cache_file_path {
+            cache = Some(MediaCache::open(path).unwrap());
+        }
         let player_data = PlayerDataHolder {
             subscribers,
             playlist: vec![],
