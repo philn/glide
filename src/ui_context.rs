@@ -15,8 +15,14 @@ use gobject_sys;
 use gtk::prelude::*;
 use std::cmp;
 use std::string;
+use std::sync::Mutex;
 
-use common::{INHIBIT_COOKIE, INITIAL_POSITION, INITIAL_SIZE, MOUSE_NOTIFY_SIGNAL_ID};
+lazy_static! {
+    pub static ref INHIBIT_COOKIE: Mutex<Option<u32>> = { Mutex::new(None) };
+    pub static ref INITIAL_POSITION: Mutex<Option<(i32, i32)>> = { Mutex::new(None) };
+    pub static ref INITIAL_SIZE: Mutex<Option<(i32, i32)>> = { Mutex::new(None) };
+    pub static ref MOUSE_NOTIFY_SIGNAL_ID: Mutex<Option<u64>> = { Mutex::new(None) };
+}
 
 #[cfg(target_os = "macos")]
 use iokit_sleep_disabler;

@@ -34,7 +34,6 @@ use std::sync::mpsc;
 use std::{thread, time};
 
 mod channel_player;
-mod common;
 use channel_player::{AudioVisualization, ChannelPlayer, PlaybackState, PlayerEvent, SeekDirection, SubtitleTrack};
 
 use gst_player::PlayerStreamInfoExt;
