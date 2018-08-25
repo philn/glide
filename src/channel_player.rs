@@ -63,17 +63,19 @@ pub struct ChannelPlayer {
     cache_file_path: path::PathBuf,
 }
 
-pub struct PlayerData {
+struct PlayerDataHolder {
     subscribers: Vec<mpsc::Sender<PlayerEvent>>,
     playlist: Vec<string::String>,
     current_uri: string::String,
     index: usize,
 }
 
-thread_local!(static PLAYER_REGISTRY: RefCell<HashMap<string::String, PlayerData>> = RefCell::new(HashMap::new()););
+thread_local!(
+    static PLAYER_REGISTRY: RefCell<HashMap<string::String, PlayerDataHolder>> = RefCell::new(HashMap::new());
+);
 
 #[derive(Serialize, Deserialize)]
-pub struct MediaCache {
+struct MediaCache {
     files: HashMap<string::String, u64>,
 }
 
@@ -115,7 +117,7 @@ fn find_last_position(path: &path::PathBuf, uri: &str) -> gst::ClockTime {
     gst::ClockTime::none()
 }
 
-pub fn prepare_video_overlay(
+fn prepare_video_overlay(
     video_area: &gtk::Widget,
     video_overlay: &gst_player::PlayerVideoOverlayVideoRenderer,
     has_gtkgl: bool,
@@ -163,24 +165,24 @@ pub fn prepare_video_overlay(
     }
 }
 
-impl PlayerData {
-    pub fn set_playlist(&mut self, playlist: Vec<string::String>) {
+impl PlayerDataHolder {
+    fn set_playlist(&mut self, playlist: Vec<string::String>) {
         self.playlist = playlist;
         self.index = 0;
     }
 
     #[allow(dead_code)]
-    pub fn register_event_handler(&mut self, sender: mpsc::Sender<PlayerEvent>) {
+    fn register_event_handler(&mut self, sender: mpsc::Sender<PlayerEvent>) {
         self.subscribers.push(sender);
     }
 
-    pub fn notify(&self, event: &PlayerEvent) {
+    fn notify(&self, event: &PlayerEvent) {
         for sender in &*self.subscribers {
             sender.send(event.clone()).unwrap();
         }
     }
 
-    pub fn media_info_updated(&mut self, info: &gst_player::PlayerMediaInfo) {
+    fn media_info_updated(&mut self, info: &gst_player::PlayerMediaInfo) {
         let uri = info.get_uri();
 
         // Call this only once per asset.
@@ -190,7 +192,7 @@ impl PlayerData {
         }
     }
 
-    pub fn end_of_stream(&mut self, player: &gst_player::Player) {
+    fn end_of_stream(&mut self, player: &gst_player::Player) {
         if let Some(uri) = player.get_uri() {
             self.notify(&PlayerEvent::EndOfStream(uri));
             self.index += 1;
@@ -367,7 +369,7 @@ impl ChannelPlayer {
         let player_id = player.get_name();
         let mut subscribers = Vec::new();
         subscribers.push(sender);
-        let player_data = PlayerData {
+        let player_data = PlayerDataHolder {
             subscribers: subscribers,
             playlist: vec![],
             current_uri: "".to_string(),
@@ -383,6 +385,16 @@ impl ChannelPlayer {
             video_area,
             cache_file_path,
         }
+    }
+
+    #[allow(dead_code)]
+    pub fn register_event_handler(&mut self, sender: mpsc::Sender<PlayerEvent>) {
+        let player_id = self.player.get_name();
+        PLAYER_REGISTRY.with(|registry| {
+            if let Some(ref mut player_data) = registry.borrow_mut().get_mut(&player_id) {
+                player_data.register_event_handler(sender);
+            }
+        });
     }
 
     pub fn load_playlist(&self, playlist: Vec<string::String>) {
