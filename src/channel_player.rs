@@ -34,8 +34,8 @@ pub enum PlaybackState {
 }
 
 pub enum SeekDirection {
-    Backward,
-    Forward,
+    Backward(gst::ClockTime),
+    Forward(gst::ClockTime),
 }
 
 pub enum SubtitleTrack {
@@ -472,16 +472,16 @@ impl ChannelPlayer {
         }
     }
 
-    pub fn seek(&self, direction: &SeekDirection, offset: gst::ClockTime) {
+    pub fn seek(&self, direction: &SeekDirection) {
         let position = self.player.get_position();
-        if position.is_none() || offset.is_none() {
+        if position.is_none() {
             return;
         }
 
         let duration = self.player.get_duration();
         let destination = match direction {
-            SeekDirection::Backward if position >= offset => Some(position - offset),
-            SeekDirection::Forward if !duration.is_none() && position + offset <= duration => Some(position + offset),
+            SeekDirection::Backward(offset) if position >= *offset => Some(position - *offset),
+            SeekDirection::Forward(offset) if !duration.is_none() && position + *offset <= duration => Some(position + *offset),
             _ => None,
         };
         if let Some(d) = destination {
