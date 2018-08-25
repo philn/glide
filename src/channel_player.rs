@@ -291,15 +291,14 @@ impl ChannelPlayer {
             }
         });
 
-        let file_list = Arc::new(Mutex::new(vec![]));
+        let current_uri = Arc::new(Mutex::new(string::String::from("")));
         self.player.connect_media_info_updated(move |_, info| {
             let uri = &info.get_uri();
-
-            let mut file_list = file_list.lock().unwrap();
+            let mut current_uri = current_uri.lock().unwrap();
 
             // Call this only once per asset.
-            if !&file_list.contains(uri) {
-                file_list.push(uri.clone());
+            if *current_uri != *uri {
+                *current_uri = uri.clone();
                 notify(&PlayerEvent::MediaInfoUpdated);
             }
         });
