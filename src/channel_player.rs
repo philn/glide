@@ -370,7 +370,7 @@ impl ChannelPlayer {
         let mut subscribers = Vec::new();
         subscribers.push(sender);
         let player_data = PlayerDataHolder {
-            subscribers: subscribers,
+            subscribers,
             playlist: vec![],
             current_uri: "".to_string(),
             index: 0,
@@ -472,7 +472,7 @@ impl ChannelPlayer {
         }
     }
 
-    pub fn seek(&self, direction: SeekDirection, offset: gst::ClockTime) {
+    pub fn seek(&self, direction: &SeekDirection, offset: gst::ClockTime) {
         let position = self.player.get_position();
         if position.is_none() || offset.is_none() {
             return;

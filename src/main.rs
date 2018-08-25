@@ -367,7 +367,7 @@ impl VideoPlayer {
             GLOBAL.with(|global| {
                 if let Some(ref video_player) = *global.borrow() {
                     if let Some(ref player) = video_player.player_context {
-                        player.seek(SeekDirection::Forward, SEEK_FORWARD_OFFSET);
+                        player.seek(&SeekDirection::Forward, SEEK_FORWARD_OFFSET);
                     }
                 }
             });
@@ -377,7 +377,7 @@ impl VideoPlayer {
             GLOBAL.with(|global| {
                 if let Some(ref video_player) = *global.borrow() {
                     if let Some(ref player) = video_player.player_context {
-                        player.seek(SeekDirection::Backward, SEEK_BACKWARD_OFFSET);
+                        player.seek(&SeekDirection::Backward, SEEK_BACKWARD_OFFSET);
                     }
                 }
             });
