@@ -25,14 +25,11 @@ use std::io::Write;
 use std::os::raw::c_void;
 use std::process;
 use std::string;
-use std::sync::atomic::AtomicUsize;
 use std::sync::mpsc;
-use std::sync::Arc;
-use std::sync::Mutex;
 
 use common::SeekDirection;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone)]
 pub enum PlaybackState {
     Stopped,
     Paused,
@@ -45,7 +42,7 @@ pub enum SubtitleTrack {
     External(String),
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone)]
 pub enum PlayerEvent {
     MediaInfoUpdated,
     PositionUpdated,
@@ -57,14 +54,21 @@ pub enum PlayerEvent {
     Error,
 }
 
-#[derive(Debug)]
 pub struct ChannelPlayer {
     pub player: gst_player::Player,
-    subscribers: Vec<Mutex<mpsc::Sender<PlayerEvent>>>,
     video_area: gtk::Widget,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct PlayerData {
+    subscribers: Vec<mpsc::Sender<PlayerEvent>>,
+    playlist: Vec<string::String>,
+    current_uri: string::String,
+    index: usize,
+}
+
+thread_local!(static PLAYER_REGISTRY: RefCell<HashMap<string::String, PlayerData>> = RefCell::new(HashMap::new()););
+
+#[derive(Serialize, Deserialize)]
 pub struct MediaCache {
     files: HashMap<string::String, u64>,
 }
@@ -159,20 +163,50 @@ pub fn prepare_video_overlay(
     }
 }
 
-lazy_static! {
-    pub static ref SUBSCRIBERS: Mutex<Vec<mpsc::Sender<PlayerEvent>>> = { Mutex::new(Vec::new()) };
-}
+impl PlayerData {
+    pub fn set_playlist(&mut self, playlist: Vec<string::String>) {
+        self.playlist = playlist;
+        self.index = 0;
+    }
 
-pub fn notify(event: &PlayerEvent) {
-    if let Ok(subscribers) = SUBSCRIBERS.lock() {
-        for sender in &*subscribers {
+    #[allow(dead_code)]
+    pub fn register_event_handler(&mut self, sender: mpsc::Sender<PlayerEvent>) {
+        self.subscribers.push(sender);
+    }
+
+    pub fn notify(&self, event: &PlayerEvent) {
+        for sender in &*self.subscribers {
             sender.send(event.clone()).unwrap();
+        }
+    }
+
+    pub fn media_info_updated(&mut self, info: &gst_player::PlayerMediaInfo) {
+        let uri = info.get_uri();
+
+        // Call this only once per asset.
+        if self.current_uri != *uri {
+            self.current_uri = uri.clone();
+            self.notify(&PlayerEvent::MediaInfoUpdated);
+        }
+    }
+
+    pub fn end_of_stream(&mut self, player: &gst_player::Player) {
+        if let Some(uri) = player.get_uri() {
+            self.notify(&PlayerEvent::EndOfStream(uri));
+            self.index += 1;
+
+            if self.index < self.playlist.len() {
+                let next_uri = &*self.playlist[self.index];
+                player.set_property("uri", &glib::Value::from(&next_uri)).unwrap();
+            } else {
+                self.notify(&PlayerEvent::EndOfPlaylist);
+            }
         }
     }
 }
 
 impl ChannelPlayer {
-    pub fn new() -> Self {
+    pub fn new(sender: mpsc::Sender<PlayerEvent>) -> Self {
         let dispatcher = gst_player::PlayerGMainContextSignalDispatcher::new(None);
         let (sink, video_area, has_gtkgl) = if let Some(gtkglsink) = gst::ElementFactory::make("gtkglsink", None) {
             let glsinkbin = gst::ElementFactory::make("glsinkbin", None).unwrap();
@@ -256,62 +290,43 @@ impl ChannelPlayer {
             true
         });
 
-        Self {
-            player,
-            subscribers: Vec::new(),
-            video_area,
-        }
-    }
-
-    pub fn register_event_handler(&self, sender: mpsc::Sender<PlayerEvent>) {
-        if let Ok(mut subscribers) = SUBSCRIBERS.lock() {
-            subscribers.push(sender);
-        }
-    }
-
-    pub fn load_playlist(&self, playlist: Vec<string::String>) {
-        assert!(!playlist.is_empty());
-
-        self.load_uri(&*playlist[0]);
-
-        let index_cell = RefCell::new(AtomicUsize::new(0));
-        self.player.connect_end_of_stream(move |player| {
-            if let Some(uri) = player.get_uri() {
-                notify(&PlayerEvent::EndOfStream(uri));
-                let mut cell = index_cell.borrow_mut();
-                let index = cell.get_mut();
-                *index += 1;
-
-                if *index < playlist.len() {
-                    let next_uri = &*playlist[*index];
-                    player.set_property("uri", &glib::Value::from(&next_uri)).unwrap();
-                } else {
-                    notify(&PlayerEvent::EndOfPlaylist);
+        player.connect_end_of_stream(move |player| {
+            let player_id = player.get_name();
+            PLAYER_REGISTRY.with(|registry| {
+                if let Some(ref mut player_data) = registry.borrow_mut().get_mut(&player_id) {
+                    player_data.end_of_stream(player);
                 }
-            }
+            });
         });
 
-        let current_uri = Arc::new(Mutex::new(string::String::from("")));
-        self.player.connect_media_info_updated(move |_, info| {
-            let uri = &info.get_uri();
-            let mut current_uri = current_uri.lock().unwrap();
-
-            // Call this only once per asset.
-            if *current_uri != *uri {
-                *current_uri = uri.clone();
-                notify(&PlayerEvent::MediaInfoUpdated);
-            }
+        player.connect_media_info_updated(move |player, info| {
+            let player_id = player.get_name();
+            PLAYER_REGISTRY.with(|registry| {
+                if let Some(ref mut player_data) = registry.borrow_mut().get_mut(&player_id) {
+                    player_data.media_info_updated(&info);
+                }
+            });
         });
 
-        self.player.connect_position_updated(|_, _| {
-            notify(&PlayerEvent::PositionUpdated);
+        player.connect_position_updated(|player, _| {
+            let player_id = player.get_name();
+            PLAYER_REGISTRY.with(|registry| {
+                if let Some(ref player_data) = registry.borrow().get(&player_id) {
+                    player_data.notify(&PlayerEvent::PositionUpdated);
+                }
+            });
         });
 
-        self.player.connect_video_dimensions_changed(|_, width, height| {
-            notify(&PlayerEvent::VideoDimensionsChanged(width, height));
+        player.connect_video_dimensions_changed(|player, width, height| {
+            let player_id = player.get_name();
+            PLAYER_REGISTRY.with(|registry| {
+                if let Some(ref player_data) = registry.borrow().get(&player_id) {
+                    player_data.notify(&PlayerEvent::VideoDimensionsChanged(width, height));
+                }
+            });
         });
 
-        self.player.connect_state_changed(|_, state| {
+        player.connect_state_changed(|player, state| {
             let state = match state {
                 gst_player::PlayerState::Playing => Some(PlaybackState::Playing),
                 gst_player::PlayerState::Paused => Some(PlaybackState::Paused),
@@ -319,17 +334,60 @@ impl ChannelPlayer {
                 _ => None,
             };
             if let Some(s) = state {
-                notify(&PlayerEvent::StateChanged(s));
+                let player_id = player.get_name();
+                PLAYER_REGISTRY.with(|registry| {
+                    if let Some(ref player_data) = registry.borrow().get(&player_id) {
+                        player_data.notify(&PlayerEvent::StateChanged(s));
+                    }
+                });
             }
         });
 
-        self.player.connect_volume_changed(|player| {
-            notify(&PlayerEvent::VolumeChanged(player.get_volume()));
+        player.connect_volume_changed(|player| {
+            let player_id = player.get_name();
+            PLAYER_REGISTRY.with(|registry| {
+                if let Some(ref player_data) = registry.borrow().get(&player_id) {
+                    player_data.notify(&PlayerEvent::VolumeChanged(player.get_volume()));
+                }
+            });
         });
 
-        self.player.connect_error(|_, _error| {
-            // FIXME: Pass error to enum.
-            notify(&PlayerEvent::Error);
+        player.connect_error(|player, _error| {
+            let player_id = player.get_name();
+            PLAYER_REGISTRY.with(|registry| {
+                if let Some(ref player_data) = registry.borrow().get(&player_id) {
+                    // FIXME: Pass error to enum.
+                    player_data.notify(&PlayerEvent::Error);
+                }
+            });
+        });
+
+        let player_id = player.get_name();
+        let mut subscribers = Vec::new();
+        subscribers.push(sender);
+        let player_data = PlayerData {
+            subscribers: subscribers,
+            playlist: vec![],
+            current_uri: "".to_string(),
+            index: 0,
+        };
+
+        PLAYER_REGISTRY.with(move |registry| {
+            registry.borrow_mut().insert(player_id, player_data);
+        });
+
+        Self { player, video_area }
+    }
+
+    pub fn load_playlist(&self, playlist: Vec<string::String>) {
+        assert!(!playlist.is_empty());
+
+        let player_id = self.player.get_name();
+        PLAYER_REGISTRY.with(|registry| {
+            if let Some(ref mut player_data) = registry.borrow_mut().get_mut(&player_id) {
+                self.load_uri(&*playlist[0]);
+                player_data.set_playlist(playlist);
+            }
         });
     }
 

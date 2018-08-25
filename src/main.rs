@@ -271,7 +271,7 @@ impl VideoPlayer {
         gtk_app.connect_open(move |app, files, _| {
             app.activate();
             GLOBAL.with(|global| {
-                if let Some(ref player) = *global.borrow() {
+                if let Some(ref mut player) = *global.borrow_mut() {
                     player.open_files(files);
                 }
             });
@@ -316,9 +316,8 @@ impl VideoPlayer {
     }
 
     pub fn start(&mut self) {
-        let player = ChannelPlayer::new();
         let (sender, receiver) = mpsc::channel();
-        player.register_event_handler(sender);
+        let player = ChannelPlayer::new(sender);
         self.player_context = Some(player);
 
         let callback = || glib::idle_add(ui_action_handle);
@@ -869,7 +868,7 @@ impl VideoPlayer {
         self.video_track_menu.append_section(None, &section);
     }
 
-    pub fn open_files(&self, files: &[gio::File]) {
+    pub fn open_files(&mut self, files: &[gio::File]) {
         let mut playlist = vec![];
         for file in files.to_vec() {
             if let Some(uri) = file.get_uri() {
@@ -877,8 +876,7 @@ impl VideoPlayer {
             }
         }
 
-        assert!(!files.is_empty());
-        if let Some(ref player_ctx) = self.player_context {
+        if let Some(ref mut player_ctx) = self.player_context {
             player_ctx.load_playlist(playlist);
         }
     }
