@@ -1,5 +1,6 @@
 #[cfg(target_os = "macos")]
 extern crate core_foundation;
+extern crate crossbeam_channel as channel;
 extern crate dirs;
 extern crate failure;
 extern crate gdk;
@@ -30,7 +31,6 @@ use std::env;
 use std::fs::create_dir_all;
 #[allow(unused_imports)]
 use std::os::raw::c_void;
-use std::sync::mpsc;
 use std::{thread, time};
 
 mod channel_player;
@@ -72,8 +72,8 @@ struct VideoPlayer {
     audio_visualization_menu: gio::Menu,
     audio_track_menu: gio::Menu,
     video_track_menu: gio::Menu,
-    sender: mpsc::Sender<UIAction>,
-    receiver: mpsc::Receiver<UIAction>,
+    sender: channel::Sender<UIAction>,
+    receiver: channel::Receiver<UIAction>,
     app: gtk::Application,
 }
 
@@ -91,7 +91,7 @@ static SEEK_FORWARD_OFFSET: gst::ClockTime = gst::ClockTime(Some(5_000_000_000))
 fn ui_action_handle() -> glib::Continue {
     GLOBAL.with(|global| {
         if let Some(ref player) = *global.borrow() {
-            if let Ok(action) = &player.receiver.try_recv() {
+            if let Some(action) = &player.receiver.try_recv() {
                 match action {
                     UIAction::Quit => {
                         player.quit();
@@ -276,7 +276,7 @@ impl VideoPlayer {
             });
         });
 
-        let (sender, receiver) = mpsc::channel();
+        let (sender, receiver) = channel::unbounded();
 
         Self {
             player_context: None,
@@ -315,7 +315,7 @@ impl VideoPlayer {
     }
 
     pub fn start(&mut self) {
-        let (sender, receiver) = mpsc::channel();
+        let (sender, receiver) = channel::unbounded();
         let d = Directories::with_prefix("glide", "Glide").unwrap();
         create_dir_all(d.cache_home()).unwrap();
 
@@ -326,13 +326,13 @@ impl VideoPlayer {
 
         let sender = self.sender.clone();
         thread::spawn(move || loop {
-            if let Ok(event) = receiver.try_recv() {
+            if let Some(event) = receiver.try_recv() {
                 // if let PlayerEvent::EndOfPlaylist = event {
                 //     sender.send(UIAction::Quit).unwrap();
                 //     callback();
                 //     break;
                 // }
-                sender.send(UIAction::ForwardedPlayerEvent(event)).unwrap();
+                sender.send(UIAction::ForwardedPlayerEvent(event));
                 callback();
             }
             thread::sleep(time::Duration::from_millis(50));

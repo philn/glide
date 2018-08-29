@@ -1,3 +1,4 @@
+extern crate crossbeam_channel as channel;
 extern crate dirs;
 extern crate gdk;
 extern crate glib;
@@ -24,7 +25,6 @@ use std::os::raw::c_void;
 use std::path;
 use std::process;
 use std::string;
-use std::sync::mpsc;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub enum PlaybackState {
@@ -71,7 +71,7 @@ struct MediaCache {
 }
 
 struct PlayerDataHolder {
-    subscribers: Vec<mpsc::Sender<PlayerEvent>>,
+    subscribers: Vec<channel::Sender<PlayerEvent>>,
     playlist: Vec<string::String>,
     current_uri: string::String,
     index: usize,
@@ -192,13 +192,13 @@ impl PlayerDataHolder {
     }
 
     #[allow(dead_code)]
-    fn register_event_handler(&mut self, sender: mpsc::Sender<PlayerEvent>) {
+    fn register_event_handler(&mut self, sender: channel::Sender<PlayerEvent>) {
         self.subscribers.push(sender);
     }
 
     fn notify(&self, event: &PlayerEvent) {
         for sender in &*self.subscribers {
-            sender.send(event.clone()).unwrap();
+            sender.send(event.clone());
         }
     }
 
@@ -235,7 +235,7 @@ impl PlayerDataHolder {
 }
 
 impl ChannelPlayer {
-    pub fn new(sender: mpsc::Sender<PlayerEvent>, cache_file_path: Option<&path::PathBuf>) -> Self {
+    pub fn new(sender: channel::Sender<PlayerEvent>, cache_file_path: Option<&path::PathBuf>) -> Self {
         let dispatcher = gst_player::PlayerGMainContextSignalDispatcher::new(None);
         let (sink, video_area, has_gtkgl) = if let Some(gtkglsink) = gst::ElementFactory::make("gtkglsink", None) {
             let glsinkbin = gst::ElementFactory::make("glsinkbin", None).unwrap();
@@ -422,7 +422,7 @@ impl ChannelPlayer {
     }
 
     #[allow(dead_code)]
-    pub fn register_event_handler(&mut self, sender: mpsc::Sender<PlayerEvent>) {
+    pub fn register_event_handler(&mut self, sender: channel::Sender<PlayerEvent>) {
         let player_id = self.player.get_name();
         PLAYER_REGISTRY.with(|registry| {
             if let Some(ref mut player_data) = registry.borrow_mut().get_mut(&player_id) {
