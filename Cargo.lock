@@ -469,7 +469,7 @@ dependencies = [
 
 [[package]]
 name = "glide"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "cairo-rs 0.4.0 (git+https://github.com/gtk-rs/cairo.git)",
  "core-foundation 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
