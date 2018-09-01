@@ -91,6 +91,8 @@ Release procedure
 - Build tarball:
 
         $ mkdir -p _build
+        $ cargo install cargo-vendor
+        $ meson _build
         $ ninja -C _build release
 
 - Publish version and tag:
