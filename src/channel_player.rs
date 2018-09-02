@@ -582,6 +582,11 @@ impl ChannelPlayer {
 
     pub fn write_last_known_media_position(&self) {
         if let Some(uri) = self.player.get_uri() {
+            if let Some(scheme) = glib::uri_parse_scheme(&uri) {
+                if scheme == "fd" {
+                    return;
+                }
+            }
             let id = uri_to_sha256(&uri);
             let mut position = 0;
             if let Some(p) = self.player.get_position().nanoseconds() {
