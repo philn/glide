@@ -9,7 +9,6 @@ description = "Cross-platform media player based on GStreamer and GTK+"
 license = "MIT"
 
 [dependencies]
-cairo-rs = "0.5.0"
 glib = "0.6.0"
 gdk = "0.9.0"
 gio = "0.5.0"
@@ -24,7 +23,6 @@ serde_derive = "1.0"
 serde = "1.0"
 dirs = "0.3.1"
 failure = "0.1"
-failure_derive = "0.1"
 sha2 = "0.7.0"
 crossbeam-channel = "0.2.4"
 
