@@ -7,11 +7,7 @@ use gdk::prelude::*;
 #[allow(unused_imports)]
 use gio::prelude::*;
 #[allow(unused_imports)]
-use glib::translate::ToGlib;
-use glib::translate::ToGlibPtr;
-#[allow(unused_imports)]
 use glib::SendWeakRef;
-use gobject_sys;
 use gtk::prelude::*;
 use std::cmp;
 use std::string;
@@ -21,7 +17,7 @@ lazy_static! {
     pub static ref INHIBIT_COOKIE: Mutex<Option<u32>> = { Mutex::new(None) };
     pub static ref INITIAL_POSITION: Mutex<Option<(i32, i32)>> = { Mutex::new(None) };
     pub static ref INITIAL_SIZE: Mutex<Option<(i32, i32)>> = { Mutex::new(None) };
-    pub static ref MOUSE_NOTIFY_SIGNAL_ID: Mutex<Option<u64>> = { Mutex::new(None) };
+    pub static ref MOUSE_NOTIFY_SIGNAL_ID: Mutex<Option<glib::SignalHandlerId>> = { Mutex::new(None) };
 }
 
 #[cfg(target_os = "macos")]
@@ -162,7 +158,7 @@ impl UIContext {
             });
             gtk::Inhibit(false)
         });
-        *MOUSE_NOTIFY_SIGNAL_ID.lock().unwrap() = Some(notify_signal_id.to_glib());
+        *MOUSE_NOTIFY_SIGNAL_ID.lock().unwrap() = Some(notify_signal_id);
     }
 
     pub fn enter_fullscreen(&self, _app: &gtk::Application) {
@@ -200,12 +196,9 @@ impl UIContext {
             *cookie = None;
         }
         if let Ok(mut signal_handler_id) = MOUSE_NOTIFY_SIGNAL_ID.lock() {
-            if let Some(handler) = *signal_handler_id {
-                unsafe {
-                    gobject_sys::g_signal_handler_disconnect(window.to_glib_none().0, handler);
-                }
+            if let Some(handler) = signal_handler_id.take() {
+                window.disconnect(handler);
             }
-            *signal_handler_id = None;
         }
         window.unfullscreen();
         self.toolbar_box.set_visible(true);
