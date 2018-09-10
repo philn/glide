@@ -14,7 +14,6 @@ extern crate gtk;
 extern crate lazy_static;
 #[macro_use]
 extern crate self_update;
-extern crate gobject_sys;
 
 #[macro_use]
 extern crate serde_derive;
