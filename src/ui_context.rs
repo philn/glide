@@ -170,7 +170,7 @@ impl UIContext {
         #[cfg(not(target_os = "macos"))]
         {
             let flags = gtk::ApplicationInhibitFlags::SUSPEND | gtk::ApplicationInhibitFlags::IDLE;
-            *INHIBIT_COOKIE.lock().unwrap() = Some(_app.inhibit(window, flags, None));
+            *INHIBIT_COOKIE.lock().unwrap() = Some(_app.inhibit(window, flags, Some("Glide full-screen")));
         }
         *INITIAL_SIZE.lock().unwrap() = Some(window.get_size());
         *INITIAL_POSITION.lock().unwrap() = Some(window.get_position());
