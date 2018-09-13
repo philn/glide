@@ -12,6 +12,7 @@ extern crate gstreamer_video as gst_video;
 extern crate gtk;
 #[macro_use]
 extern crate lazy_static;
+#[cfg(feature = "self-updater")]
 #[macro_use]
 extern crate self_update;
 
@@ -578,6 +579,7 @@ impl VideoPlayer {
             });
         }
 
+        #[cfg(feature = "self-updater")]
         match self.check_update() {
             Ok(o) => {
                 match o {
@@ -870,6 +872,7 @@ impl VideoPlayer {
         }
     }
 
+    #[cfg(feature = "self-updater")]
     pub fn check_update(&self) -> Result<self_update::Status, self_update::errors::Error> {
         let target = self_update::get_target()?;
         if let Ok(mut b) = self_update::backends::github::Update::configure() {

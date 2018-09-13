@@ -43,6 +43,8 @@ package manager. So the only way to install it is with Cargo:
 3.  Install Glide:
 
         $ cargo install glide
+        $ # or if you want to have automatic update checking:
+        $ cargo install --features self-updater glide
 
 Using Glide
 -----------
