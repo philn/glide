@@ -1,6 +1,6 @@
 [package]
 name = "glide"
-version = "0.5.1"
+version = "0.5.2"
 authors = ["Philippe Normand <phil@base-art.net>"]
 keywords = ["multimedia", "gstreamer", "gtk", "playback"]
 repository = "https://github.com/philn/glide"
