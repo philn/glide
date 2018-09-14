@@ -1,12 +1,56 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2018 Philippe Normand <phil_AT_base-art.net> -->
 <component type="desktop">
-  <id>org.baseart.Glide</id>
+  <id>net.baseart.Glide</id>
   <launchable type="desktop">net.baseart.Glide</launchable>
   <metadata_license>CC-BY-3.0</metadata_license>
   <project_license>MIT</project_license>
-  <_name>Glide</_name>
-  <_summary>Play movies and audio files</_summary>
-  <description>A GStreamer video player.</description>
-  <update_contact>phil@base-art.net</update_contact>
-  <_developer_name>The Glide Team</_developer_name>
+  <name>Glide</name>
+  <summary>Play movies and audio files</summary>
+  <description>
+    <p>
+      Glide is a simple and minimalistic media player relying on GStreamer for the multimedia support
+      and GTK+ for the user interface. Glide should be able to play any multimedia format supported by
+      GStreamer, locally or remotely hosted. Glide is developed in Rust.
+    </p>
+    <p>
+      Once Glide is running you can use some menus to switch the subtitle and audio
+      tracks, play, pause, seek and switch the window to fullscreen. There are
+      also some keyboard shortcuts for these actions:
+      <ul>
+        <li>play/pause: space</li>
+        <li>seek forward: meta-right or alt-left</li>
+        <li>seek backward: meta-left or alt-right</li>
+        <li>switch to fullscreen: meta-f or alt-f</li>
+        <li>exit from fullscreen: escape</li>
+        <li>quit the application: meta-q or ctrl-q</li>
+        <li>load a subtitle file: meta-s or alt-s</li>
+        <li>increase volume: meta-up or alt-up</li>
+        <li>decrease volume: meta-up or alt-down</li>
+        <li>mute the audio track: meta-m or alt-m</li>
+        <li>open a new file: meta-o or alt-o</li>
+      </ul>
+    </p>
+  </description>
+  <update_contact>phil_AT_base-art.net</update_contact>
+  <developer_name>The Glide Team</developer_name>
+  <url type="homepage">https://github.com/philn/glide</url>
+  <screenshots>
+    <screenshot>
+      <image>https://github.com/philn/glide/raw/master/screenshot.png</image>
+      <caption>Glide playing a video</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://github.com/philn/glide/raw/master/audio-screenshot.png</image>
+      <caption>Glide playing an audio file with visualizations</caption>
+    </screenshot>
+  </screenshots>
+  <content_rating type="oars-1.1" />
+  <releases>
+​    <release version="0.5.3" date="2018-09-14">
+​      <description>
+​        <p>The fullscreen button can now be used to exit fullscreen mode.</p>
+​      </description>
+​    </release>
+​  </releases>
 </component>
