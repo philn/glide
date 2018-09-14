@@ -419,17 +419,20 @@ impl VideoPlayer {
 
         self.fullscreen_action.connect_change_state(|fullscreen_action, _| {
             if let Some(is_fullscreen) = fullscreen_action.get_state() {
-                let fullscreen = is_fullscreen.get::<bool>().unwrap();
-                if !fullscreen {
-                    GLOBAL.with(|global| {
-                        if let Some(ref video_player) = *global.borrow() {
-                            if let Some(ref ui_ctx) = video_player.ui_context {
+                GLOBAL.with(|global| {
+                    if let Some(ref video_player) = *global.borrow() {
+                        if let Some(ref ui_ctx) = video_player.ui_context {
+                            let fullscreen = is_fullscreen.get::<bool>().unwrap();
+                            if !fullscreen {
                                 ui_ctx.enter_fullscreen(&video_player.app);
-                                fullscreen_action.set_state(&true.to_variant());
+                            } else {
+                                ui_ctx.leave_fullscreen(&video_player.app);
                             }
+                            let new_state = !fullscreen;
+                            fullscreen_action.set_state(&new_state.to_variant());
                         }
-                    });
-                }
+                    }
+                });
             }
         });
 
