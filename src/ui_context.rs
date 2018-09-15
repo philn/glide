@@ -1,11 +1,13 @@
 extern crate gdk;
 extern crate gio;
 extern crate glib;
+extern crate glib_sys;
 extern crate gtk;
 
 use gdk::prelude::*;
 #[allow(unused_imports)]
 use gio::prelude::*;
+use glib::translate::ToGlib;
 #[allow(unused_imports)]
 use glib::SendWeakRef;
 use gtk::prelude::*;
@@ -18,6 +20,7 @@ lazy_static! {
     pub static ref INITIAL_POSITION: Mutex<Option<(i32, i32)>> = { Mutex::new(None) };
     pub static ref INITIAL_SIZE: Mutex<Option<(i32, i32)>> = { Mutex::new(None) };
     pub static ref MOUSE_NOTIFY_SIGNAL_ID: Mutex<Option<glib::SignalHandlerId>> = { Mutex::new(None) };
+    pub static ref AUTOHIDE_SOURCE: Mutex<Option<glib::SourceId>> = { Mutex::new(None) };
 }
 
 #[cfg(target_os = "macos")]
@@ -151,25 +154,39 @@ impl UIContext {
 
             let window_weak = SendWeakRef::from(window.downgrade());
             let toolbar_weak = SendWeakRef::from(toolbar.downgrade());
-            glib::timeout_add_seconds(5, move || {
+            if let Ok(source) = AUTOHIDE_SOURCE.lock() {
+                if let Some(ref s) = *source {
+                    unsafe {
+                        glib_sys::g_source_remove(s.to_glib());
+                    }
+                }
+            }
+            *AUTOHIDE_SOURCE.lock().unwrap() = Some(glib::timeout_add_seconds(5, move || {
                 let cursor = gdk::Cursor::new(gdk::CursorType::BlankCursor);
                 let window = match window_weak.upgrade() {
                     Some(w) => w,
-                    None => return glib::Continue(false),
+                    None => {
+                        *AUTOHIDE_SOURCE.lock().unwrap() = None;
+                        return glib::Continue(false);
+                    }
                 };
                 if let Ok(cookie) = INHIBIT_COOKIE.lock() {
                     if cookie.is_some() {
                         let gdk_window = window.get_window().unwrap();
                         let toolbar = match toolbar_weak.upgrade() {
                             Some(t) => t,
-                            None => return glib::Continue(false),
+                            None => {
+                                *AUTOHIDE_SOURCE.lock().unwrap() = None;
+                                return glib::Continue(false);
+                            }
                         };
                         toolbar.set_visible(false);
                         gdk_window.set_cursor(Some(&cursor));
                     }
                 }
+                *AUTOHIDE_SOURCE.lock().unwrap() = None;
                 glib::Continue(false)
-            });
+            }));
             gtk::Inhibit(false)
         });
         *MOUSE_NOTIFY_SIGNAL_ID.lock().unwrap() = Some(notify_signal_id);
