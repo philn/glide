@@ -1,13 +1,11 @@
 extern crate gdk;
 extern crate gio;
 extern crate glib;
-extern crate glib_sys;
 extern crate gtk;
 
 use gdk::prelude::*;
 #[allow(unused_imports)]
 use gio::prelude::*;
-use glib::translate::ToGlib;
 #[allow(unused_imports)]
 use glib::SendWeakRef;
 use gtk::prelude::*;
@@ -154,12 +152,8 @@ impl UIContext {
 
             let window_weak = SendWeakRef::from(window.downgrade());
             let toolbar_weak = SendWeakRef::from(toolbar.downgrade());
-            if let Ok(source) = AUTOHIDE_SOURCE.lock() {
-                if let Some(ref s) = *source {
-                    unsafe {
-                        glib_sys::g_source_remove(s.to_glib());
-                    }
-                }
+            if let Some(source) = AUTOHIDE_SOURCE.lock().unwrap().take() {
+                glib::source_remove(source);
             }
             *AUTOHIDE_SOURCE.lock().unwrap() = Some(glib::timeout_add_seconds(5, move || {
                 let cursor = gdk::Cursor::new(gdk::CursorType::BlankCursor);
