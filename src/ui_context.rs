@@ -38,7 +38,7 @@ pub struct UIContext {
     position_signal_handler_id: Option<glib::SignalHandlerId>,
 }
 
-static MINIMAL_WINDOW_SIZE: (i32, i32) = (640, 480);
+const MINIMAL_WINDOW_SIZE: (i32, i32) = (640, 480);
 
 impl UIContext {
     pub fn new(gtk_app: &gtk::Application) -> Self {
