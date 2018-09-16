@@ -141,41 +141,32 @@ impl UIContext {
     pub fn start_autohide_toolbar(&self) {
         let toolbar_weak = self.toolbar_box.downgrade();
         let notify_signal_id = self.window.connect_motion_notify_event(move |window, _| {
+            if let Some(source) = AUTOHIDE_SOURCE.lock().unwrap().take() {
+                glib::source_remove(source);
+            }
+
+            let gdk_window = window.get_window().unwrap();
+            gdk_window.set_cursor(None);
+
             let toolbar = match toolbar_weak.upgrade() {
                 Some(t) => t,
                 None => return gtk::Inhibit(false),
             };
-
             toolbar.set_visible(true);
-            let gdk_window = window.get_window().unwrap();
-            gdk_window.set_cursor(None);
 
             let window_weak = SendWeakRef::from(window.downgrade());
             let toolbar_weak = SendWeakRef::from(toolbar.downgrade());
-            if let Some(source) = AUTOHIDE_SOURCE.lock().unwrap().take() {
-                glib::source_remove(source);
-            }
             *AUTOHIDE_SOURCE.lock().unwrap() = Some(glib::timeout_add_seconds(5, move || {
-                let cursor = gdk::Cursor::new(gdk::CursorType::BlankCursor);
-                let window = match window_weak.upgrade() {
-                    Some(w) => w,
-                    None => {
-                        *AUTOHIDE_SOURCE.lock().unwrap() = None;
-                        return glib::Continue(false);
-                    }
-                };
                 if let Ok(cookie) = INHIBIT_COOKIE.lock() {
                     if cookie.is_some() {
-                        let gdk_window = window.get_window().unwrap();
-                        let toolbar = match toolbar_weak.upgrade() {
-                            Some(t) => t,
-                            None => {
-                                *AUTOHIDE_SOURCE.lock().unwrap() = None;
-                                return glib::Continue(false);
-                            }
-                        };
-                        toolbar.set_visible(false);
-                        gdk_window.set_cursor(Some(&cursor));
+                        if let Some(toolbar) = toolbar_weak.upgrade() {
+                            toolbar.set_visible(false);
+                        }
+                        if let Some(window) = window_weak.upgrade() {
+                            let gdk_window = window.get_window().unwrap();
+                            let cursor = gdk::Cursor::new(gdk::CursorType::BlankCursor);
+                            gdk_window.set_cursor(Some(&cursor));
+                        }
                     }
                 }
                 *AUTOHIDE_SOURCE.lock().unwrap() = None;
