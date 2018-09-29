@@ -85,6 +85,7 @@ Release procedure
 -----------------
 
 - Bump version in `Cargo.toml` and `meson.build`
+- Add release info in appstream file
 - Commit and tag new version:
 
         $ git ci -am "Bump to ..."
