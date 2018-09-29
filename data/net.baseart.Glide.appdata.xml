@@ -47,10 +47,8 @@
   </screenshots>
   <content_rating type="oars-1.1" />
   <releases>
-​    <release version="0.5.3" date="2018-09-14">
-​      <description>
-​        <p>The fullscreen button can now be used to exit fullscreen mode.</p>
-​      </description>
+    <release version="0.5.3" date="2018-09-14">
+      <description><p>The fullscreen button can now be used to exit fullscreen mode.</p></description>
 ​    </release>
-​  </releases>
+  </releases>
 </component>
