@@ -48,45 +48,59 @@ impl UIContext {
 
         let toolbar_box = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
-        let pause_button = gtk::Button::new();
-        let pause_actionable = pause_button.clone().upcast::<gtk::Actionable>();
-        pause_actionable.set_action_name("app.pause");
+        let pause_button = {
+            let button = gtk::Button::new();
+            button.clone().upcast::<gtk::Actionable>().set_action_name("app.pause");
+            button
+        };
 
-        let seek_backward_button = gtk::Button::new();
-        let seek_bw_actionable = seek_backward_button.clone().upcast::<gtk::Actionable>();
-        seek_bw_actionable.set_action_name("app.seek-backward");
-        let backward_image =
-            gtk::Image::new_from_icon_name("media-seek-backward-symbolic", gtk::IconSize::SmallToolbar.into());
-        seek_backward_button.set_image(&backward_image);
+        let seek_backward_button = {
+            let button = gtk::Button::new();
+            button.clone().upcast::<gtk::Actionable>().set_action_name("app.seek-backward");
+            let image = 
+                gtk::Image::new_from_icon_name("media-seek-backward-symbolic", gtk::IconSize::SmallToolbar.into());
+            button.set_image(&image);
+            button
+        };
 
-        let seek_forward_button = gtk::Button::new();
-        let seek_fw_actionable = seek_forward_button.clone().upcast::<gtk::Actionable>();
-        seek_fw_actionable.set_action_name("app.seek-forward");
-        let forward_image =
-            gtk::Image::new_from_icon_name("media-seek-forward-symbolic", gtk::IconSize::SmallToolbar.into());
-        seek_forward_button.set_image(&forward_image);
+        let seek_forward_button = {
+            let button = gtk::Button::new();
+            button.clone().upcast::<gtk::Actionable>().set_action_name("app.seek-forward");
+            let image = 
+                gtk::Image::new_from_icon_name("media-seek-forward-symbolic", gtk::IconSize::SmallToolbar.into());
+            button.set_image(&image);
+            button
+        };
 
         toolbar_box.pack_start(&seek_backward_button, false, false, 0);
         toolbar_box.pack_start(&pause_button, false, false, 0);
         toolbar_box.pack_start(&seek_forward_button, false, false, 0);
 
-        let progress_bar = gtk::Scale::new(gtk::Orientation::Horizontal, None);
-        progress_bar.set_draw_value(true);
-        progress_bar.set_value_pos(gtk::PositionType::Right);
+        let progress_bar = {
+            let bar = gtk::Scale::new(gtk::Orientation::Horizontal, None);
+            bar.set_draw_value(true);
+            bar.set_value_pos(gtk::PositionType::Right);
+            bar
+        };
 
         toolbar_box.pack_start(&progress_bar, true, true, 10);
 
-        let volume_button = gtk::VolumeButton::new();
-        let volume_orientable = volume_button.clone().upcast::<gtk::Orientable>();
-        volume_orientable.set_orientation(gtk::Orientation::Horizontal);
+        let volume_button = {
+            let button = gtk::VolumeButton::new();
+            button.clone().upcast::<gtk::Orientable>().set_orientation(gtk::Orientation::Horizontal);
+            button
+        };
+
         toolbar_box.pack_start(&volume_button, false, false, 5);
 
-        let fullscreen_button = gtk::Button::new();
-        let fullscreen_image =
-            gtk::Image::new_from_icon_name("view-fullscreen-symbolic", gtk::IconSize::SmallToolbar.into());
-        fullscreen_button.set_image(&fullscreen_image);
-        let fs_actionable = fullscreen_button.clone().upcast::<gtk::Actionable>();
-        fs_actionable.set_action_name("app.fullscreen");
+        let fullscreen_button = {
+            let button = gtk::Button::new();
+            let fullscreen_image =
+                gtk::Image::new_from_icon_name("view-fullscreen-symbolic", gtk::IconSize::SmallToolbar.into());
+            button.set_image(&fullscreen_image);
+            button.clone().upcast::<gtk::Actionable>().set_action_name("app.fullscreen");
+            button
+        };
 
         toolbar_box.pack_start(&fullscreen_button, false, false, 0);
 
