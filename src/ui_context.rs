@@ -42,71 +42,43 @@ const MINIMAL_WINDOW_SIZE: (i32, i32) = (640, 480);
 
 impl UIContext {
     pub fn new(gtk_app: &gtk::Application) -> Self {
-        let window = gtk::ApplicationWindow::new(gtk_app);
-        window.set_default_size(MINIMAL_WINDOW_SIZE.0, MINIMAL_WINDOW_SIZE.1);
+        let builder = gtk::Builder::new_from_string(include_str!("../data/net.baseart.Glide.ui"));
+        let window: gtk::ApplicationWindow = builder.get_object("application-window").unwrap();
+        window.set_application(gtk_app);
 
-        let main_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
+        let main_box: gtk::Box = builder.get_object("main-box").unwrap();
 
-        let toolbar_box = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+        let toolbar_box: gtk::Box = builder.get_object("toolbar-box").unwrap();
 
         let pause_button = {
-            let button = gtk::Button::new();
+            let button: gtk::Button = builder.get_object("pause-button").unwrap();
             button.clone().upcast::<gtk::Actionable>().set_action_name("app.pause");
             button
         };
 
         let seek_backward_button = {
-            let button = gtk::Button::new();
+            let button: gtk::Button = builder.get_object("seek-backward-button").unwrap();
             button.clone().upcast::<gtk::Actionable>().set_action_name("app.seek-backward");
-            let image = 
-                gtk::Image::new_from_icon_name("media-seek-backward-symbolic", gtk::IconSize::SmallToolbar.into());
-            button.set_image(&image);
             button
         };
 
         let seek_forward_button = {
-            let button = gtk::Button::new();
+            let button: gtk::Button = builder.get_object("seek-forward-button").unwrap();
             button.clone().upcast::<gtk::Actionable>().set_action_name("app.seek-forward");
-            let image = 
-                gtk::Image::new_from_icon_name("media-seek-forward-symbolic", gtk::IconSize::SmallToolbar.into());
-            button.set_image(&image);
             button
         };
 
-        toolbar_box.pack_start(&seek_backward_button, false, false, 0);
-        toolbar_box.pack_start(&pause_button, false, false, 0);
-        toolbar_box.pack_start(&seek_forward_button, false, false, 0);
+        let progress_bar: gtk::Scale = builder.get_object("progress-bar").unwrap();
 
-        let progress_bar = {
-            let b = gtk::Scale::new(gtk::Orientation::Horizontal, None);
-            b.set_draw_value(true);
-            b.set_value_pos(gtk::PositionType::Right);
-            b
-        };
-
-        toolbar_box.pack_start(&progress_bar, true, true, 10);
-
-        let volume_button = {
-            let button = gtk::VolumeButton::new();
-            button.clone().upcast::<gtk::Orientable>().set_orientation(gtk::Orientation::Horizontal);
-            button
-        };
-
-        toolbar_box.pack_start(&volume_button, false, false, 5);
+        let volume_button: gtk::VolumeButton = builder.get_object("volume-button").unwrap();
 
         let fullscreen_button = {
-            let button = gtk::Button::new();
-            let fullscreen_image =
-                gtk::Image::new_from_icon_name("view-fullscreen-symbolic", gtk::IconSize::SmallToolbar.into());
-            button.set_image(&fullscreen_image);
+            let button: gtk::Button = builder.get_object("fullscreen-button").unwrap();
             button.clone().upcast::<gtk::Actionable>().set_action_name("app.fullscreen");
             button
         };
 
-        toolbar_box.pack_start(&fullscreen_button, false, false, 0);
-
         main_box.pack_start(&toolbar_box, false, false, 10);
-        window.add(&main_box);
 
         window.connect_map_event(move |widget, _| {
             if let Ok(size) = INITIAL_SIZE.lock() {
