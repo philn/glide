@@ -32,6 +32,7 @@ install_data('data/net.baseart.Glide.appdata.xml', install_dir : datadir + '/app
 
 cargo_release = custom_target('cargo-build',
                         build_by_default: true,
+                        console: true,
                         input: sources,
                         output: ['glide'],
                         install: true,
