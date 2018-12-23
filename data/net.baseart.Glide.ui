@@ -15,18 +15,6 @@
         <property name="can_focus">False</property>
         <property name="orientation">vertical</property>
         <child>
-          <object class="GtkGLArea">
-            <property name="visible">True</property>
-            <property name="app_paintable">True</property>
-            <property name="can_focus">False</property>
-          </object>
-          <packing>
-            <property name="expand">True</property>
-            <property name="fill">True</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
           <object class="GtkBox" id="toolbar-box">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
@@ -40,7 +28,7 @@
                   <object class="GtkImage">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="icon_name">media-seek-backward</property>
+                    <property name="icon_name">media-seek-backward-symbolic</property>
                     <property name="icon_size">2</property>
                   </object>
                 </child>
@@ -77,7 +65,8 @@
                   <object class="GtkImage">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="icon_name">media-seek-forward</property>
+                    <property name="icon_name">media-seek-forward-symbolic</property>
+                    <property name="icon_size">2</property>
                   </object>
                 </child>
               </object>
@@ -99,6 +88,26 @@
                 <property name="fill">True</property>
                 <property name="padding">10</property>
                 <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="fullscreen-button">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="icon_name">view-fullscreen-symbolic</property>
+                    <property name="icon_size">2</property>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="position">4</property>
               </packing>
             </child>
             <child>
@@ -135,26 +144,6 @@ audio-volume-medium-symbolic</property>
                 <property name="expand">False</property>
                 <property name="fill">False</property>
                 <property name="padding">5</property>
-                <property name="position">4</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="fullscreen-button">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <child>
-                  <object class="GtkImage">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="icon_name">view-fullscreen</property>
-                    <property name="icon_size">2</property>
-                  </object>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
                 <property name="position">5</property>
               </packing>
             </child>

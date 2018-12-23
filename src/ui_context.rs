@@ -78,8 +78,6 @@ impl UIContext {
             button
         };
 
-        main_box.pack_start(&toolbar_box, false, false, 10);
-
         window.connect_map_event(move |widget, _| {
             if let Ok(size) = INITIAL_SIZE.lock() {
                 if let Some((width, height)) = *size {
