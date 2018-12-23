@@ -772,11 +772,9 @@ impl VideoPlayer {
                     i += 1;
                 }
             }
-        }
 
-        let mut selected_action: Option<std::string::String> = None;
-        if let Some(ref ctx) = self.player_context {
-            if let Some(uri) = ctx.get_subtitle_uri() {
+            let mut selected_action: Option<std::string::String> = None;
+            if let Some(uri) = player.get_subtitle_uri() {
                 if let Ok((path, _)) = glib::filename_from_uri(&uri) {
                     let subfile = path.as_path();
                     if let Some(filename) = subfile.file_name() {
@@ -791,17 +789,17 @@ impl VideoPlayer {
                     }
                 }
             }
+
+            // TODO: Would be nice to keep previous external subs in the menu.
+            self.subtitle_track_menu.remove_all();
+            self.subtitle_track_menu.append_section(None, &section);
+
+            let v = match selected_action {
+                Some(a) => a.to_variant(),
+                None => ("none").to_variant(),
+            };
+            self.subtitle_action.change_state(&v);
         }
-
-        // TODO: Would be nice to keep previous external subs in the menu.
-        self.subtitle_track_menu.remove_all();
-        self.subtitle_track_menu.append_section(None, &section);
-
-        let v = match selected_action {
-            Some(a) => a.to_variant(),
-            None => ("none").to_variant(),
-        };
-        self.subtitle_action.change_state(&v);
     }
 
     pub fn fill_audio_visualization_menu(&self) {
