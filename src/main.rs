@@ -754,21 +754,22 @@ impl VideoPlayer {
                 section.append_item(&item);
 
                 for sub_stream in info.get_subtitle_streams() {
+                    let lang = sub_stream.get_language().map(|l| format!(" - [{}]", l));
+                    let default_title = format!("Track {}", i + 1);
                     let title = match sub_stream.get_tags() {
                         Some(tags) => match tags.get::<gst::tags::Title>() {
-                            Some(val) => Some(std::string::String::from(val.get().unwrap())),
-                            None => sub_stream.get_language(),
+                            Some(val) => std::string::String::from(val.get().unwrap()),
+                            None => default_title,
                         },
-                        None => sub_stream.get_language(),
+                        None => default_title,
                     };
 
-                    if let Some(title) = title {
-                        let action_id = format!("app.subtitle::sub-{}", i);
-                        let item = gio::MenuItem::new(&*title, &*action_id);
-                        item.set_detailed_action(&*action_id);
-                        section.append_item(&item);
-                        i += 1;
-                    }
+                    let action_label = format!("{}{}", title, lang.unwrap_or_else(|| "".to_string()));
+                    let action_id = format!("app.subtitle::sub-{}", i);
+                    let item = gio::MenuItem::new(&*action_label, &*action_id);
+                    item.set_detailed_action(&*action_id);
+                    section.append_item(&item);
+                    i += 1;
                 }
             }
         }
