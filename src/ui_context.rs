@@ -78,10 +78,10 @@ impl UIContext {
         toolbar_box.pack_start(&seek_forward_button, false, false, 0);
 
         let progress_bar = {
-            let bar = gtk::Scale::new(gtk::Orientation::Horizontal, None);
-            bar.set_draw_value(true);
-            bar.set_value_pos(gtk::PositionType::Right);
-            bar
+            let b = gtk::Scale::new(gtk::Orientation::Horizontal, None);
+            b.set_draw_value(true);
+            b.set_value_pos(gtk::PositionType::Right);
+            b
         };
 
         toolbar_box.pack_start(&progress_bar, true, true, 10);
