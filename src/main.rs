@@ -623,24 +623,7 @@ impl VideoPlayer {
     }
     pub fn playback_state_changed(&self, playback_state: &PlaybackState) {
         if let Some(ref ui_context) = self.ui_context {
-            let pause_button = &ui_context.pause_button;
-            match playback_state {
-                PlaybackState::Paused => {
-                    let image = gtk::Image::new_from_icon_name(
-                        "media-playback-start-symbolic",
-                        gtk::IconSize::SmallToolbar.into(),
-                    );
-                    pause_button.set_image(&image);
-                }
-                PlaybackState::Playing => {
-                    let image = gtk::Image::new_from_icon_name(
-                        "media-playback-pause-symbolic",
-                        gtk::IconSize::SmallToolbar.into(),
-                    );
-                    pause_button.set_image(&image);
-                }
-                _ => {}
-            };
+            ui_context.playback_state_changed(playback_state);
         }
     }
 

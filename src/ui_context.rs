@@ -14,6 +14,8 @@ use std::cmp;
 use std::string;
 use std::sync::Mutex;
 
+use channel_player::PlaybackState;
+
 lazy_static! {
     pub static ref INHIBIT_COOKIE: Mutex<Option<u32>> = { Mutex::new(None) };
     pub static ref INITIAL_POSITION: Mutex<Option<(i32, i32)>> = { Mutex::new(None) };
@@ -320,5 +322,25 @@ impl UIContext {
         dialog.set_transient_for(Some(&self.window));
         dialog.run();
         dialog.destroy();
+    }
+
+    pub fn playback_state_changed(&self, playback_state: &PlaybackState) {
+        match playback_state {
+            PlaybackState::Paused => {
+                let image = gtk::Image::new_from_icon_name(
+                    "media-playback-start-symbolic",
+                    gtk::IconSize::SmallToolbar.into(),
+                );
+                self.pause_button.set_image(&image);
+            }
+            PlaybackState::Playing => {
+                let image = gtk::Image::new_from_icon_name(
+                    "media-playback-pause-symbolic",
+                    gtk::IconSize::SmallToolbar.into(),
+                );
+                self.pause_button.set_image(&image);
+            }
+            _ => {}
+        };
     }
 }
