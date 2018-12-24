@@ -39,7 +39,7 @@ use channel_player::{AudioVisualization, ChannelPlayer, PlaybackState, PlayerEve
 use gst_player::PlayerStreamInfoExt;
 
 mod ui_context;
-use ui_context::UIContext;
+use ui_context::{initialize_and_create_app, UIContext};
 
 #[cfg(target_os = "macos")]
 mod iokit_sleep_disabler;
@@ -52,7 +52,7 @@ enum UIAction {
 
 struct VideoPlayer {
     player_context: Option<ChannelPlayer>,
-    ui_context: Option<UIContext>,
+    ui_context: UIContext,
     fullscreen_action: gio::SimpleAction,
     restore_action: gio::SimpleAction,
     pause_action: gio::SimpleAction,
@@ -74,7 +74,6 @@ struct VideoPlayer {
     video_track_menu: gio::Menu,
     sender: channel::Sender<UIAction>,
     receiver: channel::Receiver<UIAction>,
-    app: gtk::Application,
 }
 
 thread_local!(
@@ -104,6 +103,62 @@ fn ui_action_handle() -> glib::Continue {
         }
     });
     glib::Continue(false)
+}
+
+pub fn configure_app_callback(app: &gtk::Application) {
+    app.set_accels_for_action("app.quit", &*vec!["<Meta>q", "<Ctrl>q"]);
+    app.set_accels_for_action("app.fullscreen", &*vec!["<Meta>f", "<Alt>f"]);
+    app.set_accels_for_action("app.restore", &*vec!["Escape"]);
+    app.set_accels_for_action("app.pause", &*vec!["space"]);
+    app.set_accels_for_action("app.seek-forward", &*vec!["<Meta>Right", "<Alt>Right"]);
+    app.set_accels_for_action("app.seek-backward", &*vec!["<Meta>Left", "<Alt>Left"]);
+    app.set_accels_for_action("app.open-media", &*vec!["<Meta>o", "<Alt>o"]);
+    app.set_accels_for_action("app.open-subtitle-file", &*vec!["<Meta>s", "<Alt>s"]);
+    app.set_accels_for_action("app.audio-volume-increase", &*vec!["<Meta>Up", "<Alt>Up"]);
+    app.set_accels_for_action("app.audio-volume-decrease", &*vec!["<Meta>Down", "<Alt>Down"]);
+    app.set_accels_for_action("app.audio-mute", &*vec!["<Meta>m", "<Alt>m"]);
+    app.set_accels_for_action("app.dump-pipeline", &*vec!["<Ctrl>d"]);
+
+    let menu = gio::Menu::new();
+    let file_menu = gio::Menu::new();
+    let audio_menu = gio::Menu::new();
+    let video_menu = gio::Menu::new();
+    let subtitles_menu = gio::Menu::new();
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        menu.append("Quit", "app.quit");
+        menu.append("About", "app.about");
+    }
+
+    GLOBAL.with(|global| {
+        if let Some(ref mut player) = *global.borrow_mut() {
+            file_menu.append("Open...", "app.open-media");
+            subtitles_menu.append("Add subtitle file...", "app.open-subtitle-file");
+            subtitles_menu.append_submenu("Subtitle track", &player.subtitle_track_menu);
+            audio_menu.append("Increase Volume", "app.audio-volume-increase");
+            audio_menu.append("Decrease Volume", "app.audio-volume-decrease");
+            audio_menu.append("Mute", "app.audio-mute");
+            audio_menu.append_submenu("Audio track", &player.audio_track_menu);
+            audio_menu.append_submenu("Visualization", &player.audio_visualization_menu);
+            video_menu.append_submenu("Video track", &player.video_track_menu);
+        }
+    });
+
+    menu.append_submenu("File", &file_menu);
+    menu.append_submenu("Audio", &audio_menu);
+    menu.append_submenu("Video", &video_menu);
+    menu.append_submenu("Subtitles", &subtitles_menu);
+
+    #[cfg(target_os = "linux")]
+    {
+        let app_menu = gio::Menu::new();
+        // Only static menus here.
+        app_menu.append("Quit", "app.quit");
+        app_menu.append("About", "app.about");
+        app.set_app_menu(&app_menu);
+    }
+    app.set_menubar(&menu);
 }
 
 impl VideoPlayer {
@@ -176,9 +231,7 @@ impl VideoPlayer {
         about.connect_activate(move |_, _| {
             GLOBAL.with(|global| {
                 if let Some(ref player) = *global.borrow() {
-                    if let Some(ref ui_ctx) = player.ui_context {
-                        ui_ctx.display_about_dialog();
-                    }
+                    player.ui_context.display_about_dialog();
                 }
             });
         });
@@ -192,72 +245,15 @@ impl VideoPlayer {
             });
         });
 
-        gtk_app.connect_startup(|app| {
-            let quit = gio::SimpleAction::new("quit", None);
-            quit.connect_activate(|_, _| {
-                GLOBAL.with(|global| {
-                    if let Some(ref player) = *global.borrow() {
-                        player.quit();
-                    }
-                });
-            });
-            app.add_action(&quit);
-
-            app.set_accels_for_action("app.quit", &*vec!["<Meta>q", "<Ctrl>q"]);
-            app.set_accels_for_action("app.fullscreen", &*vec!["<Meta>f", "<Alt>f"]);
-            app.set_accels_for_action("app.restore", &*vec!["Escape"]);
-            app.set_accels_for_action("app.pause", &*vec!["space"]);
-            app.set_accels_for_action("app.seek-forward", &*vec!["<Meta>Right", "<Alt>Right"]);
-            app.set_accels_for_action("app.seek-backward", &*vec!["<Meta>Left", "<Alt>Left"]);
-            app.set_accels_for_action("app.open-media", &*vec!["<Meta>o", "<Alt>o"]);
-            app.set_accels_for_action("app.open-subtitle-file", &*vec!["<Meta>s", "<Alt>s"]);
-            app.set_accels_for_action("app.audio-volume-increase", &*vec!["<Meta>Up", "<Alt>Up"]);
-            app.set_accels_for_action("app.audio-volume-decrease", &*vec!["<Meta>Down", "<Alt>Down"]);
-            app.set_accels_for_action("app.audio-mute", &*vec!["<Meta>m", "<Alt>m"]);
-            app.set_accels_for_action("app.dump-pipeline", &*vec!["<Ctrl>d"]);
-
-            let menu = gio::Menu::new();
-            let file_menu = gio::Menu::new();
-            let audio_menu = gio::Menu::new();
-            let video_menu = gio::Menu::new();
-            let subtitles_menu = gio::Menu::new();
-
-            #[cfg(not(target_os = "linux"))]
-            {
-                menu.append("Quit", "app.quit");
-                menu.append("About", "app.about");
-            }
-
+        let quit = gio::SimpleAction::new("quit", None);
+        quit.connect_activate(|_, _| {
             GLOBAL.with(|global| {
-                if let Some(ref mut player) = *global.borrow_mut() {
-                    file_menu.append("Open...", "app.open-media");
-                    subtitles_menu.append("Add subtitle file...", "app.open-subtitle-file");
-                    subtitles_menu.append_submenu("Subtitle track", &player.subtitle_track_menu);
-                    audio_menu.append("Increase Volume", "app.audio-volume-increase");
-                    audio_menu.append("Decrease Volume", "app.audio-volume-decrease");
-                    audio_menu.append("Mute", "app.audio-mute");
-                    audio_menu.append_submenu("Audio track", &player.audio_track_menu);
-                    audio_menu.append_submenu("Visualization", &player.audio_visualization_menu);
-                    video_menu.append_submenu("Video track", &player.video_track_menu);
-                    player.ui_context = Some(UIContext::new(app));
+                if let Some(ref player) = *global.borrow() {
+                    player.quit();
                 }
             });
-
-            menu.append_submenu("File", &file_menu);
-            menu.append_submenu("Audio", &audio_menu);
-            menu.append_submenu("Video", &video_menu);
-            menu.append_submenu("Subtitles", &subtitles_menu);
-
-            #[cfg(target_os = "linux")]
-            {
-                let app_menu = gio::Menu::new();
-                // Only static menus here.
-                app_menu.append("Quit", "app.quit");
-                app_menu.append("About", "app.about");
-                app.set_app_menu(&app_menu);
-            }
-            app.set_menubar(&menu);
         });
+        gtk_app.add_action(&quit);
 
         gtk_app.connect_open(move |app, files, _| {
             app.activate();
@@ -268,11 +264,12 @@ impl VideoPlayer {
             });
         });
 
+        let ui_context = UIContext::new(gtk_app, configure_app_callback);
         let (sender, receiver) = channel::unbounded();
 
         Self {
             player_context: None,
-            ui_context: None,
+            ui_context,
             fullscreen_action,
             restore_action,
             pause_action,
@@ -294,7 +291,6 @@ impl VideoPlayer {
             video_track_menu,
             sender,
             receiver,
-            app: gtk_app,
         }
     }
 
@@ -303,7 +299,7 @@ impl VideoPlayer {
             player_context.write_last_known_media_position();
         }
         self.leave_fullscreen();
-        self.app.quit();
+        self.ui_context.stop();
     }
 
     pub fn start(&mut self) {
@@ -413,16 +409,14 @@ impl VideoPlayer {
             if let Some(is_fullscreen) = fullscreen_action.get_state() {
                 GLOBAL.with(|global| {
                     if let Some(ref video_player) = *global.borrow() {
-                        if let Some(ref ui_ctx) = video_player.ui_context {
-                            let fullscreen = is_fullscreen.get::<bool>().unwrap();
-                            if !fullscreen {
-                                ui_ctx.enter_fullscreen(&video_player.app);
-                            } else {
-                                ui_ctx.leave_fullscreen(&video_player.app);
-                            }
-                            let new_state = !fullscreen;
-                            fullscreen_action.set_state(&new_state.to_variant());
+                        let fullscreen = is_fullscreen.get::<bool>().unwrap();
+                        if !fullscreen {
+                            video_player.ui_context.enter_fullscreen();
+                        } else {
+                            video_player.ui_context.leave_fullscreen();
                         }
+                        let new_state = !fullscreen;
+                        fullscreen_action.set_state(&new_state.to_variant());
                     }
                 });
             }
@@ -502,13 +496,11 @@ impl VideoPlayer {
         self.open_media_action.connect_activate(|_, _| {
             GLOBAL.with(|global| {
                 if let Some(ref video_player) = *global.borrow() {
-                    if let Some(ref ui_ctx) = video_player.ui_context {
-                        if let Some(ref player_ctx) = video_player.player_context {
-                            if let Some(uri) = ui_ctx.dialog_result(player_ctx.get_current_uri()) {
-                                println!("loading {}", &uri);
-                                player_ctx.stop();
-                                player_ctx.load_uri(&uri);
-                            }
+                    if let Some(ref player_ctx) = video_player.player_context {
+                        if let Some(uri) = video_player.ui_context.dialog_result(player_ctx.get_current_uri()) {
+                            println!("loading {}", &uri);
+                            player_ctx.stop();
+                            player_ctx.load_uri(&uri);
                         }
                     }
                 }
@@ -518,11 +510,9 @@ impl VideoPlayer {
         self.open_subtitle_file_action.connect_activate(|_, _| {
             GLOBAL.with(|global| {
                 if let Some(ref video_player) = *global.borrow() {
-                    if let Some(ref ui_ctx) = video_player.ui_context {
-                        if let Some(ref player_ctx) = video_player.player_context {
-                            if let Some(uri) = ui_ctx.dialog_result(player_ctx.get_current_uri()) {
-                                player_ctx.configure_subtitle_track(Some(SubtitleTrack::External(uri)));
-                            }
+                    if let Some(ref player_ctx) = video_player.player_context {
+                        if let Some(uri) = video_player.ui_context.dialog_result(player_ctx.get_current_uri()) {
+                            player_ctx.configure_subtitle_track(Some(SubtitleTrack::External(uri)));
                         }
                         video_player.refresh_subtitle_track_menu();
                     }
@@ -530,49 +520,39 @@ impl VideoPlayer {
             });
         });
 
-        if let Some(ref mut ui_ctx) = self.ui_context {
-            if let Some(ref player_ctx) = self.player_context {
-                ui_ctx.set_video_area(player_ctx.video_area());
+        if let Some(ref player_ctx) = self.player_context {
+            self.ui_context.set_video_area(player_ctx.video_area());
 
-                ui_ctx.set_progress_bar_format_callback(|value, duration| {
-                    let position = gst::ClockTime::from_seconds(value as u64);
-                    let duration = gst::ClockTime::from_seconds(duration as u64);
-                    if duration.is_some() {
-                        format!("{:.0} / {:.0}", position, duration)
-                    } else {
-                        format!("{:.0}", position)
-                    }
-                });
-            }
-
-            ui_ctx.set_volume_value_changed_callback(|value| {
-                GLOBAL.with(|global| {
-                    if let Some(ref video_player) = *global.borrow() {
-                        if let Some(ref player) = video_player.player_context {
-                            player.set_volume(value);
-                        }
-                    }
-                });
-            });
-
-            ui_ctx.set_position_changed_callback(|value| {
-                GLOBAL.with(|global| {
-                    if let Some(ref video_player) = *global.borrow() {
-                        if let Some(ref player) = video_player.player_context {
-                            player.seek_to(gst::ClockTime::from_seconds(value));
-                        }
-                    }
-                });
-            });
-
-            ui_ctx.start(|| {
-                GLOBAL.with(|global| {
-                    if let Some(ref video_player) = *global.borrow() {
-                        video_player.quit();
-                    }
-                });
+            self.ui_context.set_progress_bar_format_callback(|value, duration| {
+                let position = gst::ClockTime::from_seconds(value as u64);
+                let duration = gst::ClockTime::from_seconds(duration as u64);
+                if duration.is_some() {
+                    format!("{:.0} / {:.0}", position, duration)
+                } else {
+                    format!("{:.0}", position)
+                }
             });
         }
+
+        self.ui_context.set_volume_value_changed_callback(|value| {
+            GLOBAL.with(|global| {
+                if let Some(ref video_player) = *global.borrow() {
+                    if let Some(ref player) = video_player.player_context {
+                        player.set_volume(value);
+                    }
+                }
+            });
+        });
+
+        self.ui_context.set_position_changed_callback(|value| {
+            GLOBAL.with(|global| {
+                if let Some(ref video_player) = *global.borrow() {
+                    if let Some(ref player) = video_player.player_context {
+                        player.seek_to(gst::ClockTime::from_seconds(value));
+                    }
+                }
+            });
+        });
 
         #[cfg(feature = "self-updater")]
         match self.check_update() {
@@ -584,6 +564,14 @@ impl VideoPlayer {
             }
             Err(e) => eprintln!("Update failed: {}", e),
         };
+
+        self.ui_context.start(|| {
+            GLOBAL.with(|global| {
+                if let Some(ref video_player) = *global.borrow() {
+                    video_player.quit();
+                }
+            });
+        });
     }
 
     pub fn dispatch_event(&self, event: &PlayerEvent) {
@@ -617,38 +605,32 @@ impl VideoPlayer {
     }
 
     pub fn volume_changed(&self, volume: f64) {
-        if let Some(ref ui_context) = self.ui_context {
-            ui_context.volume_changed(volume);
-        }
+        self.ui_context.volume_changed(volume);
     }
+
     pub fn playback_state_changed(&self, playback_state: &PlaybackState) {
-        if let Some(ref ui_context) = self.ui_context {
-            ui_context.playback_state_changed(playback_state);
-        }
+        self.ui_context.playback_state_changed(playback_state);
     }
 
     pub fn video_dimensions_changed(&self, width: i32, height: i32) {
-        if let Some(ref ui_context) = self.ui_context {
-            ui_context.resize_window(width, height);
-        }
+        self.ui_context.resize_window(width, height);
     }
 
     pub fn media_info_updated(&self) {
         if let Some(ref player) = self.player_context {
             if let Some(info) = player.get_media_info() {
                 if let Some(uri) = player.get_current_uri() {
-                    if let Some(ref ui_context) = self.ui_context {
-                        if let Some(title) = info.get_title() {
-                            ui_context.set_window_title(&*title);
-                        } else if let Ok((filename, _)) = glib::filename_from_uri(&uri) {
-                            ui_context.set_window_title(&filename.as_os_str().to_string_lossy());
-                        } else {
-                            ui_context.set_window_title(&uri);
-                        }
+                    if let Some(title) = info.get_title() {
+                        self.ui_context.set_window_title(&*title);
+                    } else if let Ok((filename, _)) = glib::filename_from_uri(&uri) {
+                        self.ui_context
+                            .set_window_title(&filename.as_os_str().to_string_lossy());
+                    } else {
+                        self.ui_context.set_window_title(&uri);
+                    }
 
-                        if let Some(duration) = info.get_duration().seconds() {
-                            ui_context.set_position_range_end(duration as f64);
-                        }
+                    if let Some(duration) = info.get_duration().seconds() {
+                        self.ui_context.set_position_range_end(duration as f64);
                     }
 
                     // Look for a matching subtitle file in same directory.
@@ -683,10 +665,8 @@ impl VideoPlayer {
 
     pub fn position_updated(&self) {
         if let Some(ref player) = self.player_context {
-            if let Some(ref ui_context) = self.ui_context {
-                if let Some(position) = player.get_position().seconds() {
-                    ui_context.set_position_range_value(position);
-                }
+            if let Some(position) = player.get_position().seconds() {
+                self.ui_context.set_position_range_value(position);
             }
         }
     }
@@ -872,10 +852,8 @@ impl VideoPlayer {
             let fullscreen = is_fullscreen.get::<bool>().unwrap();
 
             if fullscreen {
-                if let Some(ref ui_ctx) = self.ui_context {
-                    ui_ctx.leave_fullscreen(&self.app);
-                    fullscreen_action.set_state(&false.to_variant());
-                }
+                self.ui_context.leave_fullscreen();
+                fullscreen_action.set_state(&false.to_variant());
             }
         }
     }
@@ -888,32 +866,11 @@ fn main() {
         std::process::exit(-1);
     }
 
-    #[cfg(target_os = "linux")]
-    {
-        // FIXME: We should somehow detect at runtime if we're running under a
-        // Wayland compositor and thus don't call this.
-        extern "C" {
-            pub fn XInitThreads() -> c_void;
-        }
-
-        unsafe {
-            XInitThreads();
-        }
-    }
-
     gst::init().expect("Failed to initialize GStreamer.");
-    gtk::init().expect("Failed to initialize GTK.");
-
-    let gtk_app = gtk::Application::new("net.baseart.Glide", gio::ApplicationFlags::HANDLES_OPEN)
-        .expect("Application initialization failed");
-
-    if let Some(settings) = gtk::Settings::get_default() {
-        settings
-            .set_property("gtk-application-prefer-dark-theme", &true)
-            .unwrap();
-    }
 
     glib::set_application_name("Glide");
+
+    let gtk_app = initialize_and_create_app();
 
     let gtk_app_clone = gtk_app.clone();
     let app = VideoPlayer::new(gtk_app);

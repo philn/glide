@@ -1,8 +1,8 @@
 extern crate gdk;
 extern crate gio;
 extern crate glib;
-extern crate gtk;
 extern crate gstreamer as gst;
+extern crate gtk;
 
 use gdk::prelude::*;
 #[allow(unused_imports)]
@@ -27,6 +27,34 @@ lazy_static! {
 #[cfg(target_os = "macos")]
 use iokit_sleep_disabler;
 
+pub fn initialize_and_create_app() -> gtk::Application {
+    #[cfg(target_os = "linux")]
+    {
+        // FIXME: We should somehow detect at runtime if we're running under a
+        // Wayland compositor and thus don't call this.
+        extern "C" {
+            pub fn XInitThreads() -> c_void;
+        }
+
+        unsafe {
+            XInitThreads();
+        }
+    }
+
+    gtk::init().expect("Failed to initialize GTK.");
+
+    let gtk_app = gtk::Application::new("net.baseart.Glide", gio::ApplicationFlags::HANDLES_OPEN)
+        .expect("Application initialization failed");
+
+    if let Some(settings) = gtk::Settings::get_default() {
+        settings
+            .set_property("gtk-application-prefer-dark-theme", &true)
+            .unwrap();
+    }
+
+    gtk_app
+}
+
 pub struct UIContext {
     pub window: gtk::ApplicationWindow,
     pub main_box: gtk::Box,
@@ -39,19 +67,20 @@ pub struct UIContext {
     pub toolbar_box: gtk::Box,
     volume_signal_handler_id: Option<glib::SignalHandlerId>,
     position_signal_handler_id: Option<glib::SignalHandlerId>,
+    app: gtk::Application,
 }
 
 const MINIMAL_WINDOW_SIZE: (i32, i32) = (640, 480);
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 impl UIContext {
-    pub fn new(gtk_app: &gtk::Application) -> Self {
+    pub fn new<F>(gtk_app: gtk::Application, f: F) -> Self
+    where
+        F: Fn(&gtk::Application) + 'static,
+    {
         let builder = gtk::Builder::new_from_string(include_str!("../data/net.baseart.Glide.ui"));
-        let window: gtk::ApplicationWindow = builder.get_object("application-window").unwrap();
-        window.set_application(gtk_app);
 
         let main_box: gtk::Box = builder.get_object("main-box").unwrap();
-
         let toolbar_box: gtk::Box = builder.get_object("toolbar-box").unwrap();
 
         let pause_button = {
@@ -62,13 +91,19 @@ impl UIContext {
 
         let seek_backward_button = {
             let button: gtk::Button = builder.get_object("seek-backward-button").unwrap();
-            button.clone().upcast::<gtk::Actionable>().set_action_name("app.seek-backward");
+            button
+                .clone()
+                .upcast::<gtk::Actionable>()
+                .set_action_name("app.seek-backward");
             button
         };
 
         let seek_forward_button = {
             let button: gtk::Button = builder.get_object("seek-forward-button").unwrap();
-            button.clone().upcast::<gtk::Actionable>().set_action_name("app.seek-forward");
+            button
+                .clone()
+                .upcast::<gtk::Actionable>()
+                .set_action_name("app.seek-forward");
             button
         };
 
@@ -78,10 +113,14 @@ impl UIContext {
 
         let fullscreen_button = {
             let button: gtk::Button = builder.get_object("fullscreen-button").unwrap();
-            button.clone().upcast::<gtk::Actionable>().set_action_name("app.fullscreen");
+            button
+                .clone()
+                .upcast::<gtk::Actionable>()
+                .set_action_name("app.fullscreen");
             button
         };
 
+        let window: gtk::ApplicationWindow = builder.get_object("application-window").unwrap();
         window.connect_map_event(move |widget, _| {
             if let Ok(size) = INITIAL_SIZE.lock() {
                 if let Some((width, height)) = *size {
@@ -96,6 +135,14 @@ impl UIContext {
             Inhibit(false)
         });
 
+        let window_weak = SendWeakRef::from(window.downgrade());
+        gtk_app.connect_startup(move |app| {
+            if let Some(window) = window_weak.upgrade() {
+                window.set_application(app);
+            }
+            f(app);
+        });
+
         Self {
             window,
             main_box,
@@ -108,6 +155,7 @@ impl UIContext {
             toolbar_box,
             volume_signal_handler_id: None,
             position_signal_handler_id: None,
+            app: gtk_app,
         }
     }
 
@@ -151,7 +199,7 @@ impl UIContext {
         *MOUSE_NOTIFY_SIGNAL_ID.lock().unwrap() = Some(notify_signal_id);
     }
 
-    pub fn enter_fullscreen(&self, _app: &gtk::Application) {
+    pub fn enter_fullscreen(&self) {
         let window = &self.window;
         #[cfg(target_os = "macos")]
         {
@@ -160,7 +208,7 @@ impl UIContext {
         #[cfg(not(target_os = "macos"))]
         {
             let flags = gtk::ApplicationInhibitFlags::SUSPEND | gtk::ApplicationInhibitFlags::IDLE;
-            *INHIBIT_COOKIE.lock().unwrap() = Some(_app.inhibit(window, flags, Some("Glide full-screen")));
+            *INHIBIT_COOKIE.lock().unwrap() = Some(self.app.inhibit(window, flags, Some("Glide full-screen")));
         }
         *INITIAL_SIZE.lock().unwrap() = Some(window.get_size());
         *INITIAL_POSITION.lock().unwrap() = Some(window.get_position());
@@ -175,14 +223,14 @@ impl UIContext {
         self.start_autohide_toolbar();
     }
 
-    pub fn leave_fullscreen(&self, _app: &gtk::Application) {
+    pub fn leave_fullscreen(&self) {
         let window = &self.window;
         let gdk_window = window.get_window().unwrap();
         if let Ok(mut cookie) = INHIBIT_COOKIE.lock() {
             #[cfg(target_os = "macos")]
             iokit_sleep_disabler::release_sleep_assertion(cookie.unwrap());
             #[cfg(not(target_os = "macos"))]
-            _app.uninhibit(cookie.unwrap());
+            self.app.uninhibit(cookie.unwrap());
             *cookie = None;
         }
         if let Ok(mut signal_handler_id) = MOUSE_NOTIFY_SIGNAL_ID.lock() {
@@ -231,6 +279,10 @@ impl UIContext {
         });
     }
 
+    pub fn stop(&self) {
+        self.app.quit();
+    }
+
     pub fn set_progress_bar_format_callback<F>(&self, f: F)
     where
         F: Fn(f64, f64) -> string::String + Send + Sync + 'static,
@@ -241,12 +293,14 @@ impl UIContext {
                 f(value, range.get_adjustment().get_upper())
             });
     }
+
     pub fn set_volume_value_changed_callback<F: Fn(f64) + Send + Sync + 'static>(&mut self, f: F) {
         let volume_scale = self.volume_button.clone().upcast::<gtk::ScaleButton>();
         self.volume_signal_handler_id = Some(volume_scale.connect_value_changed(move |_, value| {
             f(value);
         }));
     }
+
     pub fn set_position_changed_callback<F: Fn(u64) + Send + Sync + 'static>(&mut self, f: F) {
         let range = self.progress_bar.clone().upcast::<gtk::Range>();
         self.position_signal_handler_id = Some(range.connect_value_changed(move |range| {
@@ -317,7 +371,13 @@ impl UIContext {
         dialog.set_website(Some("http://base-art.net"));
         dialog.set_title("About");
         dialog.set_version(VERSION);
-        let s = format!("Multimedia playback support provided by {}.\nUser interface running on GTK {}.{}.{}", gst::version_string(), gtk::get_major_version(), gtk::get_minor_version(), gtk::get_micro_version());
+        let s = format!(
+            "Multimedia playback support provided by {}.\nUser interface running on GTK {}.{}.{}",
+            gst::version_string(),
+            gtk::get_major_version(),
+            gtk::get_minor_version(),
+            gtk::get_micro_version()
+        );
         dialog.set_comments(Some(s.as_str()));
         dialog.set_transient_for(Some(&self.window));
         dialog.run();
@@ -327,17 +387,13 @@ impl UIContext {
     pub fn playback_state_changed(&self, playback_state: &PlaybackState) {
         match playback_state {
             PlaybackState::Paused => {
-                let image = gtk::Image::new_from_icon_name(
-                    "media-playback-start-symbolic",
-                    gtk::IconSize::SmallToolbar.into(),
-                );
+                let image =
+                    gtk::Image::new_from_icon_name("media-playback-start-symbolic", gtk::IconSize::SmallToolbar.into());
                 self.pause_button.set_image(&image);
             }
             PlaybackState::Playing => {
-                let image = gtk::Image::new_from_icon_name(
-                    "media-playback-pause-symbolic",
-                    gtk::IconSize::SmallToolbar.into(),
-                );
+                let image =
+                    gtk::Image::new_from_icon_name("media-playback-pause-symbolic", gtk::IconSize::SmallToolbar.into());
                 self.pause_button.set_image(&image);
             }
             _ => {}
