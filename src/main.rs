@@ -44,8 +44,6 @@ use ui_context::UIContext;
 #[cfg(target_os = "macos")]
 mod iokit_sleep_disabler;
 
-const VERSION: &str = env!("CARGO_PKG_VERSION");
-
 #[derive(Serialize, Deserialize)]
 enum UIAction {
     ForwardedPlayerEvent(PlayerEvent),
@@ -176,24 +174,13 @@ impl VideoPlayer {
 
         let about = gio::SimpleAction::new("about", None);
         about.connect_activate(move |_, _| {
-            let dialog = gtk::AboutDialog::new();
-            dialog.set_authors(&["Philippe Normand"]);
-            dialog.set_website_label(Some("base-art.net"));
-            dialog.set_website(Some("http://base-art.net"));
-            dialog.set_title("About");
-            dialog.set_version(VERSION);
-            let s = format!("Multimedia playback support provided by {}.\nUser interface running on GTK {}.{}.{}", gst::version_string(), gtk::get_major_version(), gtk::get_minor_version(), gtk::get_micro_version());
-            dialog.set_comments(Some(s.as_str()));
-
             GLOBAL.with(|global| {
                 if let Some(ref player) = *global.borrow() {
                     if let Some(ref ui_ctx) = player.ui_context {
-                        dialog.set_transient_for(Some(&ui_ctx.window));
+                        ui_ctx.display_about_dialog();
                     }
                 }
             });
-            dialog.run();
-            dialog.destroy();
         });
         gtk_app.add_action(&about);
 

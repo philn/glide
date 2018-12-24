@@ -2,6 +2,7 @@ extern crate gdk;
 extern crate gio;
 extern crate glib;
 extern crate gtk;
+extern crate gstreamer as gst;
 
 use gdk::prelude::*;
 #[allow(unused_imports)]
@@ -39,6 +40,7 @@ pub struct UIContext {
 }
 
 const MINIMAL_WINDOW_SIZE: (i32, i32) = (640, 480);
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 impl UIContext {
     pub fn new(gtk_app: &gtk::Application) -> Self {
@@ -304,5 +306,19 @@ impl UIContext {
         // Force the GtkScale to recompute its label widget size.
         progress_bar.set_draw_value(false);
         progress_bar.set_draw_value(true);
+    }
+
+    pub fn display_about_dialog(&self) {
+        let dialog = gtk::AboutDialog::new();
+        dialog.set_authors(&["Philippe Normand"]);
+        dialog.set_website_label(Some("base-art.net"));
+        dialog.set_website(Some("http://base-art.net"));
+        dialog.set_title("About");
+        dialog.set_version(VERSION);
+        let s = format!("Multimedia playback support provided by {}.\nUser interface running on GTK {}.{}.{}", gst::version_string(), gtk::get_major_version(), gtk::get_minor_version(), gtk::get_micro_version());
+        dialog.set_comments(Some(s.as_str()));
+        dialog.set_transient_for(Some(&self.window));
+        dialog.run();
+        dialog.destroy();
     }
 }
