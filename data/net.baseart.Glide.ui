@@ -13,6 +13,33 @@
       <attribute name="label" translatable="yes">Subtitle track</attribute>
     </submenu>
   </menu>
+  <menu id="audio-menu">
+    <section>
+		  <item>
+        <attribute name="label" translatable="yes">Increase volume</attribute>
+			  <attribute name="action">app.audio-volume-increase</attribute>
+      </item>
+		  <item>
+        <attribute name="label" translatable="yes">Decrease volume</attribute>
+			  <attribute name="action">app.audio-volume-decrease</attribute>
+      </item>
+		  <item>
+        <attribute name="label" translatable="yes">Mute</attribute>
+			  <attribute name="action">app.audio-mute</attribute>
+      </item>
+	  </section>
+    <submenu id="audio-track-menu">
+      <attribute name="label" translatable="yes">Audio track</attribute>
+    </submenu>
+    <submenu id="audio-visualization-menu">
+      <attribute name="label" translatable="yes">Visualization</attribute>
+    </submenu>
+  </menu>
+  <menu id="video-menu">
+    <submenu id="video-track-menu">
+      <attribute name="label" translatable="yes">Video track</attribute>
+    </submenu>
+  </menu>
   <object class="GtkApplicationWindow" id="application-window">
     <property name="can_focus">False</property>
     <property name="default_width">640</property>

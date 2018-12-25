@@ -16,7 +16,6 @@ use std::string;
 use std::sync::Mutex;
 
 use channel_player::PlaybackState;
-use GLOBAL;
 
 lazy_static! {
     pub static ref INHIBIT_COOKIE: Mutex<Option<u32>> = { Mutex::new(None) };
@@ -68,6 +67,9 @@ pub struct UIContext {
     pub volume_button: gtk::VolumeButton,
     pub toolbar_box: gtk::Box,
     subtitle_track_menu: gio::Menu,
+    audio_track_menu: gio::Menu,
+    video_track_menu: gio::Menu,
+    audio_visualization_menu: gio::Menu,
     volume_signal_handler_id: Option<glib::SignalHandlerId>,
     position_signal_handler_id: Option<glib::SignalHandlerId>,
     app: gtk::Application,
@@ -137,6 +139,12 @@ impl UIContext {
 
         let subtitles_menu: gio::Menu = builder.get_object("subtitles-menu").unwrap();
         let subtitle_track_menu: gio::Menu = builder.get_object("subtitle-track-menu").unwrap();
+        let audio_track_menu: gio::Menu = builder.get_object("audio-track-menu").unwrap();
+        let video_track_menu: gio::Menu = builder.get_object("video-track-menu").unwrap();
+        let audio_visualization_menu: gio::Menu = builder.get_object("audio-visualization-menu").unwrap();
+
+        let audio_menu: gio::Menu = builder.get_object("audio-menu").unwrap();
+        let video_menu: gio::Menu = builder.get_object("video-menu").unwrap();
 
         let window_weak = SendWeakRef::from(window.downgrade());
         gtk_app.connect_startup(move |app| {
@@ -159,8 +167,6 @@ impl UIContext {
 
             let menu = gio::Menu::new();
             let file_menu = gio::Menu::new();
-            let audio_menu = gio::Menu::new();
-            let video_menu = gio::Menu::new();
 
             #[cfg(not(target_os = "linux"))]
             {
@@ -168,17 +174,7 @@ impl UIContext {
                 menu.append("About", "app.about");
             }
 
-            GLOBAL.with(|global| {
-                if let Some(ref mut player) = *global.borrow_mut() {
-                    file_menu.append("Open...", "app.open-media");
-                    audio_menu.append("Increase Volume", "app.audio-volume-increase");
-                    audio_menu.append("Decrease Volume", "app.audio-volume-decrease");
-                    audio_menu.append("Mute", "app.audio-mute");
-                    audio_menu.append_submenu("Audio track", &player.audio_track_menu);
-                    audio_menu.append_submenu("Visualization", &player.audio_visualization_menu);
-                    video_menu.append_submenu("Video track", &player.video_track_menu);
-                }
-            });
+            file_menu.append("Open...", "app.open-media");
 
             menu.append_submenu("File", &file_menu);
             menu.append_submenu("Audio", &audio_menu);
@@ -207,6 +203,9 @@ impl UIContext {
             volume_button,
             toolbar_box,
             subtitle_track_menu,
+            audio_track_menu,
+            video_track_menu,
+            audio_visualization_menu,
             volume_signal_handler_id: None,
             position_signal_handler_id: None,
             app: gtk_app,
@@ -458,5 +457,28 @@ impl UIContext {
         // TODO: Would be nice to keep previous external subs in the menu.
         self.subtitle_track_menu.remove_all();
         self.subtitle_track_menu.append_section(None, &section);
+    }
+
+    pub fn update_audio_track_menu(&self, section: gio::Menu) {
+        self.audio_track_menu.remove_all();
+        self.audio_track_menu.append_section(None, &section);
+    }
+
+    pub fn update_video_track_menu(&self, section: gio::Menu) {
+        self.video_track_menu.remove_all();
+        self.video_track_menu.append_section(None, &section);
+    }
+
+    pub fn clear_audio_visualization_menu(&self) {
+        self.audio_visualization_menu.remove_all();
+    }
+
+    pub fn update_audio_visualization_menu(&self, section: gio::Menu) {
+        self.audio_visualization_menu.append_section(None, &section);
+        self.audio_visualization_menu.freeze();
+    }
+
+    pub fn mutable_audio_visualization_menu(&self) -> bool {
+        self.audio_visualization_menu.is_mutable()
     }
 }

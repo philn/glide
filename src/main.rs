@@ -66,9 +66,6 @@ struct VideoPlayer {
     volume_increase_action: gio::SimpleAction,
     volume_decrease_action: gio::SimpleAction,
     dump_pipeline_action: gio::SimpleAction,
-    audio_visualization_menu: gio::Menu,
-    audio_track_menu: gio::Menu,
-    video_track_menu: gio::Menu,
     sender: channel::Sender<UIAction>,
     receiver: channel::Receiver<UIAction>,
 }
@@ -143,7 +140,6 @@ impl VideoPlayer {
             gio::SimpleAction::new_stateful("subtitle", glib::VariantTy::new("s").unwrap(), &"".to_variant());
         gtk_app.add_action(&subtitle_action);
 
-        let audio_visualization_menu = gio::Menu::new();
         let audio_visualization_action = gio::SimpleAction::new_stateful(
             "audio-visualization",
             glib::VariantTy::new("s").unwrap(),
@@ -151,7 +147,6 @@ impl VideoPlayer {
         );
         gtk_app.add_action(&audio_visualization_action);
 
-        let audio_track_menu = gio::Menu::new();
         let audio_track_action = gio::SimpleAction::new_stateful(
             "audio-track",
             glib::VariantTy::new("s").unwrap(),
@@ -159,7 +154,6 @@ impl VideoPlayer {
         );
         gtk_app.add_action(&audio_track_action);
 
-        let video_track_menu = gio::Menu::new();
         let video_track_action = gio::SimpleAction::new_stateful(
             "video-track",
             glib::VariantTy::new("s").unwrap(),
@@ -225,9 +219,6 @@ impl VideoPlayer {
             volume_increase_action,
             volume_decrease_action,
             dump_pipeline_action,
-            audio_visualization_menu,
-            audio_track_menu,
-            video_track_menu,
             sender,
             receiver,
         }
@@ -595,7 +586,7 @@ impl VideoPlayer {
                     // https://bugzilla.gnome.org/show_bug.cgi?id=796552
                     self.audio_visualization_action.set_enabled(true);
                 } else {
-                    self.audio_visualization_menu.remove_all();
+                    self.ui_context.clear_audio_visualization_menu();
                     self.audio_visualization_action.set_enabled(false);
                 }
             }
@@ -690,7 +681,7 @@ impl VideoPlayer {
     }
 
     pub fn fill_audio_visualization_menu(&self) {
-        if !self.audio_visualization_menu.is_mutable() {
+        if !self.ui_context.mutable_audio_visualization_menu() {
             return;
         }
         let section = gio::Menu::new();
@@ -706,8 +697,7 @@ impl VideoPlayer {
             section.append_item(&item);
         }
 
-        self.audio_visualization_menu.append_section(None, &section);
-        self.audio_visualization_menu.freeze();
+        self.ui_context.update_audio_visualization_menu(section);
     }
 
     pub fn fill_audio_track_menu(&self, info: &gst_player::PlayerMediaInfo) {
@@ -728,8 +718,7 @@ impl VideoPlayer {
                 i += 1;
             }
         }
-        self.audio_track_menu.remove_all();
-        self.audio_track_menu.append_section(None, &section);
+        self.ui_context.update_audio_track_menu(section);
     }
 
     pub fn fill_video_track_menu(&self, info: &gst_player::PlayerMediaInfo) {
@@ -749,8 +738,7 @@ impl VideoPlayer {
             section.append_item(&item);
             i += 1;
         }
-        self.video_track_menu.remove_all();
-        self.video_track_menu.append_section(None, &section);
+        self.ui_context.update_video_track_menu(section);
     }
 
     pub fn open_files(&mut self, files: &[gio::File]) {
