@@ -121,12 +121,14 @@ impl UIContext {
 
         let menu: gio::Menu = builder.get_object("main-menu").unwrap();
 
+        #[cfg(not(target_os = "linux"))]
+        {
+            menu.append("Quit", "app.quit");
+            menu.append("About", "app.about");
+        }
+
         let window_weak = SendWeakRef::from(window.downgrade());
         gtk_app.connect_startup(move |app| {
-            if let Some(window) = window_weak.upgrade() {
-                window.set_application(app);
-            }
-
             let accels_per_action = [
                 ("<Primary>q", "quit"),
                 ("<Primary>f", "fullscreen"),
@@ -140,21 +142,28 @@ impl UIContext {
                 app.add_accelerator(accel, &format!("app.{}", action), None);
             }
 
-            #[cfg(not(target_os = "linux"))]
-            {
-                menu.append("Quit", "app.quit");
-                menu.append("About", "app.about");
+            if let Some(window) = window_weak.upgrade() {
+                window.set_application(app);
+
+                #[cfg(target_os = "linux")]
+                {
+                    let header_bar = gtk::HeaderBar::new();
+                    header_bar.set_show_close_button(true);
+
+                    let main_menu = gtk::MenuButton::new();
+                    let main_menu_image = gtk::Image::new_from_icon_name("open-menu-symbolic", 1);
+                    main_menu.add(&main_menu_image);
+                    main_menu.set_menu_model(&menu);
+
+                    header_bar.pack_end(&main_menu);
+                    window.set_titlebar(&header_bar);
+                }
             }
 
-            #[cfg(target_os = "linux")]
+            #[cfg(not(target_os = "linux"))]
             {
-                let app_menu = gio::Menu::new();
-                // Only static menus here.
-                app_menu.append("Quit", "app.quit");
-                app_menu.append("About", "app.about");
-                app.set_app_menu(&app_menu);
+                app.set_menubar(&menu);
             }
-            app.set_menubar(&menu);
         });
 
         Self {
