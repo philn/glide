@@ -82,6 +82,27 @@ thread_local!(
     static PLAYER_REGISTRY: RefCell<HashMap<string::String, PlayerDataHolder>> = RefCell::new(HashMap::new());
 );
 
+macro_rules! with_player {
+    ($player:ident $code:block) => {
+        with_player!($player $player $code)
+    };
+    ($player_id:ident $player:ident $code:block) => {
+        let player_id = $player_id.get_name();
+        PLAYER_REGISTRY.with(|registry| {
+            if let Some(ref $player) = registry.borrow().get(&player_id) $code
+        })
+    };
+}
+
+macro_rules! with_mut_player {
+    ($player_id:ident $player_data:ident $code:block) => (
+        let player_id = $player_id.get_name();
+        PLAYER_REGISTRY.with(|registry| {
+            if let Some(ref mut $player_data) = registry.borrow_mut().get_mut(&player_id) $code
+        })
+    )
+}
+
 impl MediaCache {
     fn open(path: &path::PathBuf) -> Result<Self, Error> {
         MediaCache::read(path).or_else(|_| {
@@ -313,14 +334,11 @@ impl ChannelPlayer {
 
         player.connect_uri_loaded(|player, uri| {
             player.pause();
-            let player_id = player.get_name();
-            PLAYER_REGISTRY.with(|registry| {
-                if let Some(ref mut player_data) = registry.borrow_mut().get_mut(&player_id) {
-                    if let Some(ref cache) = player_data.cache {
-                        let position = cache.find_last_position(uri);
-                        if position.is_some() {
-                            player.seek(position);
-                        }
+            with_mut_player!(player player_data {
+                if let Some(ref cache) = player_data.cache {
+                    let position = cache.find_last_position(uri);
+                    if position.is_some() {
+                        player.seek(position);
                     }
                 }
             });
@@ -328,38 +346,26 @@ impl ChannelPlayer {
         });
 
         player.connect_end_of_stream(|player| {
-            let player_id = player.get_name();
-            PLAYER_REGISTRY.with(|registry| {
-                if let Some(ref mut player_data) = registry.borrow_mut().get_mut(&player_id) {
-                    player_data.end_of_stream(player);
-                }
+            with_mut_player!(player player_data {
+                player_data.end_of_stream(player);
             });
         });
 
         player.connect_media_info_updated(|player, info| {
-            let player_id = player.get_name();
-            PLAYER_REGISTRY.with(|registry| {
-                if let Some(ref mut player_data) = registry.borrow_mut().get_mut(&player_id) {
+            with_mut_player!(player player_data {
                     player_data.media_info_updated(&info);
-                }
             });
         });
 
         player.connect_position_updated(|player, _| {
-            let player_id = player.get_name();
-            PLAYER_REGISTRY.with(|registry| {
-                if let Some(ref player_data) = registry.borrow().get(&player_id) {
-                    player_data.notify(&PlayerEvent::PositionUpdated);
-                }
+            with_player!(player {
+                player.notify(&PlayerEvent::PositionUpdated);
             });
         });
 
         player.connect_video_dimensions_changed(|player, width, height| {
-            let player_id = player.get_name();
-            PLAYER_REGISTRY.with(|registry| {
-                if let Some(ref player_data) = registry.borrow().get(&player_id) {
-                    player_data.notify(&PlayerEvent::VideoDimensionsChanged(width, height));
-                }
+            with_player!(player {
+                player.notify(&PlayerEvent::VideoDimensionsChanged(width, height));
             });
         });
 
@@ -371,31 +377,22 @@ impl ChannelPlayer {
                 _ => None,
             };
             if let Some(s) = state {
-                let player_id = player.get_name();
-                PLAYER_REGISTRY.with(|registry| {
-                    if let Some(ref player_data) = registry.borrow().get(&player_id) {
-                        player_data.notify(&PlayerEvent::StateChanged(s));
-                    }
+                with_player!(player {
+                    player.notify(&PlayerEvent::StateChanged(s));
                 });
             }
         });
 
         player.connect_volume_changed(|player| {
-            let player_id = player.get_name();
-            PLAYER_REGISTRY.with(|registry| {
-                if let Some(ref player_data) = registry.borrow().get(&player_id) {
-                    player_data.notify(&PlayerEvent::VolumeChanged(player.get_volume()));
-                }
+            with_player!(player player_data {
+                player_data.notify(&PlayerEvent::VolumeChanged(player.get_volume()));
             });
         });
 
         player.connect_error(|player, _error| {
-            let player_id = player.get_name();
-            PLAYER_REGISTRY.with(|registry| {
-                if let Some(ref player_data) = registry.borrow().get(&player_id) {
-                    // FIXME: Pass error to enum.
-                    player_data.notify(&PlayerEvent::Error);
-                }
+            with_player!(player {
+                // FIXME: Pass error to enum.
+                player.notify(&PlayerEvent::Error);
             });
         });
 
@@ -423,23 +420,18 @@ impl ChannelPlayer {
 
     #[allow(dead_code)]
     pub fn register_event_handler(&mut self, sender: channel::Sender<PlayerEvent>) {
-        let player_id = self.player.get_name();
-        PLAYER_REGISTRY.with(|registry| {
-            if let Some(ref mut player_data) = registry.borrow_mut().get_mut(&player_id) {
-                player_data.register_event_handler(sender);
-            }
+        let player = &self.player;
+        with_mut_player!(player player_data {
+            player_data.register_event_handler(sender);
         });
     }
 
     pub fn load_playlist(&self, playlist: Vec<string::String>) {
         assert!(!playlist.is_empty());
-
-        let player_id = self.player.get_name();
-        PLAYER_REGISTRY.with(|registry| {
-            if let Some(ref mut player_data) = registry.borrow_mut().get_mut(&player_id) {
-                self.load_uri(&*playlist[0]);
-                player_data.set_playlist(playlist);
-            }
+        let player = &self.player;
+        with_mut_player!(player player_data {
+            self.load_uri(&*playlist[0]);
+            player_data.set_playlist(playlist);
         });
     }
 
@@ -602,11 +594,9 @@ impl ChannelPlayer {
                 return;
             }
 
-            let player_id = self.player.get_name();
-            PLAYER_REGISTRY.with(|registry| {
-                if let Some(ref mut player_data) = registry.borrow_mut().get_mut(&player_id) {
-                    player_data.update_cache_and_write(id, position);
-                }
+            let player = &self.player;
+            with_mut_player!(player player_data {
+                player_data.update_cache_and_write(id, position);
             });
         }
     }
