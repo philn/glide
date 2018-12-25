@@ -127,18 +127,18 @@ impl UIContext {
                 window.set_application(app);
             }
 
-            app.set_accels_for_action("app.quit", &*vec!["<Meta>q", "<Ctrl>q"]);
-            app.set_accels_for_action("app.fullscreen", &*vec!["<Meta>f", "<Alt>f"]);
-            app.set_accels_for_action("app.restore", &*vec!["Escape"]);
-            app.set_accels_for_action("app.pause", &*vec!["space"]);
-            app.set_accels_for_action("app.seek-forward", &*vec!["<Meta>Right", "<Alt>Right"]);
-            app.set_accels_for_action("app.seek-backward", &*vec!["<Meta>Left", "<Alt>Left"]);
-            app.set_accels_for_action("app.open-media", &*vec!["<Meta>o", "<Alt>o"]);
-            app.set_accels_for_action("app.open-subtitle-file", &*vec!["<Meta>s", "<Alt>s"]);
-            app.set_accels_for_action("app.audio-volume-increase", &*vec!["<Meta>Up", "<Alt>Up"]);
-            app.set_accels_for_action("app.audio-volume-decrease", &*vec!["<Meta>Down", "<Alt>Down"]);
-            app.set_accels_for_action("app.audio-mute", &*vec!["<Meta>m", "<Alt>m"]);
-            app.set_accels_for_action("app.dump-pipeline", &*vec!["<Ctrl>d"]);
+            let accels_per_action = [
+                ("<Primary>q", "quit"),
+                ("<Primary>f", "fullscreen"),
+                ("Escape", "restore"),
+                ("space", "pause"),
+                ("<Primary>Right", "seek-forward"),
+                ("<Primary>Left", "seek-backward"),
+                ("<Ctrl>d", "dump-pipeline"),
+            ];
+            for (accel, action) in accels_per_action.iter() {
+                app.add_accelerator(accel, &format!("app.{}", action), None);
+            }
 
             #[cfg(not(target_os = "linux"))]
             {
