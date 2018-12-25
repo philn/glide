@@ -66,7 +66,6 @@ struct VideoPlayer {
     volume_increase_action: gio::SimpleAction,
     volume_decrease_action: gio::SimpleAction,
     dump_pipeline_action: gio::SimpleAction,
-    subtitle_track_menu: gio::Menu,
     audio_visualization_menu: gio::Menu,
     audio_track_menu: gio::Menu,
     video_track_menu: gio::Menu,
@@ -140,7 +139,6 @@ impl VideoPlayer {
         let dump_pipeline_action = gio::SimpleAction::new_stateful("dump-pipeline", None, &false.to_variant());
         gtk_app.add_action(&dump_pipeline_action);
 
-        let subtitle_track_menu = gio::Menu::new();
         let subtitle_action =
             gio::SimpleAction::new_stateful("subtitle", glib::VariantTy::new("s").unwrap(), &"".to_variant());
         gtk_app.add_action(&subtitle_action);
@@ -227,7 +225,6 @@ impl VideoPlayer {
             volume_increase_action,
             volume_decrease_action,
             dump_pipeline_action,
-            subtitle_track_menu,
             audio_visualization_menu,
             audio_track_menu,
             video_track_menu,
@@ -682,9 +679,7 @@ impl VideoPlayer {
                 }
             }
 
-            // TODO: Would be nice to keep previous external subs in the menu.
-            self.subtitle_track_menu.remove_all();
-            self.subtitle_track_menu.append_section(None, &section);
+            self.ui_context.update_subtitle_track_menu(section);
 
             let v = match selected_action {
                 Some(a) => a.to_variant(),

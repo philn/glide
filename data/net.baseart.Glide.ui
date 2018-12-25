@@ -2,6 +2,17 @@
 <!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
+  <menu id="subtitles-menu">
+    <section>
+		  <item>
+        <attribute name="label" translatable="yes">Add subtitle file…</attribute>
+			  <attribute name="action">app.open-subtitle-file</attribute>
+      </item>
+	  </section>
+    <submenu id="subtitle-track-menu">
+      <attribute name="label" translatable="yes">Subtitle track</attribute>
+    </submenu>
+  </menu>
   <object class="GtkApplicationWindow" id="application-window">
     <property name="can_focus">False</property>
     <property name="default_width">640</property>
