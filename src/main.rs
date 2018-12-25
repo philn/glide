@@ -662,7 +662,7 @@ impl VideoPlayer {
         item.set_detailed_action("app.video-track::video--1");
         section.append_item(&item);
 
-        #[cfg_attr(feature = "cargo-clippy", allow(explicit_counter_loop))]
+        #[cfg_attr(feature = "cargo-clippy", allow(clippy::explicit_counter_loop))]
         for video_stream in info.get_video_streams() {
             let action_id = format!("app.video-track::video-{}", i);
             let description = format!("{}x{}", video_stream.get_width(), video_stream.get_height());
