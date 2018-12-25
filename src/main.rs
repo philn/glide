@@ -49,7 +49,7 @@ enum UIAction {
 }
 
 struct VideoPlayer {
-    player_context: Option<ChannelPlayer>,
+    player: ChannelPlayer,
     ui_context: UIContext,
     fullscreen_action: gio::SimpleAction,
     restore_action: gio::SimpleAction,
@@ -68,6 +68,7 @@ struct VideoPlayer {
     dump_pipeline_action: gio::SimpleAction,
     sender: channel::Sender<UIAction>,
     receiver: channel::Receiver<UIAction>,
+    player_receiver: channel::Receiver<PlayerEvent>,
 }
 
 thread_local!(
@@ -201,8 +202,14 @@ impl VideoPlayer {
         let ui_context = UIContext::new(gtk_app);
         let (sender, receiver) = channel::unbounded();
 
+        let (player_sender, player_receiver) = channel::unbounded();
+        let d = Directories::with_prefix("glide", "Glide").unwrap();
+        create_dir_all(d.cache_home()).unwrap();
+
+        let player = ChannelPlayer::new(player_sender, Some(&d.cache_home().join("media-cache.json")));
+
         Self {
-            player_context: None,
+            player,
             ui_context,
             fullscreen_action,
             restore_action,
@@ -221,28 +228,21 @@ impl VideoPlayer {
             dump_pipeline_action,
             sender,
             receiver,
+            player_receiver,
         }
     }
 
     pub fn quit(&self) {
-        if let Some(ref player_context) = self.player_context {
-            player_context.write_last_known_media_position();
-        }
+        self.player.write_last_known_media_position();
         self.leave_fullscreen();
         self.ui_context.stop();
     }
 
     pub fn start(&mut self) {
-        let (sender, receiver) = channel::unbounded();
-        let d = Directories::with_prefix("glide", "Glide").unwrap();
-        create_dir_all(d.cache_home()).unwrap();
-
-        let player = ChannelPlayer::new(sender, Some(&d.cache_home().join("media-cache.json")));
-        self.player_context = Some(player);
-
         let callback = || glib::idle_add(ui_action_handle);
-
         let sender = self.sender.clone();
+        let receiver = self.player_receiver.clone();
+
         thread::spawn(move || loop {
             if let Some(event) = receiver.try_recv() {
                 // if let PlayerEvent::EndOfPlaylist = event {
@@ -262,9 +262,7 @@ impl VideoPlayer {
 
                 GLOBAL.with(|global| {
                     if let Some(ref video_player) = *global.borrow() {
-                        if let Some(ref player) = video_player.player_context {
-                            player.toggle_pause(paused);
-                        }
+                        video_player.player.toggle_pause(paused);
                     }
                 });
                 pause_action.set_state(&(!paused).to_variant());
@@ -274,9 +272,7 @@ impl VideoPlayer {
         self.dump_pipeline_action.connect_activate(|_, _| {
             GLOBAL.with(|global| {
                 if let Some(ref video_player) = *global.borrow() {
-                    if let Some(ref player) = video_player.player_context {
-                        player.dump_pipeline("glide");
-                    }
+                    video_player.player.dump_pipeline("glide");
                 }
             });
         });
@@ -284,9 +280,7 @@ impl VideoPlayer {
         self.seek_forward_action.connect_change_state(|_, _| {
             GLOBAL.with(|global| {
                 if let Some(ref video_player) = *global.borrow() {
-                    if let Some(ref player) = video_player.player_context {
-                        player.seek(&SeekDirection::Forward(SEEK_FORWARD_OFFSET));
-                    }
+                    video_player.player.seek(&SeekDirection::Forward(SEEK_FORWARD_OFFSET));
                 }
             });
         });
@@ -294,9 +288,7 @@ impl VideoPlayer {
         self.seek_backward_action.connect_change_state(|_, _| {
             GLOBAL.with(|global| {
                 if let Some(ref video_player) = *global.borrow() {
-                    if let Some(ref player) = video_player.player_context {
-                        player.seek(&SeekDirection::Backward(SEEK_BACKWARD_OFFSET));
-                    }
+                    video_player.player.seek(&SeekDirection::Backward(SEEK_BACKWARD_OFFSET));
                 }
             });
         });
@@ -304,9 +296,7 @@ impl VideoPlayer {
         self.volume_decrease_action.connect_change_state(|_, _| {
             GLOBAL.with(|global| {
                 if let Some(ref video_player) = *global.borrow() {
-                    if let Some(ref player) = video_player.player_context {
-                        player.decrease_volume();
-                    }
+                    video_player.player.decrease_volume();
                 }
             });
         });
@@ -314,9 +304,7 @@ impl VideoPlayer {
         self.volume_increase_action.connect_change_state(|_, _| {
             GLOBAL.with(|global| {
                 if let Some(ref video_player) = *global.borrow() {
-                    if let Some(ref player) = video_player.player_context {
-                        player.increase_volume();
-                    }
+                    video_player.player.increase_volume();
                 }
             });
         });
@@ -324,12 +312,10 @@ impl VideoPlayer {
         self.audio_mute_action.connect_change_state(|mute_action, _| {
             GLOBAL.with(|global| {
                 if let Some(ref video_player) = *global.borrow() {
-                    if let Some(ref player) = video_player.player_context {
-                        if let Some(is_enabled) = mute_action.get_state() {
-                            let enabled = is_enabled.get::<bool>().unwrap();
-                            player.toggle_mute(!enabled);
-                            mute_action.set_state(&(!enabled).to_variant());
-                        }
+                    if let Some(is_enabled) = mute_action.get_state() {
+                        let enabled = is_enabled.get::<bool>().unwrap();
+                        video_player.player.toggle_mute(!enabled);
+                        mute_action.set_state(&(!enabled).to_variant());
                     }
                 }
             });
@@ -373,14 +359,12 @@ impl VideoPlayer {
                 if let Some(name) = val.get::<std::string::String>() {
                     GLOBAL.with(|global| {
                         if let Some(ref video_player) = *global.borrow() {
-                            if let Some(ref ctx) = video_player.player_context {
-                                if name == "none" {
-                                    ctx.set_audio_visualization(None);
-                                } else {
-                                    ctx.set_audio_visualization(Some(AudioVisualization(name)));
-                                }
-                                action.set_state(&val);
+                            if name == "none" {
+                                video_player.player.set_audio_visualization(None);
+                            } else {
+                                video_player.player.set_audio_visualization(Some(AudioVisualization(name)));
                             }
+                            action.set_state(&val);
                         }
                     });
                 }
@@ -395,10 +379,8 @@ impl VideoPlayer {
 
                     GLOBAL.with(|global| {
                         if let Some(ref video_player) = *global.borrow() {
-                            if let Some(ref ctx) = video_player.player_context {
-                                ctx.set_audio_track_index(idx);
-                                action.set_state(&val);
-                            }
+                            video_player.player.set_audio_track_index(idx);
+                            action.set_state(&val);
                         }
                     });
                 }
@@ -413,10 +395,8 @@ impl VideoPlayer {
 
                     GLOBAL.with(|global| {
                         if let Some(ref video_player) = *global.borrow() {
-                            if let Some(ref ctx) = video_player.player_context {
-                                ctx.set_video_track_index(idx);
-                                action.set_state(&val);
-                            }
+                            video_player.player.set_video_track_index(idx);
+                            action.set_state(&val);
                         }
                     });
                 }
@@ -426,12 +406,10 @@ impl VideoPlayer {
         self.open_media_action.connect_activate(|_, _| {
             GLOBAL.with(|global| {
                 if let Some(ref video_player) = *global.borrow() {
-                    if let Some(ref player_ctx) = video_player.player_context {
-                        if let Some(uri) = video_player.ui_context.dialog_result(player_ctx.get_current_uri()) {
-                            println!("loading {}", &uri);
-                            player_ctx.stop();
-                            player_ctx.load_uri(&uri);
-                        }
+                    if let Some(uri) = video_player.ui_context.dialog_result(video_player.player.get_current_uri()) {
+                        println!("loading {}", &uri);
+                        video_player.player.stop();
+                        video_player.player.load_uri(&uri);
                     }
                 }
             });
@@ -440,36 +418,30 @@ impl VideoPlayer {
         self.open_subtitle_file_action.connect_activate(|_, _| {
             GLOBAL.with(|global| {
                 if let Some(ref video_player) = *global.borrow() {
-                    if let Some(ref player_ctx) = video_player.player_context {
-                        if let Some(uri) = video_player.ui_context.dialog_result(player_ctx.get_current_uri()) {
-                            player_ctx.configure_subtitle_track(Some(SubtitleTrack::External(uri)));
-                        }
-                        video_player.refresh_subtitle_track_menu();
+                    if let Some(uri) = video_player.ui_context.dialog_result(video_player.player.get_current_uri()) {
+                        video_player.player.configure_subtitle_track(Some(SubtitleTrack::External(uri)));
                     }
+                    video_player.refresh_subtitle_track_menu();
                 }
             });
         });
 
-        if let Some(ref player_ctx) = self.player_context {
-            self.ui_context.set_video_area(player_ctx.video_area());
+        self.ui_context.set_video_area(self.player.video_area());
 
-            self.ui_context.set_progress_bar_format_callback(|value, duration| {
-                let position = gst::ClockTime::from_seconds(value as u64);
-                let duration = gst::ClockTime::from_seconds(duration as u64);
-                if duration.is_some() {
-                    format!("{:.0} / {:.0}", position, duration)
-                } else {
-                    format!("{:.0}", position)
-                }
-            });
-        }
+        self.ui_context.set_progress_bar_format_callback(|value, duration| {
+            let position = gst::ClockTime::from_seconds(value as u64);
+            let duration = gst::ClockTime::from_seconds(duration as u64);
+            if duration.is_some() {
+                format!("{:.0} / {:.0}", position, duration)
+            } else {
+                format!("{:.0}", position)
+            }
+        });
 
         self.ui_context.set_volume_value_changed_callback(|value| {
             GLOBAL.with(|global| {
                 if let Some(ref video_player) = *global.borrow() {
-                    if let Some(ref player) = video_player.player_context {
-                        player.set_volume(value);
-                    }
+                    video_player.player.set_volume(value);
                 }
             });
         });
@@ -477,9 +449,7 @@ impl VideoPlayer {
         self.ui_context.set_position_changed_callback(|value| {
             GLOBAL.with(|global| {
                 if let Some(ref video_player) = *global.borrow() {
-                    if let Some(ref player) = video_player.player_context {
-                        player.seek_to(gst::ClockTime::from_seconds(value));
-                    }
+                    video_player.player.seek_to(gst::ClockTime::from_seconds(value));
                 }
             });
         });
@@ -547,9 +517,8 @@ impl VideoPlayer {
     }
 
     pub fn media_info_updated(&self) {
-        if let Some(ref player) = self.player_context {
-            if let Some(info) = player.get_media_info() {
-                if let Some(uri) = player.get_current_uri() {
+            if let Some(info) = self.player.get_media_info() {
+                if let Some(uri) = self.player.get_current_uri() {
                     if let Some(title) = info.get_title() {
                         self.ui_context.set_window_title(&*title);
                     } else if let Ok((filename, _)) = glib::filename_from_uri(&uri) {
@@ -569,7 +538,7 @@ impl VideoPlayer {
                         let subfile = path.as_path();
                         if subfile.is_file() {
                             if let Ok(suburi) = glib::filename_to_uri(subfile, None) {
-                                player.configure_subtitle_track(Some(SubtitleTrack::External(suburi)));
+                                self.player.configure_subtitle_track(Some(SubtitleTrack::External(suburi)));
                             }
                         }
                     }
@@ -591,14 +560,11 @@ impl VideoPlayer {
                 }
             }
         }
-    }
 
     pub fn position_updated(&self) {
-        if let Some(ref player) = self.player_context {
-            if let Some(position) = player.get_position().seconds() {
+            if let Some(position) = self.player.get_position().seconds() {
                 self.ui_context.set_position_range_value(position);
             }
-        }
     }
 
     pub fn update_subtitle_track(&self, value: &Option<glib::Variant>) {
@@ -615,9 +581,7 @@ impl VideoPlayer {
                         Some(SubtitleTrack::Inband(idx))
                     }
                 };
-                if let Some(ref ctx) = self.player_context {
-                    ctx.configure_subtitle_track(track);
-                }
+                self.player.configure_subtitle_track(track);
             }
             self.subtitle_action.set_state(&val);
         }
@@ -626,8 +590,7 @@ impl VideoPlayer {
     pub fn refresh_subtitle_track_menu(&self) {
         let section = gio::Menu::new();
 
-        if let Some(ref player) = self.player_context {
-            if let Some(info) = player.get_media_info() {
+            if let Some(info) = self.player.get_media_info() {
                 let mut i = 0;
                 let item = gio::MenuItem::new(&*"Disable", &*"none");
                 item.set_detailed_action("app.subtitle::none");
@@ -654,7 +617,7 @@ impl VideoPlayer {
             }
 
             let mut selected_action: Option<std::string::String> = None;
-            if let Some(uri) = player.get_subtitle_uri() {
+            if let Some(uri) = self.player.get_subtitle_uri() {
                 if let Ok((path, _)) = glib::filename_from_uri(&uri) {
                     let subfile = path.as_path();
                     if let Some(filename) = subfile.file_name() {
@@ -677,7 +640,7 @@ impl VideoPlayer {
                 None => ("none").to_variant(),
             };
             self.subtitle_action.change_state(&v);
-        }
+
     }
 
     pub fn fill_audio_visualization_menu(&self) {
@@ -749,9 +712,7 @@ impl VideoPlayer {
             }
         }
 
-        if let Some(ref mut player_ctx) = self.player_context {
-            player_ctx.load_playlist(playlist);
-        }
+        self.player.load_playlist(playlist);
     }
 
     #[cfg(feature = "self-updater")]
