@@ -2,42 +2,56 @@
 <!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
-  <menu id="subtitles-menu">
-    <section>
-		  <item>
-        <attribute name="label" translatable="yes">Add subtitle file…</attribute>
-			  <attribute name="action">app.open-subtitle-file</attribute>
-      </item>
-	  </section>
-    <submenu id="subtitle-track-menu">
-      <attribute name="label" translatable="yes">Subtitle track</attribute>
+  <menu id="main-menu">
+    <submenu id="file-menu">
+      <attribute name="label" translatable="yes">File</attribute>
+      <section>
+		    <item>
+          <attribute name="label" translatable="yes">Open…</attribute>
+			    <attribute name="action">app.open-media</attribute>
+        </item>
+      </section>
     </submenu>
-  </menu>
-  <menu id="audio-menu">
-    <section>
-		  <item>
-        <attribute name="label" translatable="yes">Increase volume</attribute>
-			  <attribute name="action">app.audio-volume-increase</attribute>
-      </item>
-		  <item>
-        <attribute name="label" translatable="yes">Decrease volume</attribute>
-			  <attribute name="action">app.audio-volume-decrease</attribute>
-      </item>
-		  <item>
-        <attribute name="label" translatable="yes">Mute</attribute>
-			  <attribute name="action">app.audio-mute</attribute>
-      </item>
-	  </section>
-    <submenu id="audio-track-menu">
-      <attribute name="label" translatable="yes">Audio track</attribute>
+    <submenu id="audio-menu">
+      <attribute name="label" translatable="yes">Audio</attribute>
+      <section>
+		    <item>
+          <attribute name="label" translatable="yes">Increase volume</attribute>
+			    <attribute name="action">app.audio-volume-increase</attribute>
+        </item>
+		    <item>
+          <attribute name="label" translatable="yes">Decrease volume</attribute>
+			    <attribute name="action">app.audio-volume-decrease</attribute>
+        </item>
+		    <item>
+          <attribute name="label" translatable="yes">Mute</attribute>
+			    <attribute name="action">app.audio-mute</attribute>
+        </item>
+	    </section>
+      <submenu id="audio-track-menu">
+        <attribute name="label" translatable="yes">Audio track</attribute>
+      </submenu>
+      <submenu id="audio-visualization-menu">
+        <attribute name="label" translatable="yes">Visualization</attribute>
+      </submenu>
     </submenu>
-    <submenu id="audio-visualization-menu">
-      <attribute name="label" translatable="yes">Visualization</attribute>
+    <submenu id="video-menu">
+      <attribute name="label" translatable="yes">Video</attribute>
+      <submenu id="video-track-menu">
+        <attribute name="label" translatable="yes">Video track</attribute>
+      </submenu>
     </submenu>
-  </menu>
-  <menu id="video-menu">
-    <submenu id="video-track-menu">
-      <attribute name="label" translatable="yes">Video track</attribute>
+    <submenu id="subtitles-menu">
+      <attribute name="label" translatable="yes">Subtitles</attribute>
+      <section>
+		    <item>
+          <attribute name="label" translatable="yes">Add subtitle file…</attribute>
+			    <attribute name="action">app.open-subtitle-file</attribute>
+        </item>
+	    </section>
+      <submenu id="subtitle-track-menu">
+        <attribute name="label" translatable="yes">Subtitle track</attribute>
+      </submenu>
     </submenu>
   </menu>
   <object class="GtkApplicationWindow" id="application-window">

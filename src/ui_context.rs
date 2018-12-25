@@ -137,14 +137,12 @@ impl UIContext {
             Inhibit(false)
         });
 
-        let subtitles_menu: gio::Menu = builder.get_object("subtitles-menu").unwrap();
         let subtitle_track_menu: gio::Menu = builder.get_object("subtitle-track-menu").unwrap();
         let audio_track_menu: gio::Menu = builder.get_object("audio-track-menu").unwrap();
         let video_track_menu: gio::Menu = builder.get_object("video-track-menu").unwrap();
         let audio_visualization_menu: gio::Menu = builder.get_object("audio-visualization-menu").unwrap();
 
-        let audio_menu: gio::Menu = builder.get_object("audio-menu").unwrap();
-        let video_menu: gio::Menu = builder.get_object("video-menu").unwrap();
+        let menu: gio::Menu = builder.get_object("main-menu").unwrap();
 
         let window_weak = SendWeakRef::from(window.downgrade());
         gtk_app.connect_startup(move |app| {
@@ -165,21 +163,11 @@ impl UIContext {
             app.set_accels_for_action("app.audio-mute", &*vec!["<Meta>m", "<Alt>m"]);
             app.set_accels_for_action("app.dump-pipeline", &*vec!["<Ctrl>d"]);
 
-            let menu = gio::Menu::new();
-            let file_menu = gio::Menu::new();
-
             #[cfg(not(target_os = "linux"))]
             {
                 menu.append("Quit", "app.quit");
                 menu.append("About", "app.about");
             }
-
-            file_menu.append("Open...", "app.open-media");
-
-            menu.append_submenu("File", &file_menu);
-            menu.append_submenu("Audio", &audio_menu);
-            menu.append_submenu("Video", &video_menu);
-            menu.append_submenu("Subtitles", &subtitles_menu);
 
             #[cfg(target_os = "linux")]
             {
