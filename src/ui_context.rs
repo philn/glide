@@ -57,15 +57,12 @@ pub fn initialize_and_create_app() -> gtk::Application {
 }
 
 pub struct UIContext {
-    pub window: gtk::ApplicationWindow,
-    pub main_box: gtk::Box,
-    pub pause_button: gtk::Button,
-    pub seek_backward_button: gtk::Button,
-    pub seek_forward_button: gtk::Button,
-    pub fullscreen_button: gtk::Button,
-    pub progress_bar: gtk::Scale,
-    pub volume_button: gtk::VolumeButton,
-    pub toolbar_box: gtk::Box,
+    window: gtk::ApplicationWindow,
+    main_box: gtk::Box,
+    pause_button: gtk::Button,
+    progress_bar: gtk::Scale,
+    volume_button: gtk::VolumeButton,
+    toolbar_box: gtk::Box,
     subtitle_track_menu: gio::Menu,
     audio_track_menu: gio::Menu,
     video_track_menu: gio::Menu,
@@ -82,45 +79,25 @@ impl UIContext {
     pub fn new(gtk_app: gtk::Application) -> Self {
         let builder = gtk::Builder::new_from_string(include_str!("../data/net.baseart.Glide.ui"));
 
-        let main_box: gtk::Box = builder.get_object("main-box").unwrap();
-        let toolbar_box: gtk::Box = builder.get_object("toolbar-box").unwrap();
-
         let pause_button = {
             let button: gtk::Button = builder.get_object("pause-button").unwrap();
             button.clone().upcast::<gtk::Actionable>().set_action_name("app.pause");
             button
         };
 
-        let seek_backward_button = {
-            let button: gtk::Button = builder.get_object("seek-backward-button").unwrap();
-            button
-                .clone()
-                .upcast::<gtk::Actionable>()
-                .set_action_name("app.seek-backward");
-            button
-        };
+        let button: gtk::Button = builder.get_object("seek-backward-button").unwrap();
+        button.upcast::<gtk::Actionable>().set_action_name("app.seek-backward");
 
-        let seek_forward_button = {
-            let button: gtk::Button = builder.get_object("seek-forward-button").unwrap();
-            button
-                .clone()
-                .upcast::<gtk::Actionable>()
-                .set_action_name("app.seek-forward");
-            button
-        };
+        let button: gtk::Button = builder.get_object("seek-forward-button").unwrap();
+        button.upcast::<gtk::Actionable>().set_action_name("app.seek-forward");
 
+        let button: gtk::Button = builder.get_object("fullscreen-button").unwrap();
+        button.upcast::<gtk::Actionable>().set_action_name("app.fullscreen");
+
+        let main_box: gtk::Box = builder.get_object("main-box").unwrap();
+        let toolbar_box: gtk::Box = builder.get_object("toolbar-box").unwrap();
         let progress_bar: gtk::Scale = builder.get_object("progress-bar").unwrap();
-
         let volume_button: gtk::VolumeButton = builder.get_object("volume-button").unwrap();
-
-        let fullscreen_button = {
-            let button: gtk::Button = builder.get_object("fullscreen-button").unwrap();
-            button
-                .clone()
-                .upcast::<gtk::Actionable>()
-                .set_action_name("app.fullscreen");
-            button
-        };
 
         let window: gtk::ApplicationWindow = builder.get_object("application-window").unwrap();
         window.connect_map_event(move |widget, _| {
@@ -183,10 +160,7 @@ impl UIContext {
         Self {
             window,
             main_box,
-            seek_backward_button,
-            seek_forward_button,
             pause_button,
-            fullscreen_button,
             progress_bar,
             volume_button,
             toolbar_box,
