@@ -7,6 +7,7 @@ extern crate gtk;
 use gdk::prelude::*;
 #[allow(unused_imports)]
 use gio::prelude::*;
+use gio::MenuExt;
 #[allow(unused_imports)]
 use glib::SendWeakRef;
 use gtk::prelude::*;
@@ -15,6 +16,7 @@ use std::string;
 use std::sync::Mutex;
 
 use channel_player::PlaybackState;
+use GLOBAL;
 
 lazy_static! {
     pub static ref INHIBIT_COOKIE: Mutex<Option<u32>> = { Mutex::new(None) };
@@ -74,10 +76,7 @@ const MINIMAL_WINDOW_SIZE: (i32, i32) = (640, 480);
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 impl UIContext {
-    pub fn new<F>(gtk_app: gtk::Application, f: F) -> Self
-    where
-        F: Fn(&gtk::Application) + 'static,
-    {
+    pub fn new(gtk_app: gtk::Application) -> Self {
         let builder = gtk::Builder::new_from_string(include_str!("../data/net.baseart.Glide.ui"));
 
         let main_box: gtk::Box = builder.get_object("main-box").unwrap();
@@ -140,7 +139,60 @@ impl UIContext {
             if let Some(window) = window_weak.upgrade() {
                 window.set_application(app);
             }
-            f(app);
+
+            app.set_accels_for_action("app.quit", &*vec!["<Meta>q", "<Ctrl>q"]);
+            app.set_accels_for_action("app.fullscreen", &*vec!["<Meta>f", "<Alt>f"]);
+            app.set_accels_for_action("app.restore", &*vec!["Escape"]);
+            app.set_accels_for_action("app.pause", &*vec!["space"]);
+            app.set_accels_for_action("app.seek-forward", &*vec!["<Meta>Right", "<Alt>Right"]);
+            app.set_accels_for_action("app.seek-backward", &*vec!["<Meta>Left", "<Alt>Left"]);
+            app.set_accels_for_action("app.open-media", &*vec!["<Meta>o", "<Alt>o"]);
+            app.set_accels_for_action("app.open-subtitle-file", &*vec!["<Meta>s", "<Alt>s"]);
+            app.set_accels_for_action("app.audio-volume-increase", &*vec!["<Meta>Up", "<Alt>Up"]);
+            app.set_accels_for_action("app.audio-volume-decrease", &*vec!["<Meta>Down", "<Alt>Down"]);
+            app.set_accels_for_action("app.audio-mute", &*vec!["<Meta>m", "<Alt>m"]);
+            app.set_accels_for_action("app.dump-pipeline", &*vec!["<Ctrl>d"]);
+
+            let menu = gio::Menu::new();
+            let file_menu = gio::Menu::new();
+            let audio_menu = gio::Menu::new();
+            let video_menu = gio::Menu::new();
+            let subtitles_menu = gio::Menu::new();
+
+            #[cfg(not(target_os = "linux"))]
+            {
+                menu.append("Quit", "app.quit");
+                menu.append("About", "app.about");
+            }
+
+            GLOBAL.with(|global| {
+                if let Some(ref mut player) = *global.borrow_mut() {
+                    file_menu.append("Open...", "app.open-media");
+                    subtitles_menu.append("Add subtitle file...", "app.open-subtitle-file");
+                    subtitles_menu.append_submenu("Subtitle track", &player.subtitle_track_menu);
+                    audio_menu.append("Increase Volume", "app.audio-volume-increase");
+                    audio_menu.append("Decrease Volume", "app.audio-volume-decrease");
+                    audio_menu.append("Mute", "app.audio-mute");
+                    audio_menu.append_submenu("Audio track", &player.audio_track_menu);
+                    audio_menu.append_submenu("Visualization", &player.audio_visualization_menu);
+                    video_menu.append_submenu("Video track", &player.video_track_menu);
+                }
+            });
+
+            menu.append_submenu("File", &file_menu);
+            menu.append_submenu("Audio", &audio_menu);
+            menu.append_submenu("Video", &video_menu);
+            menu.append_submenu("Subtitles", &subtitles_menu);
+
+            #[cfg(target_os = "linux")]
+            {
+                let app_menu = gio::Menu::new();
+                // Only static menus here.
+                app_menu.append("Quit", "app.quit");
+                app_menu.append("About", "app.about");
+                app.set_app_menu(&app_menu);
+            }
+            app.set_menubar(&menu);
         });
 
         Self {

@@ -23,9 +23,7 @@ use dirs::Directories;
 #[allow(unused_imports)]
 use gdk::prelude::*;
 use gio::prelude::*;
-use gio::MenuExt;
-use gio::MenuItemExt;
-use gtk::prelude::*;
+use glib::ToVariant;
 use std::cell::RefCell;
 use std::env;
 use std::fs::create_dir_all;
@@ -103,62 +101,6 @@ fn ui_action_handle() -> glib::Continue {
         }
     });
     glib::Continue(false)
-}
-
-pub fn configure_app_callback(app: &gtk::Application) {
-    app.set_accels_for_action("app.quit", &*vec!["<Meta>q", "<Ctrl>q"]);
-    app.set_accels_for_action("app.fullscreen", &*vec!["<Meta>f", "<Alt>f"]);
-    app.set_accels_for_action("app.restore", &*vec!["Escape"]);
-    app.set_accels_for_action("app.pause", &*vec!["space"]);
-    app.set_accels_for_action("app.seek-forward", &*vec!["<Meta>Right", "<Alt>Right"]);
-    app.set_accels_for_action("app.seek-backward", &*vec!["<Meta>Left", "<Alt>Left"]);
-    app.set_accels_for_action("app.open-media", &*vec!["<Meta>o", "<Alt>o"]);
-    app.set_accels_for_action("app.open-subtitle-file", &*vec!["<Meta>s", "<Alt>s"]);
-    app.set_accels_for_action("app.audio-volume-increase", &*vec!["<Meta>Up", "<Alt>Up"]);
-    app.set_accels_for_action("app.audio-volume-decrease", &*vec!["<Meta>Down", "<Alt>Down"]);
-    app.set_accels_for_action("app.audio-mute", &*vec!["<Meta>m", "<Alt>m"]);
-    app.set_accels_for_action("app.dump-pipeline", &*vec!["<Ctrl>d"]);
-
-    let menu = gio::Menu::new();
-    let file_menu = gio::Menu::new();
-    let audio_menu = gio::Menu::new();
-    let video_menu = gio::Menu::new();
-    let subtitles_menu = gio::Menu::new();
-
-    #[cfg(not(target_os = "linux"))]
-    {
-        menu.append("Quit", "app.quit");
-        menu.append("About", "app.about");
-    }
-
-    GLOBAL.with(|global| {
-        if let Some(ref mut player) = *global.borrow_mut() {
-            file_menu.append("Open...", "app.open-media");
-            subtitles_menu.append("Add subtitle file...", "app.open-subtitle-file");
-            subtitles_menu.append_submenu("Subtitle track", &player.subtitle_track_menu);
-            audio_menu.append("Increase Volume", "app.audio-volume-increase");
-            audio_menu.append("Decrease Volume", "app.audio-volume-decrease");
-            audio_menu.append("Mute", "app.audio-mute");
-            audio_menu.append_submenu("Audio track", &player.audio_track_menu);
-            audio_menu.append_submenu("Visualization", &player.audio_visualization_menu);
-            video_menu.append_submenu("Video track", &player.video_track_menu);
-        }
-    });
-
-    menu.append_submenu("File", &file_menu);
-    menu.append_submenu("Audio", &audio_menu);
-    menu.append_submenu("Video", &video_menu);
-    menu.append_submenu("Subtitles", &subtitles_menu);
-
-    #[cfg(target_os = "linux")]
-    {
-        let app_menu = gio::Menu::new();
-        // Only static menus here.
-        app_menu.append("Quit", "app.quit");
-        app_menu.append("About", "app.about");
-        app.set_app_menu(&app_menu);
-    }
-    app.set_menubar(&menu);
 }
 
 impl VideoPlayer {
@@ -264,7 +206,7 @@ impl VideoPlayer {
             });
         });
 
-        let ui_context = UIContext::new(gtk_app, configure_app_callback);
+        let ui_context = UIContext::new(gtk_app);
         let (sender, receiver) = channel::unbounded();
 
         Self {
