@@ -12,6 +12,8 @@ use gio::MenuExt;
 use glib::SendWeakRef;
 use gtk::prelude::*;
 use std::cmp;
+#[allow(unused_imports)]
+use std::os::raw::c_void;
 use std::string;
 use std::sync::Mutex;
 

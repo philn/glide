@@ -27,8 +27,6 @@ use glib::ToVariant;
 use std::cell::RefCell;
 use std::env;
 use std::fs::create_dir_all;
-#[allow(unused_imports)]
-use std::os::raw::c_void;
 use std::{thread, time};
 
 mod channel_player;
