@@ -9,7 +9,6 @@
 		    <item>
           <attribute name="label" translatable="yes">Open…</attribute>
 			    <attribute name="action">app.open-media</attribute>
-          <attribute name="accel">&lt;Primary&gt;o</attribute>
         </item>
       </section>
     </submenu>
@@ -19,17 +18,14 @@
 		    <item>
           <attribute name="label" translatable="yes">Increase volume</attribute>
 			    <attribute name="action">app.audio-volume-increase</attribute>
-          <attribute name="accel">&lt;Primary&gt;Up</attribute>
         </item>
 		    <item>
           <attribute name="label" translatable="yes">Decrease volume</attribute>
 			    <attribute name="action">app.audio-volume-decrease</attribute>
-          <attribute name="accel">&lt;Primary&gt;Down</attribute>
         </item>
 		    <item>
           <attribute name="label" translatable="yes">Mute</attribute>
 			    <attribute name="action">app.audio-mute</attribute>
-          <attribute name="accel">&lt;Primary&gt;m</attribute>
         </item>
 	    </section>
       <submenu id="audio-track-menu">
@@ -50,8 +46,6 @@
       <section>
 		    <item>
           <attribute name="label" translatable="yes">Add subtitle file…</attribute>
-			    <attribute name="action">app.open-subtitle-file</attribute>
-          <attribute name="accel">&lt;Primary&gt;s</attribute>
         </item>
 	    </section>
       <submenu id="subtitle-track-menu">

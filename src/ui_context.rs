@@ -134,12 +134,17 @@ impl UIContext {
         let window_weak = SendWeakRef::from(window.downgrade());
         gtk_app.connect_startup(move |app| {
             let accels_per_action = [
+                ("<Primary>o", "open-media"),
                 ("<Primary>q", "quit"),
                 ("<Primary>f", "fullscreen"),
                 ("Escape", "restore"),
                 ("space", "pause"),
                 ("<Primary>Right", "seek-forward"),
                 ("<Primary>Left", "seek-backward"),
+                ("<Primary>Up", "audio-volume-increase"),
+                ("<Primary>Down", "audio-volume-decrease"),
+                ("<Primary>m", "audio-mute"),
+                ("<Primary>s", "open-subtitle-file"),
                 ("<Ctrl>d", "dump-pipeline"),
             ];
             for (accel, action) in accels_per_action.iter() {
