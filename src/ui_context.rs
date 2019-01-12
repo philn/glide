@@ -433,28 +433,28 @@ impl UIContext {
         };
     }
 
-    pub fn update_subtitle_track_menu(&self, section: gio::Menu) {
+    pub fn update_subtitle_track_menu(&self, section: &gio::Menu) {
         // TODO: Would be nice to keep previous external subs in the menu.
         self.subtitle_track_menu.remove_all();
-        self.subtitle_track_menu.append_section(None, &section);
+        self.subtitle_track_menu.append_section(None, section);
     }
 
-    pub fn update_audio_track_menu(&self, section: gio::Menu) {
+    pub fn update_audio_track_menu(&self, section: &gio::Menu) {
         self.audio_track_menu.remove_all();
-        self.audio_track_menu.append_section(None, &section);
+        self.audio_track_menu.append_section(None, section);
     }
 
-    pub fn update_video_track_menu(&self, section: gio::Menu) {
+    pub fn update_video_track_menu(&self, section: &gio::Menu) {
         self.video_track_menu.remove_all();
-        self.video_track_menu.append_section(None, &section);
+        self.video_track_menu.append_section(None, section);
     }
 
     pub fn clear_audio_visualization_menu(&self) {
         self.audio_visualization_menu.remove_all();
     }
 
-    pub fn update_audio_visualization_menu(&self, section: gio::Menu) {
-        self.audio_visualization_menu.append_section(None, &section);
+    pub fn update_audio_visualization_menu(&self, section: &gio::Menu) {
+        self.audio_visualization_menu.append_section(None, section);
         self.audio_visualization_menu.freeze();
     }
 

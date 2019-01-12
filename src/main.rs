@@ -602,7 +602,7 @@ impl VideoPlayer {
             }
         }
 
-        self.ui_context.update_subtitle_track_menu(section);
+        self.ui_context.update_subtitle_track_menu(&section);
 
         let v = match selected_action {
             Some(a) => a.to_variant(),
@@ -628,18 +628,17 @@ impl VideoPlayer {
             section.append_item(&item);
         }
 
-        self.ui_context.update_audio_visualization_menu(section);
+        self.ui_context.update_audio_visualization_menu(&section);
     }
 
     pub fn fill_audio_track_menu(&self, info: &gst_player::PlayerMediaInfo) {
-        let mut i = 0;
         let section = gio::Menu::new();
 
         let item = gio::MenuItem::new(&*"Disable", &*"subtitle");
         item.set_detailed_action("app.audio-track::audio--1");
         section.append_item(&item);
 
-        for audio_stream in info.get_audio_streams() {
+        for (i, audio_stream) in info.get_audio_streams().iter().enumerate() {
             let mut label = format!("{} channels", audio_stream.get_channels());
             if let Some(l) = audio_stream.get_language() {
                 label = format!("{} - [{}]", label, l);
@@ -648,29 +647,25 @@ impl VideoPlayer {
             let item = gio::MenuItem::new(&*label, &*action_id);
             item.set_detailed_action(&*action_id);
             section.append_item(&item);
-            i += 1;
         }
-        self.ui_context.update_audio_track_menu(section);
+        self.ui_context.update_audio_track_menu(&section);
     }
 
     pub fn fill_video_track_menu(&self, info: &gst_player::PlayerMediaInfo) {
-        let mut i = 0;
         let section = gio::Menu::new();
 
         let item = gio::MenuItem::new(&*"Disable", &*"subtitle");
         item.set_detailed_action("app.video-track::video--1");
         section.append_item(&item);
 
-        #[cfg_attr(feature = "cargo-clippy", allow(clippy::explicit_counter_loop))]
-        for video_stream in info.get_video_streams() {
+        for (i, video_stream) in info.get_video_streams().iter().enumerate() {
             let action_id = format!("app.video-track::video-{}", i);
             let description = format!("{}x{}", video_stream.get_width(), video_stream.get_height());
             let item = gio::MenuItem::new(&*description, &*action_id);
             item.set_detailed_action(&*action_id);
             section.append_item(&item);
-            i += 1;
         }
-        self.ui_context.update_video_track_menu(section);
+        self.ui_context.update_video_track_menu(&section);
     }
 
     pub fn open_files(&mut self, files: &[gio::File]) {
