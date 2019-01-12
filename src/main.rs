@@ -640,14 +640,15 @@ impl VideoPlayer {
         section.append_item(&item);
 
         for audio_stream in info.get_audio_streams() {
-            if let Some(lang) = audio_stream.get_language() {
-                let action_id = format!("app.audio-track::audio-{}", i);
-                let lang = format!("{} {} channels", lang, audio_stream.get_channels());
-                let item = gio::MenuItem::new(&*lang, &*action_id);
-                item.set_detailed_action(&*action_id);
-                section.append_item(&item);
-                i += 1;
+            let mut label = format!("{} channels", audio_stream.get_channels());
+            if let Some(l) = audio_stream.get_language() {
+                label = format!("{} - [{}]", label, l);
             }
+            let action_id = format!("app.audio-track::audio-{}", i);
+            let item = gio::MenuItem::new(&*label, &*action_id);
+            item.set_detailed_action(&*action_id);
+            section.append_item(&item);
+            i += 1;
         }
         self.ui_context.update_audio_track_menu(section);
     }
