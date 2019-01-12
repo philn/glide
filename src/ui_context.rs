@@ -86,6 +86,8 @@ impl UIContext {
             button.clone().upcast::<gtk::Actionable>().set_action_name("app.pause");
             button
         };
+        let image = gtk::Image::new_from_icon_name("media-playback-start-symbolic", gtk::IconSize::SmallToolbar.into());
+        pause_button.set_image(&image);
 
         let button: gtk::Button = builder.get_object("seek-backward-button").unwrap();
         button.upcast::<gtk::Actionable>().set_action_name("app.seek-backward");
