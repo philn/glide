@@ -95,6 +95,7 @@ Release procedure
 
         $ mkdir -p _build
         $ cargo install cargo-vendor
+        $ pip3 install --user -U meson
         $ meson _build
         $ ninja -C _build release
 

@@ -47,6 +47,12 @@
   </screenshots>
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="0.5.6" date="2019-01-13">
+      <description><p>Same as 0.5.5, this time with updated appstream file</p></description>
+​    </release>
+    <release version="0.5.5" date="2019-01-12">
+      <description><p>Bugfix release. Most notably the app-menu was replaced by an hamburger menu</p></description>
+​    </release>
     <release version="0.5.4" date="2018-09-29">
       <description><p>The appstream file is now compliant with the spec. Yay.</p></description>
 ​    </release>
