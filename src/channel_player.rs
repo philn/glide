@@ -104,29 +104,29 @@ macro_rules! with_mut_player {
 }
 
 impl MediaCache {
-    fn open(path: &path::PathBuf) -> Result<Self, Error> {
-        MediaCache::read(path).or_else(|_| {
+    fn open<T: Copy + Into<path::PathBuf>>(path: T) -> Result<Self, Error> {
+        MediaCache::read(path.into()).or_else(|_| {
             Ok(Self {
-                path: path.to_path_buf(),
+                path: path.into(),
                 data: MediaCacheData(HashMap::new()),
             })
         })
     }
 
-    fn read(path: &path::PathBuf) -> Result<Self, Error> {
-        let mut file = File::open(path)?;
+    fn read<T: AsRef<path::Path> + Into<path::PathBuf>>(path: T) -> Result<Self, Error> {
+        let mut file = File::open(path.as_ref())?;
         let mut data = String::new();
         file.read_to_string(&mut data).unwrap();
 
         let json: MediaCacheData = serde_json::from_str(&data)?;
         Ok(Self {
-            path: path.to_path_buf(),
+            path: path.into(),
             data: json,
         })
     }
 
-    fn update(&mut self, id: string::String, value: u64) {
-        self.data.0.insert(id, value);
+    fn update<K: Into<String>>(&mut self, id: K, value: u64) {
+        self.data.0.insert(id.into(), value);
     }
 
     fn write(&self) -> Result<(), Error> {
@@ -138,8 +138,8 @@ impl MediaCache {
         Ok(())
     }
 
-    fn find_last_position(&self, uri: &str) -> gst::ClockTime {
-        let id = uri_to_sha256(&string::String::from(uri));
+    fn find_last_position<T: AsRef<[u8]>>(&self, uri: T) -> gst::ClockTime {
+        let id = uri_to_sha256(uri.as_ref());
         if let Some(position) = self.data.0.get(&id) {
             return gst::ClockTime::from_nseconds(*position);
         }
@@ -148,14 +148,14 @@ impl MediaCache {
     }
 }
 
-fn uri_to_sha256(uri: &str) -> string::String {
+fn uri_to_sha256<T: AsRef<[u8]>>(uri: T) -> string::String {
     let mut sh = Sha256::default();
-    sh.input(uri.as_bytes());
-    let mut s = string::String::new();
-    for byte in sh.result() {
-        s.push_str(&*format!("{:02x}", byte));
-    }
-    s
+    sh.input(uri.as_ref());
+    sh.result()
+      .into_iter()
+      .map(|b| format!("{:02x}", b))
+      .collect::<Vec<_>>()
+      .concat()
 }
 
 fn prepare_video_overlay(
