@@ -7,7 +7,7 @@ extern crate gtk;
 use gdk::prelude::*;
 #[allow(unused_imports)]
 use gio::prelude::*;
-use gio::MenuExt;
+use glib::translate::ToGlib;
 #[allow(unused_imports)]
 use glib::SendWeakRef;
 use gtk::prelude::*;
@@ -17,7 +17,7 @@ use std::os::raw::c_void;
 use std::string;
 use std::sync::Mutex;
 
-use channel_player::PlaybackState;
+use crate::PlaybackState;
 
 lazy_static! {
     pub static ref INHIBIT_COOKIE: Mutex<Option<u32>> = { Mutex::new(None) };
@@ -278,11 +278,16 @@ impl UIContext {
         gdk_window.set_cursor(None);
     }
 
-    pub fn dialog_result(&self, relative_uri: Option<string::String>) -> Option<string::String> {
-        let dialog =
-            gtk::FileChooserDialog::new(Some("Choose a file"), Some(&self.window), gtk::FileChooserAction::Open);
-        let ok = gtk::ResponseType::Ok.into();
-        dialog.add_buttons(&[("Open", ok), ("Cancel", gtk::ResponseType::Cancel.into())]);
+    pub fn dialog_result(&self, relative_uri: Option<glib::GString>) -> Option<glib::GString> {
+        let dialog = gtk::FileChooserDialog::with_buttons(
+            Some("Choose a file"),
+            Some(&self.window),
+            gtk::FileChooserAction::Open,
+            &[
+                ("Open", gtk::ResponseType::Ok.into()),
+                ("Cancel", gtk::ResponseType::Cancel.into()),
+            ],
+        );
 
         dialog.set_select_multiple(true);
         if let Some(uri) = relative_uri {
@@ -293,12 +298,9 @@ impl UIContext {
             }
         }
 
-        let mut result_uri: Option<string::String> = None;
-        let response = dialog.run();
-        if response == ok {
-            if let Some(uri) = dialog.get_uri() {
-                result_uri = Some(uri);
-            }
+        let mut result_uri: Option<glib::GString> = None;
+        if dialog.run() == gtk::ResponseType::Ok.to_glib() {
+            result_uri = dialog.get_uri();
         }
         dialog.destroy();
         result_uri

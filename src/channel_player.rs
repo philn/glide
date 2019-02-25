@@ -12,7 +12,6 @@ extern crate sha2;
 use self::sha2::{Digest, Sha256};
 use failure::Error;
 use gdk::prelude::*;
-use glib::translate::ToGlibPtr;
 use gst::prelude::*;
 use gtk::prelude::*;
 use std::cell::RefCell;
@@ -40,7 +39,7 @@ pub enum SeekDirection {
 
 pub enum SubtitleTrack {
     Inband(i32),
-    External(String),
+    External(glib::GString),
 }
 
 pub struct AudioVisualization(pub string::String);
@@ -73,13 +72,13 @@ struct MediaCache {
 struct PlayerDataHolder {
     subscribers: Vec<channel::Sender<PlayerEvent>>,
     playlist: Vec<string::String>,
-    current_uri: string::String,
+    current_uri: glib::GString,
     index: usize,
     cache: Option<MediaCache>,
 }
 
 thread_local!(
-    static PLAYER_REGISTRY: RefCell<HashMap<string::String, PlayerDataHolder>> = RefCell::new(HashMap::new());
+    static PLAYER_REGISTRY: RefCell<HashMap<glib::GString, PlayerDataHolder>> = RefCell::new(HashMap::new());
 );
 
 macro_rules! with_player {
@@ -138,8 +137,8 @@ impl MediaCache {
         Ok(())
     }
 
-    fn find_last_position<T: AsRef<[u8]>>(&self, uri: T) -> gst::ClockTime {
-        let id = uri_to_sha256(uri.as_ref());
+    fn find_last_position(&self, uri: &str) -> gst::ClockTime {
+        let id = uri_to_sha256(uri);
         if let Some(position) = self.data.0.get(&id) {
             return gst::ClockTime::from_nseconds(*position);
         }
@@ -148,14 +147,14 @@ impl MediaCache {
     }
 }
 
-fn uri_to_sha256<T: AsRef<[u8]>>(uri: T) -> string::String {
+fn uri_to_sha256(uri: &str) -> string::String {
     let mut sh = Sha256::default();
-    sh.input(uri.as_ref());
+    sh.input(uri.as_bytes());
     sh.result()
-      .into_iter()
-      .map(|b| format!("{:02x}", b))
-      .collect::<Vec<_>>()
-      .concat()
+        .into_iter()
+        .map(|b| format!("{:02x}", b))
+        .collect::<Vec<_>>()
+        .concat()
 }
 
 fn prepare_video_overlay(
@@ -181,7 +180,7 @@ fn prepare_video_overlay(
                 }
 
                 unsafe {
-                    let xid = gdk_x11_window_get_xid(gdk_window.to_glib_none().0);
+                    let xid = gdk_x11_window_get_xid(gdk_window.as_ptr() as *mut _);
                     video_overlay.set_window_handle(xid as usize);
                 }
             } else {
@@ -196,7 +195,7 @@ fn prepare_video_overlay(
             }
 
             unsafe {
-                let window = gdk_quartz_window_get_nsview(gdk_window.to_glib_none().0);
+                let window = gdk_quartz_window_get_nsview(gdk_window.as_ptr() as *mut _);
                 video_overlay.set_window_handle(window as usize);
             }
         } else {
@@ -228,14 +227,14 @@ impl PlayerDataHolder {
 
         // Call this only once per asset.
         if self.current_uri != *uri {
-            self.current_uri = uri.clone();
+            self.current_uri = uri;
             self.notify(&PlayerEvent::MediaInfoUpdated);
         }
     }
 
     fn end_of_stream(&mut self, player: &gst_player::Player) {
         if let Some(uri) = player.get_uri() {
-            self.notify(&PlayerEvent::EndOfStream(uri));
+            self.notify(&PlayerEvent::EndOfStream(uri.into()));
             self.index += 1;
 
             if self.index < self.playlist.len() {
@@ -406,7 +405,7 @@ impl ChannelPlayer {
         let player_data = PlayerDataHolder {
             subscribers,
             playlist: vec![],
-            current_uri: "".to_string(),
+            current_uri: "".into(),
             index: 0,
             cache,
         };
@@ -443,7 +442,7 @@ impl ChannelPlayer {
         self.player.set_property("uri", &glib::Value::from(&uri)).unwrap();
     }
 
-    pub fn get_current_uri(&self) -> Option<string::String> {
+    pub fn get_current_uri(&self) -> Option<glib::GString> {
         self.player.get_uri()
     }
 
@@ -542,7 +541,7 @@ impl ChannelPlayer {
         self.player.set_subtitle_track_enabled(enabled);
     }
 
-    pub fn get_subtitle_uri(&self) -> Option<string::String> {
+    pub fn get_subtitle_uri(&self) -> Option<glib::GString> {
         self.player.get_subtitle_uri()
     }
 

@@ -394,7 +394,7 @@ impl VideoPlayer {
         self.open_subtitle_file_action.connect_activate(|_, _| {
             with_video_player!(video_player {
                 if let Some(uri) = video_player.ui_context.dialog_result(video_player.player.get_current_uri()) {
-                    video_player.player.configure_subtitle_track(Some(SubtitleTrack::External(uri)));
+                    video_player.player.configure_subtitle_track(Some(SubtitleTrack::External(uri.into())));
                 }
                 video_player.refresh_subtitle_track_menu();
             });
@@ -544,7 +544,7 @@ impl VideoPlayer {
                 } else {
                     let (prefix, asset) = val.split_at(4);
                     if prefix == "ext-" {
-                        Some(SubtitleTrack::External(asset.to_string()))
+                        Some(SubtitleTrack::External(asset.into()))
                     } else {
                         let idx = asset.parse::<i32>().unwrap();
                         Some(SubtitleTrack::Inband(idx))
