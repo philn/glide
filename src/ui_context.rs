@@ -134,21 +134,21 @@ impl UIContext {
         let window_weak = SendWeakRef::from(window.downgrade());
         gtk_app.connect_startup(move |app| {
             let accels_per_action = [
-                ("<Primary>o", "open-media"),
-                ("<Primary>q", "quit"),
-                ("<Primary>f", "fullscreen"),
-                ("Escape", "restore"),
-                ("space", "pause"),
-                ("<Primary>Right", "seek-forward"),
-                ("<Primary>Left", "seek-backward"),
-                ("<Primary>Up", "audio-volume-increase"),
-                ("<Primary>Down", "audio-volume-decrease"),
-                ("<Primary>m", "audio-mute"),
-                ("<Primary>s", "open-subtitle-file"),
-                ("<Ctrl>d", "dump-pipeline"),
+                ("open-media", ["<Primary>o"]),
+                ("quit", ["<Primary>q"]),
+                ("fullscreen", ["<Primary>f"]),
+                ("restore", ["Escape"]),
+                ("pause", ["space"]),
+                ("seek-forward", ["<Primary>Right"]),
+                ("seek-backward", ["<Primary>Left"]),
+                ("audio-volume-increase", ["<Primary>Up"]),
+                ("audio-volume-decrease", ["<Primary>Down"]),
+                ("audio-mute", ["<Primary>m"]),
+                ("open-subtitle-file", ["<Primary>s"]),
+                ("dump-pipeline", ["<Ctrl>d"]),
             ];
-            for (accel, action) in accels_per_action.iter() {
-                app.add_accelerator(accel, &format!("app.{}", action), None);
+            for (action, accels) in accels_per_action.iter() {
+                app.set_accels_for_action(&format!("app.{}", action), accels);
             }
 
             if let Some(window) = window_weak.upgrade() {
@@ -160,7 +160,7 @@ impl UIContext {
                     header_bar.set_show_close_button(true);
 
                     let main_menu = gtk::MenuButton::new();
-                    let main_menu_image = gtk::Image::new_from_icon_name("open-menu-symbolic", 1);
+                    let main_menu_image = gtk::Image::new_from_icon_name("open-menu-symbolic", gtk::IconSize::Menu);
                     main_menu.add(&main_menu_image);
                     main_menu.set_menu_model(&menu);
 
@@ -219,7 +219,8 @@ impl UIContext {
                         }
                         if let Some(window) = window_weak.upgrade() {
                             let gdk_window = window.get_window().unwrap();
-                            let cursor = gdk::Cursor::new(gdk::CursorType::BlankCursor);
+                            let cursor =
+                                gdk::Cursor::new_for_display(&gdk_window.get_display(), gdk::CursorType::BlankCursor);
                             gdk_window.set_cursor(Some(&cursor));
                         }
                     }
@@ -248,8 +249,8 @@ impl UIContext {
         window.set_show_menubar(false);
         self.toolbar_box.set_visible(false);
         window.fullscreen();
-        let cursor = gdk::Cursor::new(gdk::CursorType::BlankCursor);
         let gdk_window = window.get_window().unwrap();
+        let cursor = gdk::Cursor::new_for_display(&gdk_window.get_display(), gdk::CursorType::BlankCursor);
         gdk_window.set_cursor(Some(&cursor));
 
         #[cfg(target_os = "linux")]
