@@ -28,7 +28,7 @@ lazy_static! {
 }
 
 #[cfg(target_os = "macos")]
-use iokit_sleep_disabler;
+use crate::iokit_sleep_disabler;
 
 pub fn initialize_and_create_app() -> gtk::Application {
     #[cfg(target_os = "linux")]
