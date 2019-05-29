@@ -566,7 +566,6 @@ impl VideoPlayer {
             section.append_item(&item);
 
             for sub_stream in info.get_subtitle_streams() {
-                let lang = sub_stream.get_language().map(|l| format!(" - [{}]", l));
                 let default_title = format!("Track {}", i + 1);
                 let title = match sub_stream.get_tags() {
                     Some(tags) => match tags.get::<gst::tags::Title>() {
@@ -575,6 +574,13 @@ impl VideoPlayer {
                     },
                     None => default_title,
                 };
+                let lang = sub_stream.get_language().map(|l| {
+                    if l == title {
+                        "".to_string()
+                    } else {
+                        format!(" - [{}]", l)
+                    }
+                });
 
                 let action_label = format!("{}{}", title, lang.unwrap_or_else(|| "".to_string()));
                 let action_id = format!("app.subtitle::sub-{}", i);
