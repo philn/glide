@@ -1,5 +1,4 @@
 extern crate crossbeam_channel as channel;
-extern crate dirs;
 extern crate gdk;
 extern crate glib;
 extern crate gstreamer as gst;
@@ -218,7 +217,7 @@ impl PlayerDataHolder {
 
     fn notify(&self, event: &PlayerEvent) {
         for sender in &*self.subscribers {
-            sender.send(event.clone());
+            sender.send(event.clone()).unwrap();
         }
     }
 
@@ -255,7 +254,7 @@ impl PlayerDataHolder {
 }
 
 impl ChannelPlayer {
-    pub fn new(sender: channel::Sender<PlayerEvent>, cache_file_path: Option<&path::PathBuf>) -> Self {
+    pub fn new(sender: channel::Sender<PlayerEvent>, cache_file_path: Option<path::PathBuf>) -> Self {
         let dispatcher = gst_player::PlayerGMainContextSignalDispatcher::new(None);
         let (sink, video_area, has_gtkgl) = if let Some(gtkglsink) = gst::ElementFactory::make("gtkglsink", None) {
             let glsinkbin = gst::ElementFactory::make("glsinkbin", None).unwrap();

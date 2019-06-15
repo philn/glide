@@ -1,7 +1,7 @@
 #[cfg(target_os = "macos")]
 extern crate core_foundation;
 extern crate crossbeam_channel as channel;
-extern crate dirs;
+extern crate directories;
 extern crate failure;
 extern crate gdk;
 extern crate gio;
@@ -19,7 +19,7 @@ extern crate self_update;
 #[macro_use]
 extern crate serde_derive;
 
-use dirs::Directories;
+use directories::ProjectDirs;
 #[allow(unused_imports)]
 use gdk::prelude::*;
 use gio::prelude::*;
@@ -98,7 +98,7 @@ static SEEK_FORWARD_OFFSET: gst::ClockTime = gst::ClockTime(Some(5_000_000_000))
 
 fn ui_action_handle() -> glib::Continue {
     with_video_player!(player {
-        if let Some(action) = &player.receiver.try_recv() {
+        if let Ok(action) = &player.receiver.try_recv() {
             match action {
                 UIAction::Quit => {
                     player.quit();
@@ -207,10 +207,15 @@ impl VideoPlayer {
         let (sender, receiver) = channel::unbounded();
 
         let (player_sender, player_receiver) = channel::unbounded();
-        let d = Directories::with_prefix("glide", "Glide").unwrap();
-        create_dir_all(d.cache_home()).unwrap();
 
-        let player = ChannelPlayer::new(player_sender, Some(&d.cache_home().join("media-cache.json")));
+        let cache_file_path = if let Some(d) = ProjectDirs::from("net", "baseart", "Glide") {
+            create_dir_all(d.cache_dir()).unwrap();
+            Some(d.cache_dir().join("media-cache.json"))
+        } else {
+            None
+        };
+
+        let player = ChannelPlayer::new(player_sender, cache_file_path);
 
         Self {
             player,
@@ -248,13 +253,13 @@ impl VideoPlayer {
         let receiver = self.player_receiver.clone();
 
         thread::spawn(move || loop {
-            if let Some(event) = receiver.try_recv() {
+            if let Ok(event) = receiver.try_recv() {
                 // if let PlayerEvent::EndOfPlaylist = event {
                 //     sender.send(UIAction::Quit).unwrap();
                 //     callback();
                 //     break;
                 // }
-                sender.send(UIAction::ForwardedPlayerEvent(event));
+                sender.send(UIAction::ForwardedPlayerEvent(event)).unwrap();
                 callback();
             }
             thread::sleep(time::Duration::from_millis(50));
