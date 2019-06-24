@@ -7,7 +7,6 @@ extern crate gtk;
 use gdk::prelude::*;
 #[allow(unused_imports)]
 use gio::prelude::*;
-use glib::translate::ToGlib;
 #[allow(unused_imports)]
 use glib::SendWeakRef;
 use gtk::prelude::*;
@@ -46,7 +45,7 @@ pub fn initialize_and_create_app() -> gtk::Application {
 
     gtk::init().expect("Failed to initialize GTK.");
 
-    let gtk_app = gtk::Application::new("net.baseart.Glide", gio::ApplicationFlags::HANDLES_OPEN)
+    let gtk_app = gtk::Application::new(Some("net.baseart.Glide"), gio::ApplicationFlags::HANDLES_OPEN)
         .expect("Application initialization failed");
 
     if let Some(settings) = gtk::Settings::get_default() {
@@ -83,20 +82,32 @@ impl UIContext {
 
         let pause_button = {
             let button: gtk::Button = builder.get_object("pause-button").unwrap();
-            button.clone().upcast::<gtk::Actionable>().set_action_name("app.pause");
+            button
+                .clone()
+                .upcast::<gtk::Actionable>()
+                .set_action_name(Some("app.pause"));
             button
         };
-        let image = gtk::Image::new_from_icon_name("media-playback-start-symbolic", gtk::IconSize::SmallToolbar.into());
-        pause_button.set_image(&image);
+        let image = gtk::Image::new_from_icon_name(
+            Some("media-playback-start-symbolic"),
+            gtk::IconSize::SmallToolbar.into(),
+        );
+        pause_button.set_image(Some(&image));
 
         let button: gtk::Button = builder.get_object("seek-backward-button").unwrap();
-        button.upcast::<gtk::Actionable>().set_action_name("app.seek-backward");
+        button
+            .upcast::<gtk::Actionable>()
+            .set_action_name(Some("app.seek-backward"));
 
         let button: gtk::Button = builder.get_object("seek-forward-button").unwrap();
-        button.upcast::<gtk::Actionable>().set_action_name("app.seek-forward");
+        button
+            .upcast::<gtk::Actionable>()
+            .set_action_name(Some("app.seek-forward"));
 
         let button: gtk::Button = builder.get_object("fullscreen-button").unwrap();
-        button.upcast::<gtk::Actionable>().set_action_name("app.fullscreen");
+        button
+            .upcast::<gtk::Actionable>()
+            .set_action_name(Some("app.fullscreen"));
 
         let main_box: gtk::Box = builder.get_object("main-box").unwrap();
         let toolbar_box: gtk::Box = builder.get_object("toolbar-box").unwrap();
@@ -127,8 +138,8 @@ impl UIContext {
 
         #[cfg(not(target_os = "linux"))]
         {
-            menu.append("Quit", "app.quit");
-            menu.append("About", "app.about");
+            menu.append(Some("Quit"), Some("app.quit"));
+            menu.append(Some("About"), Some("app.about"));
         }
 
         let window_weak = SendWeakRef::from(window.downgrade());
@@ -152,7 +163,7 @@ impl UIContext {
             }
 
             if let Some(window) = window_weak.upgrade() {
-                window.set_application(app);
+                window.set_application(Some(app));
 
                 #[cfg(target_os = "linux")]
                 {
@@ -171,7 +182,7 @@ impl UIContext {
 
             #[cfg(not(target_os = "linux"))]
             {
-                app.set_menubar(&menu);
+                app.set_menubar(Some(&menu));
             }
         });
 
@@ -299,7 +310,7 @@ impl UIContext {
         }
 
         let mut result_uri: Option<glib::GString> = None;
-        if dialog.run() == gtk::ResponseType::Ok.to_glib() {
+        if dialog.run() == gtk::ResponseType::Ok {
             result_uri = dialog.get_uri();
         }
         dialog.destroy();
@@ -406,7 +417,7 @@ impl UIContext {
         dialog.set_website_label(Some("base-art.net"));
         dialog.set_website(Some("http://base-art.net"));
         dialog.set_title("About");
-        dialog.set_version(VERSION);
+        dialog.set_version(Some(VERSION));
         let s = format!(
             "Multimedia playback support provided by {}.\nUser interface running on GTK {}.{}.{}",
             gst::version_string(),
@@ -423,14 +434,18 @@ impl UIContext {
     pub fn playback_state_changed(&self, playback_state: &PlaybackState) {
         match playback_state {
             PlaybackState::Paused => {
-                let image =
-                    gtk::Image::new_from_icon_name("media-playback-start-symbolic", gtk::IconSize::SmallToolbar.into());
-                self.pause_button.set_image(&image);
+                let image = gtk::Image::new_from_icon_name(
+                    Some("media-playback-start-symbolic"),
+                    gtk::IconSize::SmallToolbar.into(),
+                );
+                self.pause_button.set_image(Some(&image));
             }
             PlaybackState::Playing => {
-                let image =
-                    gtk::Image::new_from_icon_name("media-playback-pause-symbolic", gtk::IconSize::SmallToolbar.into());
-                self.pause_button.set_image(&image);
+                let image = gtk::Image::new_from_icon_name(
+                    Some("media-playback-pause-symbolic"),
+                    gtk::IconSize::SmallToolbar.into(),
+                );
+                self.pause_button.set_image(Some(&image));
             }
             _ => {}
         };

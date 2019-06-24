@@ -150,28 +150,22 @@ impl VideoPlayer {
         gtk_app.add_action(&dump_pipeline_action);
 
         let subtitle_action =
-            gio::SimpleAction::new_stateful("subtitle", glib::VariantTy::new("s").unwrap(), &"".to_variant());
+            gio::SimpleAction::new_stateful("subtitle", glib::VariantTy::new("s").ok(), &"".to_variant());
         gtk_app.add_action(&subtitle_action);
 
         let audio_visualization_action = gio::SimpleAction::new_stateful(
             "audio-visualization",
-            glib::VariantTy::new("s").unwrap(),
+            glib::VariantTy::new("s").ok(),
             &"none".to_variant(),
         );
         gtk_app.add_action(&audio_visualization_action);
 
-        let audio_track_action = gio::SimpleAction::new_stateful(
-            "audio-track",
-            glib::VariantTy::new("s").unwrap(),
-            &"audio-0".to_variant(),
-        );
+        let audio_track_action =
+            gio::SimpleAction::new_stateful("audio-track", glib::VariantTy::new("s").ok(), &"audio-0".to_variant());
         gtk_app.add_action(&audio_track_action);
 
-        let video_track_action = gio::SimpleAction::new_stateful(
-            "video-track",
-            glib::VariantTy::new("s").unwrap(),
-            &"video-0".to_variant(),
-        );
+        let video_track_action =
+            gio::SimpleAction::new_stateful("video-track", glib::VariantTy::new("s").ok(), &"video-0".to_variant());
         gtk_app.add_action(&video_track_action);
 
         let about = gio::SimpleAction::new("about", None);
@@ -541,7 +535,7 @@ impl VideoPlayer {
         }
     }
 
-    pub fn update_subtitle_track(&self, value: &Option<glib::Variant>) {
+    pub fn update_subtitle_track(&self, value: Option<&glib::Variant>) {
         if let Some(val) = value {
             if let Some(val) = val.get::<std::string::String>() {
                 let track = if val == "none" {
@@ -566,7 +560,7 @@ impl VideoPlayer {
 
         if let Some(info) = self.player.get_media_info() {
             let mut i = 0;
-            let item = gio::MenuItem::new(&*"Disable", &*"none");
+            let item = gio::MenuItem::new(Some("Disable"), None);
             item.set_detailed_action("app.subtitle::none");
             section.append_item(&item);
 
@@ -589,7 +583,7 @@ impl VideoPlayer {
 
                 let action_label = format!("{}{}", title, lang.unwrap_or_else(|| "".to_string()));
                 let action_id = format!("app.subtitle::sub-{}", i);
-                let item = gio::MenuItem::new(&*action_label, &*action_id);
+                let item = gio::MenuItem::new(Some(&action_label), Some(&action_id));
                 item.set_detailed_action(&*action_id);
                 section.append_item(&item);
                 i += 1;
@@ -604,7 +598,7 @@ impl VideoPlayer {
                     if let Some(f) = filename.to_str() {
                         let v = format!("ext-{}", uri);
                         let action_id = format!("app.subtitle::{}", v);
-                        let item = gio::MenuItem::new(f, &*action_id);
+                        let item = gio::MenuItem::new(Some(f), Some(&action_id));
                         item.set_detailed_action(&*action_id);
                         section.append_item(&item);
                         selected_action = Some(v);
@@ -628,13 +622,13 @@ impl VideoPlayer {
         }
         let section = gio::Menu::new();
 
-        let item = gio::MenuItem::new(&*"Disable", &*"none");
+        let item = gio::MenuItem::new(Some("Disable"), Some("none"));
         item.set_detailed_action("app.audio-visualization::none");
         section.append_item(&item);
 
         for vis in gst_player::Player::visualizations_get() {
             let action_id = format!("app.audio-visualization::{}", vis.name());
-            let item = gio::MenuItem::new(vis.description(), &*action_id);
+            let item = gio::MenuItem::new(Some(vis.description()), Some(&action_id));
             item.set_detailed_action(&*action_id);
             section.append_item(&item);
         }
@@ -645,7 +639,7 @@ impl VideoPlayer {
     pub fn fill_audio_track_menu(&self, info: &gst_player::PlayerMediaInfo) {
         let section = gio::Menu::new();
 
-        let item = gio::MenuItem::new(&*"Disable", &*"subtitle");
+        let item = gio::MenuItem::new(Some("Disable"), Some("subtitle"));
         item.set_detailed_action("app.audio-track::audio--1");
         section.append_item(&item);
 
@@ -655,7 +649,7 @@ impl VideoPlayer {
                 label = format!("{} - [{}]", label, l);
             }
             let action_id = format!("app.audio-track::audio-{}", i);
-            let item = gio::MenuItem::new(&*label, &*action_id);
+            let item = gio::MenuItem::new(Some(&label), Some(&action_id));
             item.set_detailed_action(&*action_id);
             section.append_item(&item);
         }
@@ -665,14 +659,14 @@ impl VideoPlayer {
     pub fn fill_video_track_menu(&self, info: &gst_player::PlayerMediaInfo) {
         let section = gio::Menu::new();
 
-        let item = gio::MenuItem::new(&*"Disable", &*"subtitle");
+        let item = gio::MenuItem::new(Some("Disable"), Some("subtitle"));
         item.set_detailed_action("app.video-track::video--1");
         section.append_item(&item);
 
         for (i, video_stream) in info.get_video_streams().iter().enumerate() {
             let action_id = format!("app.video-track::video-{}", i);
             let description = format!("{}x{}", video_stream.get_width(), video_stream.get_height());
-            let item = gio::MenuItem::new(&*description, &*action_id);
+            let item = gio::MenuItem::new(Some(&description), Some(&action_id));
             item.set_detailed_action(&*action_id);
             section.append_item(&item);
         }
@@ -682,9 +676,8 @@ impl VideoPlayer {
     pub fn open_files(&mut self, files: &[gio::File]) {
         let mut playlist = vec![];
         for file in files.to_vec() {
-            if let Some(uri) = file.get_uri() {
-                playlist.push(std::string::String::from(uri.as_str()));
-            }
+            let uri = file.get_uri();
+            playlist.push(std::string::String::from(uri.as_str()));
         }
 
         self.player.load_playlist(playlist);
