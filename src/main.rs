@@ -560,7 +560,7 @@ impl VideoPlayer {
 
         if let Some(info) = self.player.get_media_info() {
             let mut i = 0;
-            let item = gio::MenuItem::new(Some("Disable"), None);
+            let item = gio::MenuItem::new(Some("Disable"), Some("none"));
             item.set_detailed_action("app.subtitle::none");
             section.append_item(&item);
 
