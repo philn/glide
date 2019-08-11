@@ -338,7 +338,7 @@ impl VideoPlayer {
         });
 
         self.audio_visualization_action.connect_change_state(|action, value| {
-            if let Some(val) = value.clone() {
+            if let Some(val) = value {
                 if let Some(name) = val.get::<std::string::String>() {
                     with_video_player!(video_player {
                         if name == "none" {
@@ -353,7 +353,7 @@ impl VideoPlayer {
         });
 
         self.audio_track_action.connect_change_state(|action, value| {
-            if let Some(val) = value.clone() {
+            if let Some(val) = value {
                 if let Some(idx) = val.get::<std::string::String>() {
                     let (_prefix, idx) = idx.split_at(6);
                     let idx = idx.parse::<i32>().unwrap();
@@ -367,7 +367,7 @@ impl VideoPlayer {
         });
 
         self.video_track_action.connect_change_state(|action, value| {
-            if let Some(val) = value.clone() {
+            if let Some(val) = value {
                 if let Some(idx) = val.get::<std::string::String>() {
                     let (_prefix, idx) = idx.split_at(6);
                     let idx = idx.parse::<i32>().unwrap();
@@ -393,7 +393,7 @@ impl VideoPlayer {
         self.open_subtitle_file_action.connect_activate(|_, _| {
             with_video_player!(video_player {
                 if let Some(uri) = video_player.ui_context.dialog_result(video_player.player.get_current_uri()) {
-                    video_player.player.configure_subtitle_track(Some(SubtitleTrack::External(uri.into())));
+                    video_player.player.configure_subtitle_track(Some(SubtitleTrack::External(uri)));
                 }
                 video_player.refresh_subtitle_track_menu();
             });

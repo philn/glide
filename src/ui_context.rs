@@ -88,10 +88,7 @@ impl UIContext {
                 .set_action_name(Some("app.pause"));
             button
         };
-        let image = gtk::Image::new_from_icon_name(
-            Some("media-playback-start-symbolic"),
-            gtk::IconSize::SmallToolbar.into(),
-        );
+        let image = gtk::Image::new_from_icon_name(Some("media-playback-start-symbolic"), gtk::IconSize::SmallToolbar);
         pause_button.set_image(Some(&image));
 
         let button: gtk::Button = builder.get_object("seek-backward-button").unwrap();
@@ -295,10 +292,7 @@ impl UIContext {
             Some("Choose a file"),
             Some(&self.window),
             gtk::FileChooserAction::Open,
-            &[
-                ("Open", gtk::ResponseType::Ok.into()),
-                ("Cancel", gtk::ResponseType::Cancel.into()),
-            ],
+            &[("Open", gtk::ResponseType::Ok), ("Cancel", gtk::ResponseType::Cancel)],
         );
 
         dialog.set_select_multiple(true);
@@ -310,10 +304,11 @@ impl UIContext {
             }
         }
 
-        let mut result_uri: Option<glib::GString> = None;
-        if dialog.run() == gtk::ResponseType::Ok {
-            result_uri = dialog.get_uri();
-        }
+        let result_uri = if dialog.run() == gtk::ResponseType::Ok {
+            dialog.get_uri()
+        } else {
+            None
+        };
         dialog.destroy();
         result_uri
     }
@@ -435,17 +430,13 @@ impl UIContext {
     pub fn playback_state_changed(&self, playback_state: &PlaybackState) {
         match playback_state {
             PlaybackState::Paused => {
-                let image = gtk::Image::new_from_icon_name(
-                    Some("media-playback-start-symbolic"),
-                    gtk::IconSize::SmallToolbar.into(),
-                );
+                let image =
+                    gtk::Image::new_from_icon_name(Some("media-playback-start-symbolic"), gtk::IconSize::SmallToolbar);
                 self.pause_button.set_image(Some(&image));
             }
             PlaybackState::Playing => {
-                let image = gtk::Image::new_from_icon_name(
-                    Some("media-playback-pause-symbolic"),
-                    gtk::IconSize::SmallToolbar.into(),
-                );
+                let image =
+                    gtk::Image::new_from_icon_name(Some("media-playback-pause-symbolic"), gtk::IconSize::SmallToolbar);
                 self.pause_button.set_image(Some(&image));
             }
             _ => {}
