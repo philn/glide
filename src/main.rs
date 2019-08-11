@@ -676,8 +676,23 @@ impl VideoPlayer {
     pub fn open_files(&mut self, files: &[gio::File]) {
         let mut playlist = vec![];
         for file in files.to_vec() {
-            let uri = file.get_uri();
-            playlist.push(std::string::String::from(uri.as_str()));
+            let uri = if let Some(_path) = file.get_path() {
+                Some(std::string::String::from(file.get_uri().as_str()))
+            } else {
+                // Gio built an invalid URI, so try to find the original CLI
+                // argument based on the URI scheme.
+                let uri_scheme: std::string::String = file.get_uri_scheme().into();
+                let args = env::args().collect::<Vec<_>>();
+                let mut args_iter = args.iter();
+                let item = args_iter.find(|&i| i.starts_with(uri_scheme.as_str()));
+                match item {
+                    Some(i) => Some(std::string::String::from(i)),
+                    None => None,
+                }
+            };
+            if let Some(uri) = uri {
+                playlist.push(uri);
+            }
         }
 
         self.player.load_playlist(playlist);
