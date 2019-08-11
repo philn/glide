@@ -171,12 +171,13 @@ impl UIContext {
                     header_bar.set_show_close_button(true);
 
                     let main_menu = gtk::MenuButton::new();
-                    let main_menu_image = gtk::Image::new_from_icon_name("open-menu-symbolic", gtk::IconSize::Menu);
+                    let main_menu_image =
+                        gtk::Image::new_from_icon_name(Some("open-menu-symbolic"), gtk::IconSize::Menu);
                     main_menu.add(&main_menu_image);
-                    main_menu.set_menu_model(&menu);
+                    main_menu.set_menu_model(Some(&menu));
 
                     header_bar.pack_end(&main_menu);
-                    window.set_titlebar(&header_bar);
+                    window.set_titlebar(Some(&header_bar));
                 }
             }
 
@@ -253,7 +254,7 @@ impl UIContext {
         #[cfg(not(target_os = "macos"))]
         {
             let flags = gtk::ApplicationInhibitFlags::SUSPEND | gtk::ApplicationInhibitFlags::IDLE;
-            *INHIBIT_COOKIE.lock().unwrap() = Some(self.app.inhibit(window, flags, Some("Glide full-screen")));
+            *INHIBIT_COOKIE.lock().unwrap() = Some(self.app.inhibit(Some(window), flags, Some("Glide full-screen")));
         }
         *INITIAL_SIZE.lock().unwrap() = Some(window.get_size());
         *INITIAL_POSITION.lock().unwrap() = Some(window.get_position());
