@@ -170,7 +170,8 @@ fn prepare_video_overlay(
     let display_type_name = gdk_window.get_display().get_type().name();
 
     // Check if we're using X11 or ...
-    if cfg!(target_os = "linux") {
+    #[cfg(target_os = "linux")]
+    {
         if !has_gtkgl {
             // Check if we're using X11 or ...
             if display_type_name == "GdkX11Display" {
@@ -187,7 +188,10 @@ fn prepare_video_overlay(
                 process::exit(-1);
             }
         }
-    } else if cfg!(target_os = "macos") {
+    }
+
+    #[cfg(target_os = "macos")]
+    {
         if display_type_name == "GdkQuartzDisplay" {
             extern "C" {
                 pub fn gdk_quartz_window_get_nsview(window: *mut glib::object::GObject) -> *mut c_void;
@@ -202,6 +206,9 @@ fn prepare_video_overlay(
             process::exit(-1);
         }
     }
+
+    #[cfg(not(any(target_os = "linux", target_os = "macos")))]
+    unimplemented!();
 }
 
 impl PlayerDataHolder {
