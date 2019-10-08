@@ -458,16 +458,16 @@ impl VideoPlayer {
             PlayerEvent::VolumeChanged(volume) => {
                 self.volume_changed(volume);
             }
-            PlayerEvent::Error => {
-                self.player_error();
+            PlayerEvent::Error(msg) => {
+                self.player_error(msg);
             }
             _ => {}
         };
     }
 
-    pub fn player_error(&self) {
+    pub fn player_error(&self, msg: std::string::String) {
         // FIXME: display some GTK error dialog...
-        eprintln!("Error!");
+        eprintln!("Internal player error: {}", msg);
         self.quit();
     }
 
