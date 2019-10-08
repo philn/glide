@@ -98,7 +98,7 @@ static SEEK_FORWARD_OFFSET: gst::ClockTime = gst::ClockTime(Some(5_000_000_000))
 
 fn ui_action_handle() -> glib::Continue {
     with_video_player!(player {
-        if let Ok(action) = &player.receiver.try_recv() {
+        if let Ok(action) = player.receiver.try_recv() {
             match action {
                 UIAction::Quit => {
                     player.quit();
@@ -441,7 +441,7 @@ impl VideoPlayer {
         });
     }
 
-    pub fn dispatch_event(&self, event: &PlayerEvent) {
+    pub fn dispatch_event(&self, event: PlayerEvent) {
         match event {
             PlayerEvent::MediaInfoUpdated => {
                 self.media_info_updated();
@@ -450,13 +450,13 @@ impl VideoPlayer {
                 self.position_updated();
             }
             PlayerEvent::VideoDimensionsChanged(width, height) => {
-                self.video_dimensions_changed(*width, *height);
+                self.video_dimensions_changed(width, height);
             }
             PlayerEvent::StateChanged(ref s) => {
                 self.playback_state_changed(s);
             }
             PlayerEvent::VolumeChanged(volume) => {
-                self.volume_changed(*volume);
+                self.volume_changed(volume);
             }
             PlayerEvent::Error => {
                 self.player_error();
