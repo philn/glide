@@ -27,7 +27,7 @@ use glib::ToVariant;
 use std::cell::RefCell;
 use std::env;
 use std::fs::create_dir_all;
-use std::{thread, time};
+use std::thread;
 
 mod channel_player;
 use channel_player::{AudioVisualization, ChannelPlayer, PlaybackState, PlayerEvent, SeekDirection, SubtitleTrack};
@@ -97,18 +97,22 @@ static SEEK_BACKWARD_OFFSET: gst::ClockTime = gst::ClockTime(Some(2_000_000_000)
 static SEEK_FORWARD_OFFSET: gst::ClockTime = gst::ClockTime(Some(5_000_000_000));
 
 fn ui_action_handle() -> glib::Continue {
+    let mut quit = false;
     with_video_player!(player {
-        if let Ok(action) = player.receiver.try_recv() {
+        while let Ok(action) = player.receiver.try_recv() {
             match action {
-                UIAction::Quit => {
-                    player.quit();
-                }
+                UIAction::Quit => quit = true,
                 UIAction::ForwardedPlayerEvent(event) => {
                     player.dispatch_event(event);
                 }
             }
         }
     });
+
+    if quit {
+        with_video_player!(video_player { video_player.quit() });
+    }
+
     glib::Continue(false)
 }
 
@@ -246,8 +250,8 @@ impl VideoPlayer {
         let sender = self.sender.clone();
         let receiver = self.player_receiver.clone();
 
-        thread::spawn(move || loop {
-            if let Ok(event) = receiver.try_recv() {
+        thread::spawn(move || {
+            while let Ok(event) = receiver.recv() {
                 // if let PlayerEvent::EndOfPlaylist = event {
                 //     sender.send(UIAction::Quit).unwrap();
                 //     callback();
@@ -256,7 +260,6 @@ impl VideoPlayer {
                 sender.send(UIAction::ForwardedPlayerEvent(event)).unwrap();
                 callback();
             }
-            thread::sleep(time::Duration::from_millis(50));
         });
 
         self.pause_action.connect_change_state(|pause_action, _| {
