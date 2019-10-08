@@ -52,7 +52,7 @@ pub enum PlayerEvent {
     StateChanged(PlaybackState),
     VideoDimensionsChanged(i32, i32),
     VolumeChanged(f64),
-    Error,
+    Error(string::String),
 }
 
 pub struct ChannelPlayer {
@@ -390,10 +390,10 @@ impl ChannelPlayer {
             });
         });
 
-        player.connect_error(|player, _error| {
+        player.connect_error(|player, error| {
             with_player!(player {
                 // FIXME: Pass error to enum.
-                player.notify(PlayerEvent::Error);
+                player.notify(PlayerEvent::Error(error.to_string()));
             });
         });
 
