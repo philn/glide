@@ -216,7 +216,7 @@ impl PlayerDataHolder {
         self.subscribers.push(sender);
     }
 
-    fn notify(&self, event: &PlayerEvent) {
+    fn notify(&self, event: PlayerEvent) {
         for sender in &*self.subscribers {
             sender.send(event.clone()).unwrap();
         }
@@ -228,20 +228,20 @@ impl PlayerDataHolder {
         // Call this only once per asset.
         if self.current_uri != *uri {
             self.current_uri = uri;
-            self.notify(&PlayerEvent::MediaInfoUpdated);
+            self.notify(PlayerEvent::MediaInfoUpdated);
         }
     }
 
     fn end_of_stream(&mut self, player: &gst_player::Player) {
         if let Some(uri) = player.get_uri() {
-            self.notify(&PlayerEvent::EndOfStream(uri.into()));
+            self.notify(PlayerEvent::EndOfStream(uri.into()));
             self.index += 1;
 
             if self.index < self.playlist.len() {
                 let next_uri = &*self.playlist[self.index];
                 player.set_property("uri", &glib::Value::from(&next_uri)).unwrap();
             } else {
-                self.notify(&PlayerEvent::EndOfPlaylist);
+                self.notify(PlayerEvent::EndOfPlaylist);
             }
         }
     }
@@ -360,13 +360,13 @@ impl ChannelPlayer {
 
         player.connect_position_updated(|player, _| {
             with_player!(player {
-                player.notify(&PlayerEvent::PositionUpdated);
+                player.notify(PlayerEvent::PositionUpdated);
             });
         });
 
         player.connect_video_dimensions_changed(|player, width, height| {
             with_player!(player {
-                player.notify(&PlayerEvent::VideoDimensionsChanged(width, height));
+                player.notify(PlayerEvent::VideoDimensionsChanged(width, height));
             });
         });
 
@@ -379,21 +379,21 @@ impl ChannelPlayer {
             };
             if let Some(s) = state {
                 with_player!(player {
-                    player.notify(&PlayerEvent::StateChanged(s));
+                    player.notify(PlayerEvent::StateChanged(s));
                 });
             }
         });
 
         player.connect_volume_changed(|player| {
             with_player!(player player_data {
-                player_data.notify(&PlayerEvent::VolumeChanged(player.get_volume()));
+                player_data.notify(PlayerEvent::VolumeChanged(player.get_volume()));
             });
         });
 
         player.connect_error(|player, _error| {
             with_player!(player {
                 // FIXME: Pass error to enum.
-                player.notify(&PlayerEvent::Error);
+                player.notify(PlayerEvent::Error);
             });
         });
 
