@@ -468,7 +468,7 @@ impl VideoPlayer {
     pub fn player_error(&self, msg: std::string::String) {
         // FIXME: display some GTK error dialog...
         eprintln!("Internal player error: {}", msg);
-        self.quit();
+        self.sender.send(UIAction::Quit).unwrap();
     }
 
     pub fn volume_changed(&self, volume: f64) {
