@@ -243,6 +243,7 @@ impl VideoPlayer {
         self.player.write_last_known_media_position();
         self.leave_fullscreen();
         self.ui_context.stop();
+        println!("bye!")
     }
 
     pub fn start(&mut self) {
