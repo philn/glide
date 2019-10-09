@@ -156,11 +156,7 @@ fn uri_to_sha256(uri: &str) -> string::String {
         .concat()
 }
 
-fn prepare_video_overlay(
-    video_area: &gtk::Widget,
-    video_overlay: &gst_player::PlayerVideoOverlayVideoRenderer,
-    has_gtkgl: bool,
-) {
+fn prepare_video_overlay(video_area: &gtk::Widget, video_overlay: &gst_player::PlayerVideoOverlayVideoRenderer) {
     let gdk_window = video_area.get_window().unwrap();
     if !gdk_window.ensure_native() {
         println!("Can't create native window for widget");
@@ -172,21 +168,19 @@ fn prepare_video_overlay(
     // Check if we're using X11 or ...
     #[cfg(target_os = "linux")]
     {
-        if !has_gtkgl {
-            // Check if we're using X11 or ...
-            if display_type_name == "GdkX11Display" {
-                extern "C" {
-                    pub fn gdk_x11_window_get_xid(window: *mut glib::object::GObject) -> *mut c_void;
-                }
-
-                unsafe {
-                    let xid = gdk_x11_window_get_xid(gdk_window.as_ptr() as *mut _);
-                    video_overlay.set_window_handle(xid as usize);
-                }
-            } else {
-                println!("Add support for display type '{}'", display_type_name);
-                process::exit(-1);
+        // Check if we're using X11 or ...
+        if display_type_name == "GdkX11Display" {
+            extern "C" {
+                pub fn gdk_x11_window_get_xid(window: *mut glib::object::GObject) -> *mut c_void;
             }
+
+            unsafe {
+                let xid = gdk_x11_window_get_xid(gdk_window.as_ptr() as *mut _);
+                video_overlay.set_window_handle(xid as usize);
+            }
+        } else {
+            eprintln!("Add support for display type '{}'", display_type_name);
+            process::exit(-1);
         }
     }
 
@@ -202,7 +196,7 @@ fn prepare_video_overlay(
                 video_overlay.set_window_handle(window as usize);
             }
         } else {
-            println!("Unsupported display type '{}", display_type_name);
+            eprintln!("Unsupported display type '{}", display_type_name);
             process::exit(-1);
         }
     }
@@ -287,14 +281,16 @@ impl ChannelPlayer {
         config.set_position_update_interval(250);
         player.set_config(config).unwrap();
 
-        let renderer_weak = renderer.downgrade();
-        video_area.connect_realize(move |video_area| {
-            let renderer = match renderer_weak.upgrade() {
-                Some(renderer) => renderer,
-                None => return,
-            };
-            prepare_video_overlay(video_area, &renderer, has_gtkgl);
-        });
+        if !has_gtkgl {
+            let renderer_weak = renderer.downgrade();
+            video_area.connect_realize(move |video_area| {
+                let renderer = match renderer_weak.upgrade() {
+                    Some(renderer) => renderer,
+                    None => return,
+                };
+                prepare_video_overlay(video_area, &renderer);
+            });
+        }
 
         video_area.connect_draw(move |video_area, cairo_context| {
             let width = video_area.get_allocated_width();
