@@ -257,12 +257,19 @@ impl PlayerDataHolder {
 impl ChannelPlayer {
     pub fn new(sender: channel::Sender<PlayerEvent>, cache_file_path: Option<path::PathBuf>) -> Self {
         let dispatcher = gst_player::PlayerGMainContextSignalDispatcher::new(None);
-        let (sink, video_area, has_gtkgl) = if let Some(gtkglsink) = gst::ElementFactory::make("gtkglsink", None) {
+        let (sink, video_area, has_gtkgl) = if let Ok(gtkglsink) = gst::ElementFactory::make("gtkglsink", None) {
             let glsinkbin = gst::ElementFactory::make("glsinkbin", None).unwrap();
             glsinkbin.set_property("sink", &gtkglsink.to_value()).unwrap();
 
             let widget = gtkglsink.get_property("widget").unwrap();
-            (glsinkbin, widget.get::<gtk::Widget>().unwrap(), true)
+            (
+                glsinkbin,
+                widget
+                    .get::<gtk::Widget>()
+                    .expect("Widget property should be a Widget...")
+                    .unwrap(),
+                true,
+            )
         } else {
             let sink = gst::ElementFactory::make("glimagesink", None).unwrap();
             let widget = gtk::DrawingArea::new();
@@ -315,7 +322,10 @@ impl ChannelPlayer {
                 None => return true,
             };
             if let Ok(video_track) = player.get_property("current-video-track") {
-                if let Some(video_track) = video_track.get::<gst_player::PlayerVideoInfo>() {
+                let video_track = video_track
+                    .get::<gst_player::PlayerVideoInfo>()
+                    .expect("current-video-track should be a PlayerVideoInfo");
+                if let Some(video_track) = video_track {
                     let video_width = video_track.get_width();
                     let video_height = video_track.get_height();
                     let src_rect = gst_video::VideoRectangle::new(0, 0, video_width, video_height);

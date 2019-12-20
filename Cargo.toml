@@ -10,13 +10,13 @@ license = "MIT"
 edition = "2018"
 
 [dependencies]
-glib = "0.8.2"
-gdk = "0.11.0"
-gio = "0.7.0"
-gstreamer = "0.14.5"
-gstreamer-player = "0.14.0"
-gstreamer-video = "0.14.5"
-gtk = { version = "0.7.0", features = ["v3_16"] }
+glib = "0.9"
+gdk = "0.12"
+gio = "0.8"
+gstreamer = "0.15"
+gstreamer-player = "0.15"
+gstreamer-video = "0.15"
+gtk = { version = "0.8", features = ["v3_16"] }
 lazy_static = "1.4.0"
 self_update = { version = "0.7.0", optional = true }
 serde_json = "1.0.41"
