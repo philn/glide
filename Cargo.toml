@@ -10,25 +10,25 @@ license = "MIT"
 edition = "2018"
 
 [dependencies]
-glib = "0.9"
-gdk = "0.12"
-gio = "0.8"
-gstreamer = "0.15"
-gstreamer-player = "0.15"
-gstreamer-video = "0.15"
-gtk = { version = "0.8", features = ["v3_16"] }
-lazy_static = "1.4.0"
-self_update = { version = "0.7.0", optional = true }
-serde_json = "1.0.41"
-serde_derive = "1.0.101"
-serde = "1.0.101"
-failure = "0.1.5"
-sha2 = "0.8.0"
-crossbeam-channel = "0.3.9"
-directories = "2.0.2"
+glib = "0.10"
+gdk = "0.13"
+gio = "0.9"
+gstreamer = "0.16"
+gstreamer-player = "0.16"
+gstreamer-video = "0.16"
+gtk = { version = "0.9", features = ["v3_16"] }
+lazy_static = "1.4"
+self_update = { version = "0.7", optional = true }
+serde_json = "1.0"
+serde_derive = "1.0"
+serde = "1.0"
+failure = "0.1"
+sha2 = "0.8"
+crossbeam-channel = "0.3"
+directories = "2.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-core-foundation = "0.6.4"
+core-foundation = "0.6"
 
 [features]
 self-updater = ["self_update"]

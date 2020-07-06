@@ -19,11 +19,11 @@ use std::sync::Mutex;
 use crate::PlaybackState;
 
 lazy_static! {
-    pub static ref INHIBIT_COOKIE: Mutex<Option<u32>> = { Mutex::new(None) };
-    pub static ref INITIAL_POSITION: Mutex<Option<(i32, i32)>> = { Mutex::new(None) };
-    pub static ref INITIAL_SIZE: Mutex<Option<(i32, i32)>> = { Mutex::new(None) };
-    pub static ref MOUSE_NOTIFY_SIGNAL_ID: Mutex<Option<glib::SignalHandlerId>> = { Mutex::new(None) };
-    pub static ref AUTOHIDE_SOURCE: Mutex<Option<glib::SourceId>> = { Mutex::new(None) };
+    pub static ref INHIBIT_COOKIE: Mutex<Option<u32>> = Mutex::new(None);
+    pub static ref INITIAL_POSITION: Mutex<Option<(i32, i32)>> = Mutex::new(None);
+    pub static ref INITIAL_SIZE: Mutex<Option<(i32, i32)>> = Mutex::new(None);
+    pub static ref MOUSE_NOTIFY_SIGNAL_ID: Mutex<Option<glib::SignalHandlerId>> = Mutex::new(None);
+    pub static ref AUTOHIDE_SOURCE: Mutex<Option<glib::SourceId>> = Mutex::new(None);
 }
 
 #[cfg(target_os = "macos")]
@@ -78,7 +78,7 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 impl UIContext {
     pub fn new(gtk_app: gtk::Application) -> Self {
-        let builder = gtk::Builder::new_from_string(include_str!("../data/net.baseart.Glide.ui"));
+        let builder = gtk::Builder::from_string(include_str!("../data/net.baseart.Glide.ui"));
 
         let pause_button = {
             let button: gtk::Button = builder.get_object("pause-button").unwrap();
@@ -88,7 +88,7 @@ impl UIContext {
                 .set_action_name(Some("app.pause"));
             button
         };
-        let image = gtk::Image::new_from_icon_name(Some("media-playback-start-symbolic"), gtk::IconSize::SmallToolbar);
+        let image = gtk::Image::from_icon_name(Some("media-playback-start-symbolic"), gtk::IconSize::SmallToolbar);
         pause_button.set_image(Some(&image));
 
         let button: gtk::Button = builder.get_object("seek-backward-button").unwrap();
@@ -168,8 +168,7 @@ impl UIContext {
                     header_bar.set_show_close_button(true);
 
                     let main_menu = gtk::MenuButton::new();
-                    let main_menu_image =
-                        gtk::Image::new_from_icon_name(Some("open-menu-symbolic"), gtk::IconSize::Menu);
+                    let main_menu_image = gtk::Image::from_icon_name(Some("open-menu-symbolic"), gtk::IconSize::Menu);
                     main_menu.add(&main_menu_image);
                     main_menu.set_menu_model(Some(&menu));
 
@@ -309,7 +308,7 @@ impl UIContext {
         } else {
             None
         };
-        dialog.destroy();
+        dialog.close();
         result_uri
     }
 
@@ -424,19 +423,19 @@ impl UIContext {
         dialog.set_comments(Some(s.as_str()));
         dialog.set_transient_for(Some(&self.window));
         dialog.run();
-        dialog.destroy();
+        dialog.close();
     }
 
     pub fn playback_state_changed(&self, playback_state: &PlaybackState) {
         match playback_state {
             PlaybackState::Paused => {
                 let image =
-                    gtk::Image::new_from_icon_name(Some("media-playback-start-symbolic"), gtk::IconSize::SmallToolbar);
+                    gtk::Image::from_icon_name(Some("media-playback-start-symbolic"), gtk::IconSize::SmallToolbar);
                 self.pause_button.set_image(Some(&image));
             }
             PlaybackState::Playing => {
                 let image =
-                    gtk::Image::new_from_icon_name(Some("media-playback-pause-symbolic"), gtk::IconSize::SmallToolbar);
+                    gtk::Image::from_icon_name(Some("media-playback-pause-symbolic"), gtk::IconSize::SmallToolbar);
                 self.pause_button.set_image(Some(&image));
             }
             _ => {}

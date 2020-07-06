@@ -276,7 +276,7 @@ impl ChannelPlayer {
             (sink, widget.upcast::<gtk::Widget>(), false)
         };
 
-        let renderer1 = gst_player::PlayerVideoOverlayVideoRenderer::new_with_sink(&sink);
+        let renderer1 = gst_player::PlayerVideoOverlayVideoRenderer::with_sink(&sink);
         let renderer = renderer1.clone();
         let player = gst_player::Player::new(
             Some(&renderer1.upcast::<gst_player::PlayerVideoRenderer>()),
