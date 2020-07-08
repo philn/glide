@@ -15,7 +15,6 @@ use gst::prelude::*;
 use gtk::prelude::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::default::Default;
 use std::fs::File;
 use std::io::Read;
 use std::io::Write;
@@ -147,9 +146,9 @@ impl MediaCache {
 }
 
 fn uri_to_sha256(uri: &str) -> string::String {
-    let mut sh = Sha256::default();
-    sh.input(uri.as_bytes());
-    sh.result()
+    let mut sh = Sha256::new();
+    sh.update(uri.as_bytes());
+    sh.finalize()
         .into_iter()
         .map(|b| format!("{:02x}", b))
         .collect::<Vec<_>>()
