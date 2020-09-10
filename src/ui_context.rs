@@ -378,10 +378,14 @@ impl UIContext {
     pub fn resize_window(&self, width: i32, height: i32) {
         let mut width = width;
         let mut height = height;
-        if let Some(screen) = gdk::Screen::get_default() {
-            width = cmp::min(width, screen.get_width());
-            height = cmp::min(height, screen.get_height() - 100);
+        let display = self.window.get_display();
+        let win = self.window.get_window().unwrap();
+        if let Some(monitor) = display.get_monitor_at_window(&win) {
+            let geometry = monitor.get_geometry();
+            width = cmp::min(width, geometry.width);
+            height = cmp::min(height, geometry.height - 100);
         }
+
         // FIXME: Somehow resize video_area to avoid black borders.
         if width > MINIMAL_WINDOW_SIZE.0 && height > MINIMAL_WINDOW_SIZE.1 {
             self.window.resize(width, height);
