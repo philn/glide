@@ -427,6 +427,14 @@ impl VideoPlayer {
             });
         });
 
+        self.ui_context.set_drop_data_callback(|uri| {
+            with_video_player!(video_player {
+                println!("loading {}", &uri);
+                video_player.player.stop();
+                video_player.player.load_uri(&uri);
+            })
+        });
+
         #[cfg(feature = "self-updater")]
         match self.check_update() {
             Ok(o) => {

@@ -350,6 +350,20 @@ impl UIContext {
         }));
     }
 
+    pub fn set_drop_data_callback<F: Fn(&str) + Send + Sync + 'static>(&mut self, f: F) {
+        let targets = vec![
+            gtk::TargetEntry::new("STRING", gtk::TargetFlags::OTHER_APP, 0),
+            gtk::TargetEntry::new("text/plain", gtk::TargetFlags::OTHER_APP, 0),
+        ];
+        self.window
+            .drag_dest_set(gtk::DestDefaults::ALL, &targets, gdk::DragAction::COPY);
+        self.window.connect_drag_data_received(move |_, _, _, _, data, _, _| {
+            if let Some(s) = data.get_text() {
+                f(&s.trim());
+            }
+        });
+    }
+
     pub fn volume_changed(&self, volume: f64) {
         let button = &self.volume_button;
         let scale = button.clone().upcast::<gtk::ScaleButton>();
