@@ -2,7 +2,7 @@
 <!-- Copyright 2018 Philippe Normand <phil_AT_base-art.net> -->
 <component type="desktop">
   <id>net.baseart.Glide</id>
-  <launchable type="desktop">net.baseart.Glide</launchable>
+  <launchable type="desktop-id">net.baseart.Glide.desktop</launchable>
   <metadata_license>CC-BY-3.0</metadata_license>
   <project_license>MIT</project_license>
   <name>Glide</name>
