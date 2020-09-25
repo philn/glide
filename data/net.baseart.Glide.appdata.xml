@@ -47,6 +47,9 @@
   </screenshots>
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="0.5.8" date="2020-09-25">
+      <description><p>Fixing appdata markup.</p></description>
+    </release>
     <release version="0.5.7" date="2020-09-25">
       <description><p>Bugfix release, mostly. This new version brings drag&amp;drop support as well.</p></description>
     </release>
