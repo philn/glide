@@ -1,6 +1,6 @@
 project(
   'glide', 'rust',
-  version: '0.5.7',
+  version: '0.5.7.1',
   license: 'MIT',
 )
 
