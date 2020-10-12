@@ -21,7 +21,7 @@ encouraged to file issues on the Github bug tracker of course.
 Installation
 ------------
 
-Install it is with Cargo:
+Install it with Cargo:
 
 1.  Install [RustUp](https://rustup.rs):
 
