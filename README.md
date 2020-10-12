@@ -47,6 +47,17 @@ Install it with Cargo:
         
 ### Packaging status
 
+#### Flatpak
+
+This is the most recommended way to use Glide as it will allow the maintainers to more
+easily reproduce reported bugs.
+
+Glide is available on [Flathub](https://flathub.org/apps/details/net.baseart.Glide).
+After setting up the flathub Flatpak remote as documented in Flathub, install with the following command, or 
+through GNOME Software.
+
+    $ flatpak install net.baseart.Glide
+
 #### Fedora
 
 Available in [COPR](https://copr.fedorainfracloud.org/coprs/atim/glide-rs/):
