@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 export CARGO_HOME=$1/target/cargo-home
 
