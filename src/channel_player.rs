@@ -155,7 +155,7 @@ fn uri_to_sha256(uri: &str) -> string::String {
         .concat()
 }
 
-fn prepare_video_overlay(video_area: &gtk::Widget, video_overlay: &gst_player::PlayerVideoOverlayVideoRenderer) {
+fn prepare_video_overlay(video_area: &gtk::DrawingArea, video_overlay: &gst_player::PlayerVideoOverlayVideoRenderer) {
     let gdk_window = video_area.get_window().unwrap();
     if !gdk_window.ensure_native() {
         println!("Can't create native window for widget");
@@ -253,32 +253,55 @@ impl PlayerDataHolder {
     }
 }
 
-impl ChannelPlayer {
-    pub fn new(sender: channel::Sender<PlayerEvent>, cache_file_path: Option<path::PathBuf>) -> Self {
-        let dispatcher = gst_player::PlayerGMainContextSignalDispatcher::new(None);
-        let (sink, video_area, has_gtkgl) = if let Ok(gtkglsink) = gst::ElementFactory::make("gtkglsink", None) {
-            let glsinkbin = gst::ElementFactory::make("glsinkbin", None).unwrap();
-            glsinkbin.set_property("sink", &gtkglsink.to_value()).unwrap();
+fn create_renderer() -> (Option<gst_player::PlayerVideoOverlayVideoRenderer>, Option<gtk::Widget>) {
+    if let Ok(gtkglsink) = gst::ElementFactory::make("gtkglsink", None) {
+        let glsinkbin = gst::ElementFactory::make("glsinkbin", None).unwrap();
+        glsinkbin.set_property("sink", &gtkglsink.to_value()).unwrap();
 
-            let widget = gtkglsink.get_property("widget").unwrap();
-            (
-                glsinkbin,
-                widget
-                    .get::<gtk::Widget>()
-                    .expect("Widget property should be a Widget...")
-                    .unwrap(),
-                true,
-            )
+        let widget = gtkglsink.get_property("widget").unwrap();
+        (
+            Some(gst_player::PlayerVideoOverlayVideoRenderer::with_sink(&glsinkbin)),
+            widget
+                .get::<gtk::Widget>()
+                .expect("Widget property should be a Widget..."),
+        )
+    } else {
+        if let Ok(sink) = gst::ElementFactory::make("glimagesink", None) {
+            let video_area = gtk::DrawingArea::new();
+
+            let renderer = gst_player::PlayerVideoOverlayVideoRenderer::with_sink(&sink);
+            let renderer_weak = renderer.downgrade();
+            video_area.connect_realize(move |video_area| {
+                let renderer = match renderer_weak.upgrade() {
+                    Some(renderer) => renderer,
+                    None => return,
+                };
+                prepare_video_overlay(&video_area, &renderer);
+            });
+
+            (Some(renderer), Some(video_area.upcast::<gtk::Widget>()))
         } else {
-            let sink = gst::ElementFactory::make("glimagesink", None).unwrap();
-            let widget = gtk::DrawingArea::new();
-            (sink, widget.upcast::<gtk::Widget>(), false)
-        };
+            (None, None)
+        }
+    }
+}
 
-        let renderer1 = gst_player::PlayerVideoOverlayVideoRenderer::with_sink(&sink);
-        let renderer = renderer1.clone();
+impl ChannelPlayer {
+    pub fn new(sender: channel::Sender<PlayerEvent>, cache_file_path: Option<path::PathBuf>) -> Result<Self, Error> {
+        let (renderer, video_area) = create_renderer();
+        if renderer.is_none() {
+            return Err(failure::err_msg("Neither gtkglsink nor glimagesink found. Make sure to install gst-plugins-good with GTK support enabled, or gst-plugins-base"));
+        }
+        let renderer1 = Some(
+            renderer
+                .as_ref()
+                .unwrap()
+                .clone()
+                .upcast::<gst_player::PlayerVideoRenderer>(),
+        );
+        let dispatcher = gst_player::PlayerGMainContextSignalDispatcher::new(None);
         let player = gst_player::Player::new(
-            Some(&renderer1.upcast::<gst_player::PlayerVideoRenderer>()),
+            renderer1.as_ref(),
             Some(&dispatcher.upcast::<gst_player::PlayerSignalDispatcher>()),
         );
 
@@ -287,17 +310,7 @@ impl ChannelPlayer {
         config.set_position_update_interval(250);
         player.set_config(config).unwrap();
 
-        if !has_gtkgl {
-            let renderer_weak = renderer.downgrade();
-            video_area.connect_realize(move |video_area| {
-                let renderer = match renderer_weak.upgrade() {
-                    Some(renderer) => renderer,
-                    None => return,
-                };
-                prepare_video_overlay(video_area, &renderer);
-            });
-        }
-
+        let video_area = video_area.unwrap();
         video_area.connect_draw(move |video_area, cairo_context| {
             let width = video_area.get_allocated_width();
             let height = video_area.get_allocated_height();
@@ -310,7 +323,7 @@ impl ChannelPlayer {
         });
 
         let player_weak = player.downgrade();
-        let renderer_weak = renderer.downgrade();
+        let renderer_weak = renderer.unwrap().downgrade();
         video_area.connect_configure_event(move |video_area, event| -> bool {
             let (width, height) = event.get_size();
             let (x, y) = event.get_position();
@@ -363,7 +376,7 @@ impl ChannelPlayer {
 
         player.connect_media_info_updated(|player, info| {
             with_mut_player!(player player_data {
-                    player_data.media_info_updated(&info);
+                player_data.media_info_updated(&info);
             });
         });
 
@@ -425,7 +438,7 @@ impl ChannelPlayer {
             registry.borrow_mut().insert(player_id, player_data);
         });
 
-        Self { player, video_area }
+        Ok(Self { player, video_area })
     }
 
     #[allow(dead_code)]

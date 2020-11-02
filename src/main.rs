@@ -20,6 +20,7 @@ extern crate self_update;
 extern crate serde_derive;
 
 use directories::ProjectDirs;
+use failure::Error;
 #[allow(unused_imports)]
 use gdk::prelude::*;
 use gio::prelude::*;
@@ -117,7 +118,7 @@ fn ui_action_handle() -> glib::Continue {
 }
 
 impl VideoPlayer {
-    pub fn new(gtk_app: gtk::Application) -> Self {
+    pub fn new(gtk_app: gtk::Application) -> Result<Self, Error> {
         let fullscreen_action = gio::SimpleAction::new_stateful("fullscreen", None, &false.to_variant());
         gtk_app.add_action(&fullscreen_action);
 
@@ -213,9 +214,9 @@ impl VideoPlayer {
             None
         };
 
-        let player = ChannelPlayer::new(player_sender, cache_file_path);
+        let player = ChannelPlayer::new(player_sender, cache_file_path)?;
 
-        Self {
+        Ok(Self {
             player,
             ui_context,
             fullscreen_action,
@@ -236,7 +237,7 @@ impl VideoPlayer {
             sender,
             receiver,
             player_receiver,
-        }
+        })
     }
 
     pub fn quit(&self) {
@@ -740,11 +741,10 @@ impl VideoPlayer {
     }
 }
 
-fn main() {
+fn main() -> Result<(), Error> {
     #[cfg(not(unix))]
     {
-        println!("Add support for target platform");
-        std::process::exit(-1);
+        return Err(failure::err_msg("Add support for target platform"));
     }
 
     gst::init().expect("Failed to initialize GStreamer.");
@@ -754,7 +754,7 @@ fn main() {
     let gtk_app = initialize_and_create_app();
 
     let gtk_app_clone = gtk_app.clone();
-    let app = VideoPlayer::new(gtk_app);
+    let app = VideoPlayer::new(gtk_app)?;
 
     GLOBAL.with(move |global| {
         *global.borrow_mut() = Some(app);
@@ -763,6 +763,7 @@ fn main() {
     let args = env::args().collect::<Vec<_>>();
     gtk_app_clone.run(&args);
 
+    Ok(())
     // unsafe {
     //     gst::deinit();
     // }
