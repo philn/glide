@@ -65,6 +65,9 @@ struct VideoPlayer {
     volume_increase_action: gio::SimpleAction,
     volume_decrease_action: gio::SimpleAction,
     dump_pipeline_action: gio::SimpleAction,
+    open_sync_window_action: gio::SimpleAction,
+    audio_offset_reset_action: gio::SimpleAction,
+    subtitle_offset_reset_action: gio::SimpleAction,
     sender: channel::Sender<UIAction>,
     receiver: channel::Receiver<UIAction>,
     player_receiver: channel::Receiver<PlayerEvent>,
@@ -173,6 +176,15 @@ impl VideoPlayer {
             gio::SimpleAction::new_stateful("video-track", glib::VariantTy::new("s").ok(), &"video-0".to_variant());
         gtk_app.add_action(&video_track_action);
 
+        let open_sync_window_action = gio::SimpleAction::new("open-sync-window", None);
+        gtk_app.add_action(&open_sync_window_action);
+
+        let audio_offset_reset_action = gio::SimpleAction::new("audio-offset-reset", None);
+        gtk_app.add_action(&audio_offset_reset_action);
+
+        let subtitle_offset_reset_action = gio::SimpleAction::new("subtitle-offset-reset", None);
+        gtk_app.add_action(&subtitle_offset_reset_action);
+
         let about = gio::SimpleAction::new("about", None);
         about.connect_activate(move |_, _| {
             with_video_player!(video_player {
@@ -234,6 +246,9 @@ impl VideoPlayer {
             volume_increase_action,
             volume_decrease_action,
             dump_pipeline_action,
+            open_sync_window_action,
+            audio_offset_reset_action,
+            subtitle_offset_reset_action,
             sender,
             receiver,
             player_receiver,
@@ -404,6 +419,24 @@ impl VideoPlayer {
             });
         });
 
+        self.open_sync_window_action.connect_activate(|_, _| {
+            with_video_player!(video_player {
+                video_player.ui_context.open_track_synchronization_window();
+            });
+        });
+
+        self.audio_offset_reset_action.connect_activate(|_, _| {
+            with_video_player!(video_player {
+                video_player.player.set_audio_offset(0);
+            })
+        });
+
+        self.subtitle_offset_reset_action.connect_activate(|_, _| {
+            with_video_player!(video_player {
+                video_player.player.set_subtitle_offset(0);
+            })
+        });
+
         self.ui_context.set_video_area(self.player.video_area());
 
         self.ui_context.set_progress_bar_format_callback(|value, duration| {
@@ -433,6 +466,18 @@ impl VideoPlayer {
                 println!("loading {}", &uri);
                 video_player.player.stop();
                 video_player.player.load_uri(&uri);
+            })
+        });
+
+        self.ui_context.set_audio_offset_entry_updated_callback(|offset| {
+            with_video_player!(video_player {
+                video_player.player.set_audio_offset(offset);
+            })
+        });
+
+        self.ui_context.set_subtitle_offset_entry_updated_callback(|offset| {
+            with_video_player!(video_player {
+                video_player.player.set_subtitle_offset(offset);
             })
         });
 
@@ -474,6 +519,12 @@ impl VideoPlayer {
             PlayerEvent::Error(msg) => {
                 self.player_error(msg);
             }
+            PlayerEvent::AudioVideoOffsetChanged(offset) => {
+                self.audio_video_offset_changed(offset);
+            }
+            PlayerEvent::SubtitleVideoOffsetChanged(offset) => {
+                self.subtitle_video_offset_changed(offset);
+            }
             _ => {}
         };
     }
@@ -486,6 +537,14 @@ impl VideoPlayer {
 
     pub fn volume_changed(&self, volume: f64) {
         self.ui_context.volume_changed(volume);
+    }
+
+    pub fn audio_video_offset_changed(&self, offset: i64) {
+        self.ui_context.audio_video_offset_changed(offset);
+    }
+
+    pub fn subtitle_video_offset_changed(&self, offset: i64) {
+        self.ui_context.subtitle_video_offset_changed(offset);
     }
 
     pub fn playback_state_changed(&self, playback_state: &PlaybackState) {

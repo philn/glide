@@ -64,12 +64,17 @@ pub struct UIContext {
     progress_bar: gtk::Scale,
     volume_button: gtk::VolumeButton,
     toolbar_box: gtk::Box,
+    track_synchronization_window: gtk::ApplicationWindow,
+    audio_offset_entry: gtk::SpinButton,
+    subtitle_offset_entry: gtk::SpinButton,
     subtitle_track_menu: gio::Menu,
     audio_track_menu: gio::Menu,
     video_track_menu: gio::Menu,
     audio_visualization_menu: gio::Menu,
     volume_signal_handler_id: Option<glib::SignalHandlerId>,
     position_signal_handler_id: Option<glib::SignalHandlerId>,
+    audio_offset_entry_signal_handler_id: Option<glib::SignalHandlerId>,
+    subtitle_offset_entry_signal_handler_id: Option<glib::SignalHandlerId>,
     app: gtk::Application,
 }
 
@@ -125,6 +130,34 @@ impl UIContext {
             }
             Inhibit(false)
         });
+
+        let track_synchronization_window: gtk::ApplicationWindow =
+            builder.get_object("synchronization-window").unwrap();
+
+        let action = gio::SimpleAction::new("close", None);
+        track_synchronization_window.add_action(&action);
+        let window_weak = SendWeakRef::from(track_synchronization_window.downgrade());
+        action.connect_activate(move |_, _| {
+            if let Some(window) = window_weak.upgrade() {
+                window.hide();
+            }
+        });
+
+        let button: gtk::Button = builder.get_object("synchronization-window-close-button").unwrap();
+        button.upcast::<gtk::Actionable>().set_action_name(Some("win.close"));
+
+        let button: gtk::Button = builder.get_object("audio-offset-reset-button").unwrap();
+        button
+            .upcast::<gtk::Actionable>()
+            .set_action_name(Some("app.audio-offset-reset"));
+
+        let button: gtk::Button = builder.get_object("subtitle-offset-reset-button").unwrap();
+        button
+            .upcast::<gtk::Actionable>()
+            .set_action_name(Some("app.subtitle-offset-reset"));
+
+        let audio_offset_entry: gtk::SpinButton = builder.get_object("audio-video-offset").unwrap();
+        let subtitle_offset_entry: gtk::SpinButton = builder.get_object("subtitle-video-offset").unwrap();
 
         let subtitle_track_menu: gio::Menu = builder.get_object("subtitle-track-menu").unwrap();
         let audio_track_menu: gio::Menu = builder.get_object("audio-track-menu").unwrap();
@@ -190,14 +223,27 @@ impl UIContext {
             progress_bar,
             volume_button,
             toolbar_box,
+            track_synchronization_window,
+            audio_offset_entry,
+            subtitle_offset_entry,
             subtitle_track_menu,
             audio_track_menu,
             video_track_menu,
             audio_visualization_menu,
             volume_signal_handler_id: None,
             position_signal_handler_id: None,
+            audio_offset_entry_signal_handler_id: None,
+            subtitle_offset_entry_signal_handler_id: None,
             app: gtk_app,
         }
+    }
+
+    pub fn open_track_synchronization_window(&self) {
+        let window = &self.track_synchronization_window;
+        window.set_transient_for(Some(&self.window));
+        window.set_modal(true);
+        window.set_application(Some(&self.app));
+        window.show_all();
     }
 
     #[cfg(target_os = "linux")]
@@ -364,6 +410,20 @@ impl UIContext {
         });
     }
 
+    pub fn set_audio_offset_entry_updated_callback<F: Fn(i64) + Send + Sync + 'static>(&mut self, f: F) {
+        let entry = self.audio_offset_entry.clone();
+        self.audio_offset_entry_signal_handler_id = Some(entry.connect_value_changed(move |button| {
+            f((button.get_value() * 1_000_000_000 as f64) as i64);
+        }));
+    }
+
+    pub fn set_subtitle_offset_entry_updated_callback<F: Fn(i64) + Send + Sync + 'static>(&mut self, f: F) {
+        let entry = self.subtitle_offset_entry.clone();
+        self.subtitle_offset_entry_signal_handler_id = Some(entry.connect_value_changed(move |button| {
+            f((button.get_value() * 1_000_000_000 as f64) as i64);
+        }));
+    }
+
     pub fn volume_changed(&self, volume: f64) {
         let button = &self.volume_button;
         let scale = button.clone().upcast::<gtk::ScaleButton>();
@@ -371,6 +431,24 @@ impl UIContext {
             glib::signal_handler_block(&scale, &handler_id);
             scale.set_value(volume);
             glib::signal_handler_unblock(&scale, &handler_id);
+        }
+    }
+
+    pub fn audio_video_offset_changed(&self, offset: i64) {
+        let entry = &self.audio_offset_entry;
+        if let Some(ref handler_id) = self.audio_offset_entry_signal_handler_id {
+            glib::signal_handler_block(entry, &handler_id);
+            entry.set_value(offset as f64 / 1_000_000_000 as f64);
+            glib::signal_handler_unblock(entry, &handler_id);
+        }
+    }
+
+    pub fn subtitle_video_offset_changed(&self, offset: i64) {
+        let entry = &self.subtitle_offset_entry;
+        if let Some(ref handler_id) = self.subtitle_offset_entry_signal_handler_id {
+            glib::signal_handler_block(entry, &handler_id);
+            entry.set_value(offset as f64 / 1_000_000_000 as f64);
+            glib::signal_handler_unblock(entry, &handler_id);
         }
     }
 
