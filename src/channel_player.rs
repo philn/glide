@@ -52,6 +52,8 @@ pub enum PlayerEvent {
     VideoDimensionsChanged(i32, i32),
     VolumeChanged(f64),
     Error(string::String),
+    AudioVideoOffsetChanged(i64),
+    SubtitleVideoOffsetChanged(i64),
 }
 
 pub struct ChannelPlayer {
@@ -419,6 +421,18 @@ impl ChannelPlayer {
             });
         });
 
+        player.connect_property_audio_video_offset_notify(|player| {
+            with_player!(player player_data {
+                player_data.notify(PlayerEvent::AudioVideoOffsetChanged(player.get_audio_video_offset()));
+            });
+        });
+
+        player.connect_property_subtitle_video_offset_notify(|player| {
+            with_player!(player player_data {
+                player_data.notify(PlayerEvent::SubtitleVideoOffsetChanged(player.get_subtitle_video_offset()));
+            });
+        });
+
         let player_id = player.get_name();
         let mut subscribers = Vec::new();
         subscribers.push(sender);
@@ -622,5 +636,17 @@ impl ChannelPlayer {
                 player_data.update_cache_and_write(id, position);
             });
         }
+    }
+
+    pub fn set_audio_offset(&self, offset: i64) {
+        self.player
+            .set_property("audio-video-offset", &glib::Value::from(&offset))
+            .unwrap();
+    }
+
+    pub fn set_subtitle_offset(&self, offset: i64) {
+        self.player
+            .set_property("subtitle-video-offset", &glib::Value::from(&offset))
+            .unwrap();
     }
 }

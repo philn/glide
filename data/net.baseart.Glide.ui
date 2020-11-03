@@ -52,6 +52,10 @@
         <attribute name="label" translatable="yes">Subtitle track</attribute>
       </submenu>
     </submenu>
+    <item>
+      <attribute name="label" translatable="yes">Track synchronization</attribute>
+			<attribute name="action">app.open-sync-window</attribute>
+    </item>
   </menu>
   <object class="GtkApplicationWindow" id="application-window">
     <property name="can_focus">False</property>
@@ -204,6 +208,166 @@ audio-volume-medium-symbolic</property>
             <property name="fill">False</property>
             <property name="padding">10</property>
             <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkAdjustment" id="audio-offset-adjustment">
+    <property name="upper">100</property>
+    <property name="lower">-100</property>
+    <property name="step-increment">0.1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="subtitle-offset-adjustment">
+    <property name="upper">100</property>
+    <property name="lower">-100</property>
+    <property name="step-increment">0.1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkApplicationWindow" id="synchronization-window">
+    <property name="can-focus">False</property>
+    <property name="title" translatable="yes">Track synchronization</property>
+    <property name="deletable">False</property>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Audio track synchronization</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="audio-video-offset">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">Delay in seconds</property>
+                <property name="input-purpose">number</property>
+                <property name="climb-rate">0.01</property>
+                <property name="adjustment">audio-offset-adjustment</property>
+                <property name="digits">3</property>
+                <property name="numeric">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="padding">5</property>
+                <property name="pack-type">end</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="audio-offset-reset-button">
+                <property name="label">gtk-clear</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="use-stock">True</property>
+                <property name="always-show-image">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+                <property name="padding">5</property>
+                <property name="pack-type">end</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Subtitle track synchronization</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="subtitle-video-offset">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="input-purpose">number</property>
+                <property name="tooltip-text" translatable="yes">Delay in seconds</property>
+                <property name="adjustment">subtitle-offset-adjustment</property>
+                <property name="climb-rate">0.01</property>
+                <property name="digits">3</property>
+                <property name="numeric">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="padding">5</property>
+                <property name="pack-type">end</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="subtitle-offset-reset-button">
+                <property name="label">gtk-clear</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="use-stock">True</property>
+                <property name="always-show-image">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+                <property name="padding">5</property>
+                <property name="pack-type">end</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButton" id="synchronization-window-close-button">
+            <property name="label">gtk-close</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="use-stock">True</property>
+            <property name="always-show-image">True</property>
+			      <property name="action-name">win.close</property>
+          </object>
+          <packing>
+            <property name="padding">5</property>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+            <property name="pack-type">end</property>
           </packing>
         </child>
       </object>
