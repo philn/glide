@@ -231,6 +231,21 @@ impl PlayerDataHolder {
         }
     }
 
+    pub fn configure_audio_filter(&self, player: &gst_player::Player) {
+        if let Ok(var) = std::env::var("AUDIO_FILTER") {
+            let element = player.get_pipeline();
+            if let Ok(pipeline) = element.downcast::<gst::Pipeline>() {
+                if let Ok(filter) = gst::ElementFactory::make(&var, None) {
+                    pipeline
+                        .set_property("audio-filter", &glib::Value::from(&filter))
+                        .unwrap();
+                } else {
+                    eprintln!("Invalid audio filter: {}", &var);
+                }
+            }
+        }
+    }
+
     fn end_of_stream(&mut self, player: &gst_player::Player) {
         if let Some(uri) = player.get_uri() {
             self.notify(PlayerEvent::EndOfStream(uri.into()));
@@ -345,6 +360,7 @@ impl ChannelPlayer {
         player.connect_uri_loaded(|player, uri| {
             player.pause();
             with_mut_player!(player player_data {
+                player_data.configure_audio_filter(player);
                 if let Some(ref cache) = player_data.cache {
                     let position = cache.find_last_position(uri);
                     if position.is_some() {

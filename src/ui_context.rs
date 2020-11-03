@@ -358,6 +358,7 @@ impl UIContext {
         self.window
             .drag_dest_set(gtk::DestDefaults::ALL, &targets, gdk::DragAction::COPY);
         self.window.connect_drag_data_received(move |_, _, _, _, data, _, _| {
+            dbg!(&data);
             if let Some(s) = data.get_text() {
                 f(&s.trim());
             }
