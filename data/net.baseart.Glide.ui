@@ -52,10 +52,13 @@
         <attribute name="label" translatable="yes">Subtitle track</attribute>
       </submenu>
     </submenu>
-    <item>
-      <attribute name="label" translatable="yes">Track synchronization</attribute>
-			<attribute name="action">app.open-sync-window</attribute>
-    </item>
+    <submenu>
+      <attribute name="label" translatable="yes">Window</attribute>
+      <item>
+        <attribute name="label" translatable="yes">Track synchronization</attribute>
+        <attribute name="action">app.open-sync-window</attribute>
+      </item>
+    </submenu>
   </menu>
   <object class="GtkApplicationWindow" id="application-window">
     <property name="can_focus">False</property>
