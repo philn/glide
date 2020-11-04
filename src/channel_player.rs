@@ -267,24 +267,22 @@ fn create_renderer() -> (Option<gst_player::PlayerVideoOverlayVideoRenderer>, Op
                 .get::<gtk::Widget>()
                 .expect("Widget property should be a Widget..."),
         )
+    } else if let Ok(sink) = gst::ElementFactory::make("glimagesink", None) {
+        let video_area = gtk::DrawingArea::new();
+
+        let renderer = gst_player::PlayerVideoOverlayVideoRenderer::with_sink(&sink);
+        let renderer_weak = renderer.downgrade();
+        video_area.connect_realize(move |video_area| {
+            let renderer = match renderer_weak.upgrade() {
+                Some(renderer) => renderer,
+                None => return,
+            };
+            prepare_video_overlay(&video_area, &renderer);
+        });
+
+        (Some(renderer), Some(video_area.upcast::<gtk::Widget>()))
     } else {
-        if let Ok(sink) = gst::ElementFactory::make("glimagesink", None) {
-            let video_area = gtk::DrawingArea::new();
-
-            let renderer = gst_player::PlayerVideoOverlayVideoRenderer::with_sink(&sink);
-            let renderer_weak = renderer.downgrade();
-            video_area.connect_realize(move |video_area| {
-                let renderer = match renderer_weak.upgrade() {
-                    Some(renderer) => renderer,
-                    None => return,
-                };
-                prepare_video_overlay(&video_area, &renderer);
-            });
-
-            (Some(renderer), Some(video_area.upcast::<gtk::Widget>()))
-        } else {
-            (None, None)
-        }
+        (None, None)
     }
 }
 

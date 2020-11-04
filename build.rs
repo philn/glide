@@ -1,8 +1,8 @@
 fn main() {
     let target = std::env::var("TARGET").unwrap();
-    if let Some(_) = target.find("linux") {
+    if target.find("linux").is_some() {
         println!("cargo:rustc-link-lib=X11");
-    } else if let Some(_) = target.find("darwin") {
+    } else if target.find("darwin").is_some() {
         println!("cargo:rustc-link-lib=framework=IOKit");
     }
 }
