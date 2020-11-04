@@ -631,12 +631,11 @@ impl VideoPlayer {
         let section = gio::Menu::new();
 
         if let Some(info) = self.player.get_media_info() {
-            let mut i = 0;
             let item = gio::MenuItem::new(Some("Disable"), Some("none"));
             item.set_detailed_action("app.subtitle::none");
             section.append_item(&item);
 
-            for sub_stream in info.get_subtitle_streams() {
+            for (i, sub_stream) in info.get_subtitle_streams().into_iter().enumerate() {
                 let default_title = format!("Track {}", i + 1);
                 let title = match sub_stream.get_tags() {
                     Some(tags) => match tags.get::<gst::tags::Title>() {
@@ -658,7 +657,6 @@ impl VideoPlayer {
                 let item = gio::MenuItem::new(Some(&action_label), Some(&action_id));
                 item.set_detailed_action(&*action_id);
                 section.append_item(&item);
-                i += 1;
             }
         }
 

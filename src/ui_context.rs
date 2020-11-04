@@ -413,14 +413,14 @@ impl UIContext {
     pub fn set_audio_offset_entry_updated_callback<F: Fn(i64) + Send + Sync + 'static>(&mut self, f: F) {
         let entry = self.audio_offset_entry.clone();
         self.audio_offset_entry_signal_handler_id = Some(entry.connect_value_changed(move |button| {
-            f((button.get_value() * 1_000_000_000 as f64) as i64);
+            f((button.get_value() * 1000000000_f64) as i64);
         }));
     }
 
     pub fn set_subtitle_offset_entry_updated_callback<F: Fn(i64) + Send + Sync + 'static>(&mut self, f: F) {
         let entry = self.subtitle_offset_entry.clone();
         self.subtitle_offset_entry_signal_handler_id = Some(entry.connect_value_changed(move |button| {
-            f((button.get_value() * 1_000_000_000 as f64) as i64);
+            f((button.get_value() * 1000000000_f64) as i64);
         }));
     }
 
@@ -438,7 +438,7 @@ impl UIContext {
         let entry = &self.audio_offset_entry;
         if let Some(ref handler_id) = self.audio_offset_entry_signal_handler_id {
             glib::signal_handler_block(entry, &handler_id);
-            entry.set_value(offset as f64 / 1_000_000_000 as f64);
+            entry.set_value(offset as f64 / 1000000000_f64);
             glib::signal_handler_unblock(entry, &handler_id);
         }
     }
@@ -447,7 +447,7 @@ impl UIContext {
         let entry = &self.subtitle_offset_entry;
         if let Some(ref handler_id) = self.subtitle_offset_entry_signal_handler_id {
             glib::signal_handler_block(entry, &handler_id);
-            entry.set_value(offset as f64 / 1_000_000_000 as f64);
+            entry.set_value(offset as f64 / 1000000000_f64);
             glib::signal_handler_unblock(entry, &handler_id);
         }
     }
