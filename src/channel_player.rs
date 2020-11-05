@@ -576,6 +576,10 @@ impl ChannelPlayer {
         self.player.set_subtitle_track_enabled(enabled);
     }
 
+    pub fn get_current_subtitle_track(&self) -> Option<gst_player::PlayerSubtitleInfo> {
+        self.player.get_current_subtitle_track()
+    }
+
     pub fn get_subtitle_uri(&self) -> Option<glib::GString> {
         self.player.get_subtitle_uri()
     }
