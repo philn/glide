@@ -588,12 +588,14 @@ impl VideoPlayer {
 
     pub fn refresh_subtitle_track_menu(&self) {
         let section = gio::Menu::new();
+        let mut selected_action: Option<std::string::String> = None;
 
         if let Some(info) = self.player.get_media_info() {
             let item = gio::MenuItem::new(Some("Disable"), Some("none"));
             item.set_detailed_action("app.subtitle::none");
             section.append_item(&item);
 
+            let current_subtitle_track = self.player.get_current_subtitle_track();
             for (i, sub_stream) in info.get_subtitle_streams().into_iter().enumerate() {
                 let default_title = format!("Track {}", i + 1);
                 let title = match sub_stream.get_tags() {
@@ -616,10 +618,17 @@ impl VideoPlayer {
                 let item = gio::MenuItem::new(Some(&action_label), Some(&action_id));
                 item.set_detailed_action(&*action_id);
                 section.append_item(&item);
+
+                if selected_action.is_none() {
+                    if let Some(ref track) = current_subtitle_track {
+                        if track.get_language() == sub_stream.get_language() {
+                            selected_action = Some(format!("sub-{}", i));
+                        }
+                    }
+                }
             }
         }
 
-        let mut selected_action: Option<std::string::String> = None;
         if let Some(uri) = self.player.get_subtitle_uri() {
             if let Ok((path, _)) = glib::filename_from_uri(&uri) {
                 let subfile = path.as_path();
