@@ -1,4 +1,3 @@
-extern crate crossbeam_channel as channel;
 extern crate gdk;
 extern crate glib;
 extern crate gstreamer as gst;
@@ -70,7 +69,7 @@ struct MediaCache {
 }
 
 struct PlayerDataHolder {
-    subscribers: Vec<channel::Sender<PlayerEvent>>,
+    subscribers: Vec<glib::Sender<PlayerEvent>>,
     playlist: Vec<string::String>,
     current_uri: glib::GString,
     index: usize,
@@ -213,7 +212,7 @@ impl PlayerDataHolder {
     }
 
     #[allow(dead_code)]
-    fn register_event_handler(&mut self, sender: channel::Sender<PlayerEvent>) {
+    fn register_event_handler(&mut self, sender: glib::Sender<PlayerEvent>) {
         self.subscribers.push(sender);
     }
 
@@ -287,7 +286,7 @@ fn create_renderer() -> (Option<gst_player::PlayerVideoOverlayVideoRenderer>, Op
 }
 
 impl ChannelPlayer {
-    pub fn new(sender: channel::Sender<PlayerEvent>, cache_file_path: Option<path::PathBuf>) -> Result<Self, Error> {
+    pub fn new(sender: glib::Sender<PlayerEvent>, cache_file_path: Option<path::PathBuf>) -> Result<Self, Error> {
         let (renderer, video_area) = create_renderer();
         if renderer.is_none() {
             return Err(failure::err_msg("Neither gtkglsink nor glimagesink found. Make sure to install gst-plugins-good with GTK support enabled, or gst-plugins-base"));
@@ -454,7 +453,7 @@ impl ChannelPlayer {
     }
 
     #[allow(dead_code)]
-    pub fn register_event_handler(&mut self, sender: channel::Sender<PlayerEvent>) {
+    pub fn register_event_handler(&mut self, sender: glib::Sender<PlayerEvent>) {
         let player = &self.player;
         with_mut_player!(player player_data {
             player_data.register_event_handler(sender);

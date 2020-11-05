@@ -1,6 +1,5 @@
 #[cfg(target_os = "macos")]
 extern crate core_foundation;
-extern crate crossbeam_channel as channel;
 extern crate directories;
 extern crate failure;
 extern crate gdk;
@@ -28,7 +27,6 @@ use glib::ToVariant;
 use std::cell::RefCell;
 use std::env;
 use std::fs::create_dir_all;
-use std::thread;
 
 mod channel_player;
 use channel_player::{AudioVisualization, ChannelPlayer, PlaybackState, PlayerEvent, SeekDirection, SubtitleTrack};
@@ -40,12 +38,6 @@ use ui_context::{initialize_and_create_app, UIContext};
 
 #[cfg(target_os = "macos")]
 mod iokit_sleep_disabler;
-
-#[derive(Serialize, Deserialize)]
-enum UIAction {
-    ForwardedPlayerEvent(PlayerEvent),
-    Quit,
-}
 
 struct VideoPlayer {
     player: ChannelPlayer,
@@ -68,9 +60,7 @@ struct VideoPlayer {
     open_sync_window_action: gio::SimpleAction,
     audio_offset_reset_action: gio::SimpleAction,
     subtitle_offset_reset_action: gio::SimpleAction,
-    sender: channel::Sender<UIAction>,
-    receiver: channel::Receiver<UIAction>,
-    player_receiver: channel::Receiver<PlayerEvent>,
+    player_receiver: Option<glib::Receiver<PlayerEvent>>,
 }
 
 thread_local!(
@@ -99,26 +89,6 @@ macro_rules! with_mut_video_player {
 
 static SEEK_BACKWARD_OFFSET: gst::ClockTime = gst::ClockTime(Some(2_000_000_000));
 static SEEK_FORWARD_OFFSET: gst::ClockTime = gst::ClockTime(Some(5_000_000_000));
-
-fn ui_action_handle() -> glib::Continue {
-    let mut quit = false;
-    with_video_player!(player {
-        while let Ok(action) = player.receiver.try_recv() {
-            match action {
-                UIAction::Quit => quit = true,
-                UIAction::ForwardedPlayerEvent(event) => {
-                    player.dispatch_event(event);
-                }
-            }
-        }
-    });
-
-    if quit {
-        with_video_player!(video_player { video_player.quit() });
-    }
-
-    glib::Continue(false)
-}
 
 impl VideoPlayer {
     pub fn new(gtk_app: gtk::Application) -> Result<Self, Error> {
@@ -215,9 +185,8 @@ impl VideoPlayer {
         });
 
         let ui_context = UIContext::new(gtk_app);
-        let (sender, receiver) = channel::unbounded();
 
-        let (player_sender, player_receiver) = channel::unbounded();
+        let (player_sender, player_receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
 
         let cache_file_path = if let Some(d) = ProjectDirs::from("net", "baseart", "Glide") {
             create_dir_all(d.cache_dir()).unwrap();
@@ -249,9 +218,7 @@ impl VideoPlayer {
             open_sync_window_action,
             audio_offset_reset_action,
             subtitle_offset_reset_action,
-            sender,
-            receiver,
-            player_receiver,
+            player_receiver: Some(player_receiver),
         })
     }
 
@@ -263,20 +230,12 @@ impl VideoPlayer {
     }
 
     pub fn start(&mut self) {
-        let callback = || glib::idle_add(ui_action_handle);
-        let sender = self.sender.clone();
-        let receiver = self.player_receiver.clone();
-
-        thread::spawn(move || {
-            while let Ok(event) = receiver.recv() {
-                // if let PlayerEvent::EndOfPlaylist = event {
-                //     sender.send(UIAction::Quit).unwrap();
-                //     callback();
-                //     break;
-                // }
-                sender.send(UIAction::ForwardedPlayerEvent(event)).unwrap();
-                callback();
-            }
+        let player_receiver = self.player_receiver.take().expect("No player channel receiver");
+        player_receiver.attach(None, move |event| {
+            with_video_player!(player {
+                player.dispatch_event(event);
+            });
+            glib::Continue(true)
         });
 
         self.pause_action.connect_change_state(|pause_action, _| {
@@ -532,7 +491,7 @@ impl VideoPlayer {
     pub fn player_error(&self, msg: std::string::String) {
         // FIXME: display some GTK error dialog...
         eprintln!("Internal player error: {}", msg);
-        self.sender.send(UIAction::Quit).unwrap();
+        with_video_player!(video_player { video_player.quit() });
     }
 
     pub fn volume_changed(&self, volume: f64) {
