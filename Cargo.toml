@@ -1,33 +1,48 @@
 [package]
-name = "glide"
-version = "0.5.8"
 authors = ["Philippe Normand <phil@base-art.net>"]
-keywords = ["multimedia", "gstreamer", "gtk", "playback"]
-repository = "https://github.com/philn/glide"
-readme = "README.md"
 description = "Cross-platform media player based on GStreamer and GTK+"
-license = "MIT"
 edition = "2018"
-
+keywords = ["multimedia", "gstreamer", "gtk", "playback"]
+license = "MIT"
+name = "glide"
+readme = "README.md"
+repository = "https://github.com/philn/glide"
+version = "0.5.8"
 [dependencies]
-glib = "0.10"
+directories = "3.0"
+failure = "0.1"
 gdk = "0.13"
 gio = "0.9"
-gstreamer = { version = "0.16", features = ["v1_16"]}
-gstreamer-player = { version = "0.16", features = ["v1_16"]}
-gstreamer-video = { version = "0.16", features = ["v1_16"]}
-gtk = { version = "0.9", features = ["v3_24"] }
+glib = "0.10"
 lazy_static = "1.4"
-self_update = { version = "0.16", optional = true }
-serde_json = "1.0"
-serde_derive = "1.0"
 serde = "1.0"
-failure = "0.1"
+serde_derive = "1.0"
+serde_json = "1.0"
 sha2 = "0.9"
-directories = "3.0"
+structopt = "*"
 
-[target.'cfg(target_os = "macos")'.dependencies]
-core-foundation = "0.9"
+[dependencies.gstreamer]
+features = ["v1_16"]
+version = "0.16"
+
+[dependencies.gstreamer-player]
+features = ["v1_16"]
+version = "0.16"
+
+[dependencies.gstreamer-video]
+features = ["v1_16"]
+version = "0.16"
+
+[dependencies.gtk]
+features = ["v3_24"]
+version = "0.9"
+
+[dependencies.self_update]
+optional = true
+version = "0.16"
 
 [features]
 self-updater = ["self_update"]
+
+[target.'cfg(target_os = "macos")'.dependencies]
+core-foundation = "0.9"

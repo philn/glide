@@ -27,6 +27,8 @@ use glib::ToVariant;
 use std::cell::RefCell;
 use std::env;
 use std::fs::create_dir_all;
+use std::path::PathBuf;
+use structopt::StructOpt;
 
 mod channel_player;
 use channel_player::{AudioVisualization, ChannelPlayer, PlaybackState, PlayerEvent, SeekDirection, SubtitleTrack};
@@ -38,6 +40,18 @@ use ui_context::{initialize_and_create_app, UIContext};
 
 #[cfg(target_os = "macos")]
 mod iokit_sleep_disabler;
+
+#[derive(StructOpt, Debug)]
+#[structopt(name = "Glide")]
+struct Opt {
+    /// Activate incognito mode. Playback position won't be recorded/loaded to/from the media cache
+    #[structopt(short, long)]
+    incognito: bool,
+
+    /// Files to play
+    #[structopt(name = "FILE", parse(from_os_str))]
+    files: Vec<PathBuf>,
+}
 
 struct VideoPlayer {
     player: ChannelPlayer,
@@ -91,7 +105,7 @@ static SEEK_BACKWARD_OFFSET: gst::ClockTime = gst::ClockTime(Some(2_000_000_000)
 static SEEK_FORWARD_OFFSET: gst::ClockTime = gst::ClockTime(Some(5_000_000_000));
 
 impl VideoPlayer {
-    pub fn new(gtk_app: gtk::Application) -> Result<Self, Error> {
+    pub fn new(gtk_app: gtk::Application, options: &Opt) -> Result<Self, Error> {
         let fullscreen_action = gio::SimpleAction::new_stateful("fullscreen", None, &false.to_variant());
         gtk_app.add_action(&fullscreen_action);
 
@@ -188,12 +202,13 @@ impl VideoPlayer {
 
         let (player_sender, player_receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
 
-        let cache_file_path = if let Some(d) = ProjectDirs::from("net", "baseart", "Glide") {
-            create_dir_all(d.cache_dir()).unwrap();
-            Some(d.cache_dir().join("media-cache.json"))
-        } else {
-            None
-        };
+        let mut cache_file_path = None;
+        if !options.incognito {
+            if let Some(d) = ProjectDirs::from("net", "baseart", "Glide") {
+                create_dir_all(d.cache_dir()).unwrap();
+                cache_file_path = Some(d.cache_dir().join("media-cache.json"));
+            }
+        }
 
         let player = ChannelPlayer::new(player_sender, cache_file_path)?;
 
@@ -776,16 +791,25 @@ fn main() -> Result<(), Error> {
 
     glib::set_application_name("Glide");
 
+    let opt = Opt::from_args();
+
     let gtk_app = initialize_and_create_app();
 
     let gtk_app_clone = gtk_app.clone();
-    let app = VideoPlayer::new(gtk_app)?;
+    let app = VideoPlayer::new(gtk_app, &opt)?;
 
     GLOBAL.with(move |global| {
         *global.borrow_mut() = Some(app);
     });
 
-    let args = env::args().collect::<Vec<_>>();
+    let files: Vec<std::string::String> = opt
+        .files
+        .iter()
+        .map(|p| std::string::String::from(p.to_str().unwrap()))
+        .collect();
+
+    let mut args = vec![env::args().nth(0).unwrap()];
+    args.extend(files);
     gtk_app_clone.run(&args);
 
     Ok(())
