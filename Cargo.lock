@@ -694,6 +694,7 @@ dependencies = [
  "gio",
  "glib",
  "gstreamer",
+ "gstreamer-app",
  "gstreamer-player",
  "gstreamer-video",
  "gtk",
@@ -739,6 +740,39 @@ dependencies = [
  "paste",
  "pretty-hex",
  "thiserror",
+]
+
+[[package]]
+name = "gstreamer-app"
+version = "0.16.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "330e3e40c0e27680e52e38c599353dddfb14c373a148dd9154243f7cf92ba3c2"
+dependencies = [
+ "bitflags",
+ "futures-core",
+ "futures-sink",
+ "glib",
+ "glib-sys",
+ "gobject-sys",
+ "gstreamer",
+ "gstreamer-app-sys",
+ "gstreamer-base",
+ "gstreamer-sys",
+ "libc",
+ "once_cell",
+]
+
+[[package]]
+name = "gstreamer-app-sys"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "813f64275c9e7b33b828b9efcf9dfa64b95996766d4de996e84363ac65b87e3d"
+dependencies = [
+ "glib-sys",
+ "gstreamer-base-sys",
+ "gstreamer-sys",
+ "libc",
+ "system-deps",
 ]
 
 [[package]]

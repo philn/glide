@@ -22,11 +22,22 @@ use std::path;
 use std::process;
 use std::string;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum PlaybackState {
     Stopped,
     Paused,
     Playing,
+}
+
+impl std::fmt::Display for PlaybackState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let val = match self {
+            PlaybackState::Stopped => "Stopped",
+            PlaybackState::Paused => "Paused",
+            PlaybackState::Playing => "Playing",
+        };
+        write!(f, "{}", val)
+    }
 }
 
 pub enum SeekDirection {
@@ -74,6 +85,7 @@ struct PlayerDataHolder {
     current_uri: glib::GString,
     index: usize,
     cache: Option<MediaCache>,
+    osd: gst::Element,
 }
 
 thread_local!(
@@ -252,6 +264,17 @@ impl PlayerDataHolder {
             cache.write().unwrap();
         }
     }
+
+    fn osd_message(&self, message: std::string::String) {
+        use gst::message::Application;
+        let mut buf = gst::Buffer::from_slice(message);
+        {
+            let buf = buf.get_mut().unwrap();
+            buf.set_duration(gst::ClockTime::from_seconds(10));
+        }
+        let payload = gst::Structure::builder("osd-request").field("buffer", &buf).build();
+        self.osd.post_message(Application::builder(payload).build()).unwrap();
+    }
 }
 
 fn create_renderer() -> (Option<gst_player::PlayerVideoOverlayVideoRenderer>, Option<gtk::Widget>) {
@@ -285,6 +308,16 @@ fn create_renderer() -> (Option<gst_player::PlayerVideoOverlayVideoRenderer>, Op
     }
 }
 
+pub fn configure_video_filter(player: &gst_player::Player) -> gst::Element {
+    let element = player.get_pipeline();
+    let pipeline = element.downcast::<gst::Pipeline>().unwrap();
+    let filter = gst::ElementFactory::make("osd", None).unwrap();
+    pipeline
+        .set_property("video-filter", &glib::Value::from(&filter))
+        .unwrap();
+    filter
+}
+
 impl ChannelPlayer {
     pub fn new(sender: glib::Sender<PlayerEvent>, cache_file_path: Option<path::PathBuf>) -> Result<Self, Error> {
         let (renderer, video_area) = create_renderer();
@@ -308,6 +341,8 @@ impl ChannelPlayer {
         let mut config = player.get_config();
         config.set_position_update_interval(250);
         player.set_config(config).unwrap();
+
+        let osd = configure_video_filter(&player);
 
         let video_area = video_area.unwrap();
         video_area.connect_draw(move |video_area, cairo_context| {
@@ -357,12 +392,14 @@ impl ChannelPlayer {
         player.connect_uri_loaded(|player, uri| {
             player.pause();
             with_mut_player!(player player_data {
+                //player_data.osd_message(format!("Now playing {}", uri));
                 if let Some(ref cache) = player_data.cache {
                     let position = cache.find_last_position(uri);
                     if position.is_some() {
                         player.seek(position);
                     }
                 }
+                player_data.osd_message("Now playing 😍".to_string());
             });
             player.play();
         });
@@ -400,6 +437,7 @@ impl ChannelPlayer {
             };
             if let Some(s) = state {
                 with_player!(player {
+                    player.osd_message(format!("{}", s));
                     player.notify(PlayerEvent::StateChanged(s));
                 });
             }
@@ -443,6 +481,7 @@ impl ChannelPlayer {
             current_uri: "".into(),
             index: 0,
             cache,
+            osd,
         };
 
         PLAYER_REGISTRY.with(move |registry| {

@@ -4,8 +4,10 @@ extern crate directories;
 extern crate failure;
 extern crate gdk;
 extern crate gio;
+#[macro_use]
 extern crate glib;
 extern crate gstreamer as gst;
+extern crate gstreamer_app as gst_app;
 extern crate gstreamer_player as gst_player;
 extern crate gstreamer_video as gst_video;
 extern crate gtk;
@@ -40,6 +42,8 @@ use ui_context::{initialize_and_create_app, UIContext};
 
 #[cfg(target_os = "macos")]
 mod iokit_sleep_disabler;
+
+mod osd;
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "Glide")]
@@ -788,6 +792,7 @@ fn main() -> Result<(), Error> {
     }
 
     gst::init().expect("Failed to initialize GStreamer.");
+    osd::register_osd()?;
 
     glib::set_application_name("Glide");
 
