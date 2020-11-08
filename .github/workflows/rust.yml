@@ -20,8 +20,12 @@ jobs:
       run: sudo apt install gstreamer1.0-plugins-{base,good,bad} libgstreamer-plugins-{bad,base}1.0-dev libgtk-3-dev gstreamer1.0-{gl,gtk3}
     - name: Build
       run: cargo build --verbose
-    - name: Clippy
-      run: cargo clippy
+    - name: Annotate commit with clippy warnings
+      run: cargo clippy -- -D warnings
+    - name: Security audit
+      uses: actions-rs/audit-check@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
     - name: Run tests
       run: cargo test --verbose
   macos-build:
