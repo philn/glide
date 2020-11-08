@@ -808,7 +808,7 @@ fn main() -> Result<(), Error> {
         .map(|p| std::string::String::from(p.to_str().unwrap()))
         .collect();
 
-    let mut args = vec![env::args().nth(0).unwrap()];
+    let mut args = vec![env::args().next().unwrap()];
     args.extend(files);
     gtk_app_clone.run(&args);
 
