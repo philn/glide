@@ -1,6 +1,6 @@
 
 - subtitle rendering customization (background opacity, text color)
 - subscene.com sub crawler
-- desktop integration (file browser mostly)
-- audio/video offset config support
-- packaging
+- OSD
+- basic playlist UI
+
