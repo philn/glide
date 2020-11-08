@@ -431,6 +431,15 @@ impl VideoPlayer {
 
         self.ui_context.set_drop_data_callback(|uri| {
             with_video_player!(video_player {
+                if let Ok((path, _)) = glib::filename_from_uri(&uri) {
+                    if let Some(extension) = path.extension() {
+                        if constants::SUB_FILE_EXTENSIONS.contains(&extension.to_str().unwrap()) {
+                            video_player.player
+                                .configure_subtitle_track(Some(SubtitleTrack::External(uri.into())));
+                            return;
+                        }
+                    }
+                }
                 println!("loading {}", &uri);
                 video_player.player.stop();
                 video_player.player.load_uri(&uri);
