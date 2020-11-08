@@ -31,6 +31,7 @@ use std::path::PathBuf;
 use structopt::StructOpt;
 
 mod channel_player;
+mod constants;
 use channel_player::{AudioVisualization, ChannelPlayer, PlaybackState, PlayerEvent, SeekDirection, SubtitleTrack};
 
 use gst_player::PlayerStreamInfoExt;
@@ -96,13 +97,6 @@ macro_rules! with_mut_video_player {
         })
     )
 }
-
-// Only possible in nightly
-// static SEEK_BACKWARD_OFFSET: gst::ClockTime = gst::ClockTime::from_mseconds(2000);
-// static SEEK_FORWARD_OFFSET: gst::ClockTime = gst::ClockTime::from_mseconds(5000);
-
-static SEEK_BACKWARD_OFFSET: gst::ClockTime = gst::ClockTime(Some(2_000_000_000));
-static SEEK_FORWARD_OFFSET: gst::ClockTime = gst::ClockTime(Some(5_000_000_000));
 
 impl VideoPlayer {
     pub fn new(gtk_app: gtk::Application, options: &Opt) -> Result<Self, Error> {
@@ -272,13 +266,13 @@ impl VideoPlayer {
 
         self.seek_forward_action.connect_change_state(|_, _| {
             with_video_player!(video_player {
-                video_player.player.seek(&SeekDirection::Forward(SEEK_FORWARD_OFFSET));
+                video_player.player.seek(&SeekDirection::Forward(constants::SEEK_FORWARD_OFFSET));
             });
         });
 
         self.seek_backward_action.connect_change_state(|_, _| {
             with_video_player!(video_player {
-                video_player.player.seek(&SeekDirection::Backward(SEEK_BACKWARD_OFFSET));
+                video_player.player.seek(&SeekDirection::Backward(constants::SEEK_BACKWARD_OFFSET));
             });
         });
 
