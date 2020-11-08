@@ -11,12 +11,10 @@ edition = "2018"
 
 [dependencies]
 glib = "0.9"
-gdk = "0.12"
 gio = "0.8"
 gstreamer = "0.15"
 gstreamer-player = "0.15"
 gstreamer-video = "0.15"
-gtk = { version = "0.8", features = ["v3_16"] }
 lazy_static = "1.4.0"
 self_update = { version = "0.7.0", optional = true }
 serde_json = "1.0.41"
@@ -27,8 +25,16 @@ sha2 = "0.8.0"
 crossbeam-channel = "0.3.9"
 directories = "2.0.2"
 
+[target.'cfg(target_os = "linux")'.dependencies]
+gdk = "0.12"
+gtk = { version = "0.8.0", features = ["v3_20"] }
+
 [target.'cfg(target_os = "macos")'.dependencies]
-core-foundation = "0.6.4"
+core-foundation = "0.7"
+objc = "0.2"
+cocoa = "0.20"
+fruitbasket = { git = "https://github.com/mrmekon/fruitbasket" }
+gobject-sys = "0.9"
 
 [features]
 self-updater = ["self_update"]

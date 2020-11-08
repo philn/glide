@@ -1,3 +1,4 @@
+extern crate failure;
 extern crate gdk;
 extern crate gio;
 extern crate glib;
@@ -10,13 +11,12 @@ use gio::prelude::*;
 #[allow(unused_imports)]
 use glib::SendWeakRef;
 use gtk::prelude::*;
+use std::boxed::Box;
 use std::cmp;
 #[allow(unused_imports)]
 use std::os::raw::c_void;
 use std::string;
 use std::sync::Mutex;
-
-use crate::PlaybackState;
 
 lazy_static! {
     pub static ref INHIBIT_COOKIE: Mutex<Option<u32>> = { Mutex::new(None) };
@@ -25,6 +25,14 @@ lazy_static! {
     pub static ref MOUSE_NOTIFY_SIGNAL_ID: Mutex<Option<glib::SignalHandlerId>> = { Mutex::new(None) };
     pub static ref AUTOHIDE_SOURCE: Mutex<Option<glib::SourceId>> = { Mutex::new(None) };
 }
+
+use crate::app;
+use crate::channel_player::PlaybackState;
+use crate::video_player;
+use crate::video_player::GLOBAL;
+use crate::video_renderer;
+use crate::video_renderer_factory;
+use crate::{with_mut_video_player, with_video_player};
 
 #[cfg(target_os = "macos")]
 use crate::iokit_sleep_disabler;
@@ -57,7 +65,8 @@ pub fn initialize_and_create_app() -> gtk::Application {
     gtk_app
 }
 
-pub struct UIContext {
+pub struct AppData {
+    app: Box<gtk::Application>,
     window: gtk::ApplicationWindow,
     main_box: gtk::Box,
     pause_button: gtk::Button,
@@ -68,16 +77,21 @@ pub struct UIContext {
     audio_track_menu: gio::Menu,
     video_track_menu: gio::Menu,
     audio_visualization_menu: gio::Menu,
-    volume_signal_handler_id: Option<glib::SignalHandlerId>,
-    position_signal_handler_id: Option<glib::SignalHandlerId>,
-    app: gtk::Application,
+    volume_signal_handler_id: glib::SignalHandlerId,
+    position_signal_handler_id: glib::SignalHandlerId,
+}
+
+pub struct GlideGTKApp {
+    data: Box<AppData>,
 }
 
 const MINIMAL_WINDOW_SIZE: (i32, i32) = (640, 480);
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-impl UIContext {
-    pub fn new(gtk_app: gtk::Application) -> Self {
+impl AppData {
+    pub fn new() -> Self {
+        let gtk_app = initialize_and_create_app();
+
         let builder = gtk::Builder::new_from_string(include_str!("../data/net.baseart.Glide.ui"));
 
         let pause_button = {
@@ -139,28 +153,61 @@ impl UIContext {
             menu.append(Some("About"), Some("app.about"));
         }
 
+        window.connect_delete_event(move |_, _| {
+            with_video_player!(video_player {
+                video_player.quit();
+            });
+            Inhibit(false)
+        });
+
+        progress_bar.connect_format_value(move |widget, value| -> string::String {
+            let range = widget.clone().upcast::<gtk::Range>();
+            let duration = range.get_adjustment().get_upper();
+            let position = gst::ClockTime::from_seconds(value as u64);
+            let duration = gst::ClockTime::from_seconds(duration as u64);
+            if duration.is_some() {
+                format!("{:.0} / {:.0}", position, duration)
+            } else {
+                format!("{:.0}", position)
+            }
+        });
+
+        let volume_scale = volume_button.clone().upcast::<gtk::ScaleButton>();
+        let volume_signal_handler_id = volume_scale.connect_value_changed(move |_, value| {
+            with_video_player!(video_player {
+                video_player.player.set_volume(value);
+            });
+        });
+
+        let range = progress_bar.clone().upcast::<gtk::Range>();
+        let position_signal_handler_id = range.connect_value_changed(move |range| {
+            with_video_player!(video_player {
+                video_player.player.seek_to(gst::ClockTime::from_seconds(range.get_value() as u64));
+            });
+        });
+
         let window_weak = SendWeakRef::from(window.downgrade());
-        gtk_app.connect_startup(move |app| {
+        gtk_app.connect_startup(move |gtk_app| {
             let accels_per_action = [
-                ("open-media", ["<Primary>o"]),
-                ("quit", ["<Primary>q"]),
-                ("fullscreen", ["<Primary>f"]),
-                ("restore", ["Escape"]),
-                ("pause", ["space"]),
-                ("seek-forward", ["<Primary>Right"]),
-                ("seek-backward", ["<Primary>Left"]),
-                ("audio-volume-increase", ["<Primary>Up"]),
-                ("audio-volume-decrease", ["<Primary>Down"]),
-                ("audio-mute", ["<Primary>m"]),
-                ("open-subtitle-file", ["<Primary>s"]),
-                ("dump-pipeline", ["<Ctrl>d"]),
+                ("open-media", "<Primary>o"),
+                ("quit", "<Primary>q"),
+                ("fullscreen", "<Primary>f"),
+                ("restore", "Escape"),
+                ("pause", "space"),
+                ("seek-forward", "<Primary>Right"),
+                ("seek-backward", "<Primary>Left"),
+                ("audio-volume-increase", "<Primary>Up"),
+                ("audio-volume-decrease", "<Primary>Down"),
+                ("audio-mute", "<Primary>m"),
+                ("open-subtitle-file", "<Primary>s"),
+                ("dump-pipeline", "<Ctrl>d"),
             ];
-            for (action, accels) in accels_per_action.iter() {
-                app.set_accels_for_action(&format!("app.{}", action), accels);
+            for (action, accel) in accels_per_action.iter() {
+                gtk_app.set_accels_for_action(&format!("app.{}", action), &[*accel]);
             }
 
             if let Some(window) = window_weak.upgrade() {
-                window.set_application(Some(app));
+                window.set_application(Some(gtk_app));
 
                 #[cfg(target_os = "linux")]
                 {
@@ -171,7 +218,7 @@ impl UIContext {
                     let main_menu_image =
                         gtk::Image::new_from_icon_name(Some("open-menu-symbolic"), gtk::IconSize::Menu);
                     main_menu.add(&main_menu_image);
-                    main_menu.set_menu_model(Some(&menu));
+                    main_menu.set_menu_model(Some(&data.menu));
 
                     header_bar.pack_end(&main_menu);
                     window.set_titlebar(Some(&header_bar));
@@ -180,11 +227,18 @@ impl UIContext {
 
             #[cfg(not(target_os = "linux"))]
             {
-                app.set_menubar(Some(&menu));
+                gtk_app.set_menubar(Some(&menu));
             }
         });
 
+        gtk_app.connect_activate(|_| {
+            with_mut_video_player!(player {
+                player.start();
+            })
+        });
+
         Self {
+            app: Box::new(gtk_app),
             window,
             main_box,
             pause_button,
@@ -195,16 +249,23 @@ impl UIContext {
             audio_track_menu,
             video_track_menu,
             audio_visualization_menu,
-            volume_signal_handler_id: None,
-            position_signal_handler_id: None,
-            app: gtk_app,
+            volume_signal_handler_id,
+            position_signal_handler_id,
+        }
+    }
+}
+
+impl GlideGTKApp {
+    pub fn new() -> Self {
+        Self {
+            data: Box::new(AppData::new()),
         }
     }
 
     #[cfg(target_os = "linux")]
     pub fn start_autohide_toolbar(&self) {
-        let toolbar_weak = self.toolbar_box.downgrade();
-        let notify_signal_id = self.window.connect_motion_notify_event(move |window, _| {
+        let toolbar_weak = self.data.toolbar_box.downgrade();
+        let notify_signal_id = self.data.window.connect_motion_notify_event(move |window, _| {
             if let Some(source) = AUTOHIDE_SOURCE.lock().unwrap().take() {
                 glib::source_remove(source);
             }
@@ -241,9 +302,11 @@ impl UIContext {
         });
         *MOUSE_NOTIFY_SIGNAL_ID.lock().unwrap() = Some(notify_signal_id);
     }
+}
 
-    pub fn enter_fullscreen(&self) {
-        let window = &self.window;
+impl app::Application for GlideGTKApp {
+    fn enter_fullscreen(&self) {
+        let window = &self.data.window;
         #[cfg(target_os = "macos")]
         {
             *INHIBIT_COOKIE.lock().unwrap() = Some(iokit_sleep_disabler::prevent_display_sleep("Glide full-screen"));
@@ -251,12 +314,13 @@ impl UIContext {
         #[cfg(not(target_os = "macos"))]
         {
             let flags = gtk::ApplicationInhibitFlags::SUSPEND | gtk::ApplicationInhibitFlags::IDLE;
-            *INHIBIT_COOKIE.lock().unwrap() = Some(self.app.inhibit(Some(window), flags, Some("Glide full-screen")));
+            *INHIBIT_COOKIE.lock().unwrap() =
+                Some(self.data.app.inhibit(Some(window), flags, Some("Glide full-screen")));
         }
         *INITIAL_SIZE.lock().unwrap() = Some(window.get_size());
         *INITIAL_POSITION.lock().unwrap() = Some(window.get_position());
         window.set_show_menubar(false);
-        self.toolbar_box.set_visible(false);
+        self.data.toolbar_box.set_visible(false);
         window.fullscreen();
         let gdk_window = window.get_window().unwrap();
         let cursor = gdk::Cursor::new_for_display(&gdk_window.get_display(), gdk::CursorType::BlankCursor);
@@ -266,14 +330,14 @@ impl UIContext {
         self.start_autohide_toolbar();
     }
 
-    pub fn leave_fullscreen(&self) {
-        let window = &self.window;
+    fn leave_fullscreen(&self) {
+        let window = &self.data.window;
         let gdk_window = window.get_window().unwrap();
         if let Ok(mut cookie) = INHIBIT_COOKIE.lock() {
             #[cfg(target_os = "macos")]
             iokit_sleep_disabler::release_sleep_assertion(cookie.unwrap());
             #[cfg(not(target_os = "macos"))]
-            self.app.uninhibit(cookie.unwrap());
+            self.data.app.uninhibit(cookie.unwrap());
             *cookie = None;
         }
         if let Ok(mut signal_handler_id) = MOUSE_NOTIFY_SIGNAL_ID.lock() {
@@ -282,15 +346,15 @@ impl UIContext {
             }
         }
         window.unfullscreen();
-        self.toolbar_box.set_visible(true);
+        self.data.toolbar_box.set_visible(true);
         window.set_show_menubar(true);
         gdk_window.set_cursor(None);
     }
 
-    pub fn dialog_result(&self, relative_uri: Option<glib::GString>) -> Option<glib::GString> {
+    fn dialog_result(&self, relative_uri: Option<glib::GString>) -> Option<glib::GString> {
         let dialog = gtk::FileChooserDialog::with_buttons(
             Some("Choose a file"),
-            Some(&self.window),
+            Some(&self.data.window),
             gtk::FileChooserAction::Open,
             &[("Open", gtk::ResponseType::Ok), ("Cancel", gtk::ResponseType::Cancel)],
         );
@@ -313,70 +377,64 @@ impl UIContext {
         result_uri
     }
 
-    pub fn start<F: Fn() + Send + Sync + 'static>(&self, f: F) {
-        self.window.show_all();
+    fn implementation(&self) -> Option<app::ApplicationImpl> {
+        Some(app::ApplicationImpl::GTK(*self.data.app.clone()))
+    }
 
-        self.window.connect_delete_event(move |_, _| {
-            f();
-            Inhibit(false)
+    fn glib_context(&self) -> Option<&glib::MainContext> {
+        None
+    }
+
+    fn start(&self) {
+        self.data.window.show_all();
+
+        self.data.app.connect_open(|gtk_app, files, _| {
+            gtk_app.activate();
+            let mut file_list = vec![];
+            for file in files.to_vec() {
+                let uri = file.get_uri();
+                file_list.push(std::string::String::from(uri.as_str()));
+            }
+            with_mut_video_player!(player {
+                player.load_playlist(file_list);
+            });
         });
     }
 
-    pub fn stop(&self) {
-        self.app.quit();
+    fn stop(&self) {
+        self.data.app.quit();
     }
 
-    pub fn set_progress_bar_format_callback<F>(&self, f: F)
-    where
-        F: Fn(f64, f64) -> string::String + Send + Sync + 'static,
-    {
-        self.progress_bar
-            .connect_format_value(move |widget, value| -> string::String {
-                let range = widget.clone().upcast::<gtk::Range>();
-                f(value, range.get_adjustment().get_upper())
-            });
+    fn set_video_renderer(&self, renderer: &video_renderer::VideoRenderer) {
+        if let Some(implementation) = renderer.implementation() {
+            match implementation {
+                video_renderer::VideoWidgetImpl::GTK(widget) => {
+                    if let Some(video_area) = widget.upgrade() {
+                        self.data.main_box.pack_start(&video_area, true, true, 0);
+                        self.data.main_box.reorder_child(&video_area, 0);
+                        video_area.show();
+                    }
+                }
+            }
+        }
     }
 
-    pub fn set_volume_value_changed_callback<F: Fn(f64) + Send + Sync + 'static>(&mut self, f: F) {
-        let volume_scale = self.volume_button.clone().upcast::<gtk::ScaleButton>();
-        self.volume_signal_handler_id = Some(volume_scale.connect_value_changed(move |_, value| {
-            f(value);
-        }));
-    }
-
-    pub fn set_position_changed_callback<F: Fn(u64) + Send + Sync + 'static>(&mut self, f: F) {
-        let range = self.progress_bar.clone().upcast::<gtk::Range>();
-        self.position_signal_handler_id = Some(range.connect_value_changed(move |range| {
-            f(range.get_value() as u64);
-        }));
-    }
-
-    pub fn volume_changed(&self, volume: f64) {
-        let button = &self.volume_button;
+    fn volume_changed(&self, volume: f64) {
+        let button = &self.data.volume_button;
         let scale = button.clone().upcast::<gtk::ScaleButton>();
-        if let Some(ref handler_id) = self.volume_signal_handler_id {
-            glib::signal_handler_block(&scale, &handler_id);
-            scale.set_value(volume);
-            glib::signal_handler_unblock(&scale, &handler_id);
-        }
+        glib::signal_handler_block(&scale, &self.data.volume_signal_handler_id);
+        scale.set_value(volume);
+        glib::signal_handler_unblock(&scale, &self.data.volume_signal_handler_id);
     }
 
-    pub fn set_position_range_value(&self, position: u64) {
-        let range = self.progress_bar.clone().upcast::<gtk::Range>();
-        if let Some(ref handler_id) = self.position_signal_handler_id {
-            glib::signal_handler_block(&range, &handler_id);
-            range.set_value(position as f64);
-            glib::signal_handler_unblock(&range, &handler_id);
-        }
+    fn set_position_range_value(&self, position: u64) {
+        let range = self.data.progress_bar.clone().upcast::<gtk::Range>();
+        glib::signal_handler_block(&range, &self.data.position_signal_handler_id);
+        range.set_value(position as f64);
+        glib::signal_handler_unblock(&range, &self.data.position_signal_handler_id);
     }
 
-    pub fn set_video_area(&self, video_area: &gtk::Widget) {
-        self.main_box.pack_start(&*video_area, true, true, 0);
-        self.main_box.reorder_child(&*video_area, 0);
-        video_area.show();
-    }
-
-    pub fn resize_window(&self, width: i32, height: i32) {
+    fn resize_window(&self, width: i32, height: i32) {
         let mut width = width;
         let mut height = height;
         if let Some(screen) = gdk::Screen::get_default() {
@@ -385,29 +443,27 @@ impl UIContext {
         }
         // FIXME: Somehow resize video_area to avoid black borders.
         if width > MINIMAL_WINDOW_SIZE.0 && height > MINIMAL_WINDOW_SIZE.1 {
-            self.window.resize(width, height);
+            self.data.window.resize(width, height);
         }
     }
 
-    pub fn set_window_title(&self, title: &str) {
-        self.window.set_title(title);
+    fn set_window_title(&self, title: &str) {
+        self.data.window.set_title(title);
     }
 
-    pub fn set_position_range_end(&self, end: f64) {
-        let progress_bar = &self.progress_bar;
+    fn set_position_range_end(&self, end: f64) {
+        let progress_bar = &self.data.progress_bar;
         let range = progress_bar.clone().upcast::<gtk::Range>();
-        if let Some(ref handler_id) = self.position_signal_handler_id {
-            glib::signal_handler_block(&range, &handler_id);
-            range.set_range(0.0, end);
-            glib::signal_handler_unblock(&range, &handler_id);
-        }
+        glib::signal_handler_block(&range, &self.data.position_signal_handler_id);
+        range.set_range(0.0, end);
+        glib::signal_handler_unblock(&range, &self.data.position_signal_handler_id);
 
         // Force the GtkScale to recompute its label widget size.
         progress_bar.set_draw_value(false);
         progress_bar.set_draw_value(true);
     }
 
-    pub fn display_about_dialog(&self) {
+    fn display_about_dialog(&self) {
         let dialog = gtk::AboutDialog::new();
         dialog.set_authors(&["Philippe Normand"]);
         dialog.set_website_label(Some("base-art.net"));
@@ -422,53 +478,60 @@ impl UIContext {
             gtk::get_micro_version()
         );
         dialog.set_comments(Some(s.as_str()));
-        dialog.set_transient_for(Some(&self.window));
+        dialog.set_transient_for(Some(&self.data.window));
         dialog.run();
         dialog.destroy();
     }
 
-    pub fn playback_state_changed(&self, playback_state: &PlaybackState) {
+    fn playback_state_changed(&self, playback_state: &PlaybackState) {
         match playback_state {
             PlaybackState::Paused => {
                 let image =
                     gtk::Image::new_from_icon_name(Some("media-playback-start-symbolic"), gtk::IconSize::SmallToolbar);
-                self.pause_button.set_image(Some(&image));
+                self.data.pause_button.set_image(Some(&image));
             }
             PlaybackState::Playing => {
                 let image =
                     gtk::Image::new_from_icon_name(Some("media-playback-pause-symbolic"), gtk::IconSize::SmallToolbar);
-                self.pause_button.set_image(Some(&image));
+                self.data.pause_button.set_image(Some(&image));
             }
             _ => {}
         };
     }
 
-    pub fn update_subtitle_track_menu(&self, section: &gio::Menu) {
+    fn refresh_video_renderer(&self) {}
+
+    fn update_subtitle_track_menu(&self, section: &gio::Menu) {
         // TODO: Would be nice to keep previous external subs in the menu.
-        self.subtitle_track_menu.remove_all();
-        self.subtitle_track_menu.append_section(None, section);
+        self.data.subtitle_track_menu.remove_all();
+        self.data.subtitle_track_menu.append_section(None, section);
     }
 
-    pub fn update_audio_track_menu(&self, section: &gio::Menu) {
-        self.audio_track_menu.remove_all();
-        self.audio_track_menu.append_section(None, section);
+    fn update_audio_track_menu(&self, section: &gio::Menu) {
+        self.data.audio_track_menu.remove_all();
+        self.data.audio_track_menu.append_section(None, section);
     }
 
-    pub fn update_video_track_menu(&self, section: &gio::Menu) {
-        self.video_track_menu.remove_all();
-        self.video_track_menu.append_section(None, section);
+    fn update_video_track_menu(&self, section: &gio::Menu) {
+        self.data.video_track_menu.remove_all();
+        self.data.video_track_menu.append_section(None, section);
     }
 
-    pub fn clear_audio_visualization_menu(&self) {
-        self.audio_visualization_menu.remove_all();
+    fn clear_audio_visualization_menu(&self) {
+        self.data.audio_visualization_menu.remove_all();
     }
 
-    pub fn update_audio_visualization_menu(&self, section: &gio::Menu) {
-        self.audio_visualization_menu.append_section(None, section);
-        self.audio_visualization_menu.freeze();
+    fn update_audio_visualization_menu(&self, section: &gio::Menu) {
+        self.data.audio_visualization_menu.append_section(None, section);
+        self.data.audio_visualization_menu.freeze();
     }
 
-    pub fn mutable_audio_visualization_menu(&self) -> bool {
-        self.audio_visualization_menu.is_mutable()
+    fn mutable_audio_visualization_menu(&self) -> bool {
+        self.data.audio_visualization_menu.is_mutable()
+    }
+
+    fn add_action(&self, action: &gio::SimpleAction) {
+        //*self.gtk_app.lock().unwrap().add_action(action);
+        self.data.app.add_action(action);
     }
 }

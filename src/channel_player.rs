@@ -1,30 +1,28 @@
 extern crate crossbeam_channel as channel;
-extern crate gdk;
 extern crate glib;
 extern crate gstreamer as gst;
 extern crate gstreamer_player as gst_player;
-extern crate gstreamer_video as gst_video;
-extern crate gtk;
 extern crate serde_json;
 extern crate sha2;
 
+use crate::app;
+
+use crate::video_renderer::VideoRenderer;
+
 use self::sha2::{Digest, Sha256};
 use failure::Error;
-use gdk::prelude::*;
 use gst::prelude::*;
-use gtk::prelude::*;
+use std::boxed::Box;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::default::Default;
 use std::fs::File;
 use std::io::Read;
 use std::io::Write;
-use std::os::raw::c_void;
 use std::path;
-use std::process;
 use std::string;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum PlaybackState {
     Stopped,
     Paused,
@@ -36,6 +34,7 @@ pub enum SeekDirection {
     Forward(gst::ClockTime),
 }
 
+#[derive(Debug)]
 pub enum SubtitleTrack {
     Inband(i32),
     External(glib::GString),
@@ -43,7 +42,7 @@ pub enum SubtitleTrack {
 
 pub struct AudioVisualization(pub string::String);
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum PlayerEvent {
     MediaInfoUpdated,
     PositionUpdated,
@@ -56,49 +55,84 @@ pub enum PlayerEvent {
 }
 
 pub struct ChannelPlayer {
+    video_renderer: Box<VideoRenderer>,
     player: gst_player::Player,
-    video_area: gtk::Widget,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 struct MediaCacheData(pub HashMap<string::String, u64>);
 
+#[derive(Debug)]
 struct MediaCache {
     path: path::PathBuf,
     data: MediaCacheData,
 }
 
-struct PlayerDataHolder {
+#[derive(Debug)]
+pub struct PlayerDataHolder {
     subscribers: Vec<channel::Sender<PlayerEvent>>,
     playlist: Vec<string::String>,
     current_uri: glib::GString,
     index: usize,
     cache: Option<MediaCache>,
+    video_dimensions: Option<(i32, i32)>,
 }
 
 thread_local!(
-    static PLAYER_REGISTRY: RefCell<HashMap<glib::GString, PlayerDataHolder>> = RefCell::new(HashMap::new());
+    pub static PLAYER_REGISTRY: RefCell<HashMap<std::string::String, PlayerDataHolder>> = RefCell::new(HashMap::new());
 );
 
+#[macro_export]
 macro_rules! with_player {
     ($player:ident $code:block) => {
         with_player!($player $player $code)
     };
     ($player_id:ident $player:ident $code:block) => {
-        let player_id = $player_id.get_name();
+        let player_id: std::string::String = $player_id.get_name().into();
         PLAYER_REGISTRY.with(|registry| {
             if let Some(ref $player) = registry.borrow().get(&player_id) $code
         })
     };
 }
 
+#[macro_export]
 macro_rules! with_mut_player {
     ($player_id:ident $player_data:ident $code:block) => (
-        let player_id = $player_id.get_name();
+        let player_id: std::string::String = $player_id.get_name().into();
         PLAYER_REGISTRY.with(|registry| {
             if let Some(ref mut $player_data) = registry.borrow_mut().get_mut(&player_id) $code
+            else {
+                eprintln!("no player {} in thread {:?}", player_id, std::thread::current().id());
+                panic!();
+            }
         })
     )
+}
+
+pub fn register_player(
+    name: std::string::String,
+    sender: channel::Sender<PlayerEvent>,
+    cache_file_path: Option<path::PathBuf>,
+) {
+    let mut subscribers = Vec::new();
+    subscribers.push(sender);
+    let mut cache = None;
+    if let Some(ref path) = cache_file_path {
+        cache = Some(MediaCache::open(path).unwrap());
+    }
+    let player_data = PlayerDataHolder {
+        subscribers,
+        playlist: vec![],
+        current_uri: "".into(),
+        index: 0,
+        cache,
+        video_dimensions: None,
+    };
+
+    PLAYER_REGISTRY.with(move |registry| {
+        eprintln!("register {} in {:?}", name, std::thread::current().id());
+        registry.borrow_mut().insert(name, player_data);
+    });
 }
 
 impl MediaCache {
@@ -156,55 +190,6 @@ fn uri_to_sha256(uri: &str) -> string::String {
         .concat()
 }
 
-fn prepare_video_overlay(video_area: &gtk::Widget, video_overlay: &gst_player::PlayerVideoOverlayVideoRenderer) {
-    let gdk_window = video_area.get_window().unwrap();
-    if !gdk_window.ensure_native() {
-        println!("Can't create native window for widget");
-        process::exit(-1);
-    }
-
-    let display_type_name = gdk_window.get_display().get_type().name();
-
-    // Check if we're using X11 or ...
-    #[cfg(target_os = "linux")]
-    {
-        // Check if we're using X11 or ...
-        if display_type_name == "GdkX11Display" {
-            extern "C" {
-                pub fn gdk_x11_window_get_xid(window: *mut glib::object::GObject) -> *mut c_void;
-            }
-
-            unsafe {
-                let xid = gdk_x11_window_get_xid(gdk_window.as_ptr() as *mut _);
-                video_overlay.set_window_handle(xid as usize);
-            }
-        } else {
-            eprintln!("Add support for display type '{}'", display_type_name);
-            process::exit(-1);
-        }
-    }
-
-    #[cfg(target_os = "macos")]
-    {
-        if display_type_name == "GdkQuartzDisplay" {
-            extern "C" {
-                pub fn gdk_quartz_window_get_nsview(window: *mut glib::object::GObject) -> *mut c_void;
-            }
-
-            unsafe {
-                let window = gdk_quartz_window_get_nsview(gdk_window.as_ptr() as *mut _);
-                video_overlay.set_window_handle(window as usize);
-            }
-        } else {
-            eprintln!("Unsupported display type '{}", display_type_name);
-            process::exit(-1);
-        }
-    }
-
-    #[cfg(not(any(target_os = "linux", target_os = "macos")))]
-    unimplemented!();
-}
-
 impl PlayerDataHolder {
     fn set_playlist(&mut self, playlist: Vec<string::String>) {
         self.playlist = playlist;
@@ -217,6 +202,8 @@ impl PlayerDataHolder {
     }
 
     fn notify(&self, event: PlayerEvent) {
+        dbg!(&event);
+
         for sender in &*self.subscribers {
             sender.send(event.clone()).unwrap();
         }
@@ -252,98 +239,35 @@ impl PlayerDataHolder {
             cache.write().unwrap();
         }
     }
+
+    fn set_video_dimensions(&mut self, width: i32, height: i32) {
+        self.video_dimensions = Some((width, height));
+    }
+
+    pub fn video_dimensions(&self) -> Option<(i32, i32)> {
+        self.video_dimensions
+    }
 }
 
 impl ChannelPlayer {
-    pub fn new(sender: channel::Sender<PlayerEvent>, cache_file_path: Option<path::PathBuf>) -> Self {
-        let dispatcher = gst_player::PlayerGMainContextSignalDispatcher::new(None);
-        let (sink, video_area, has_gtkgl) = if let Ok(gtkglsink) = gst::ElementFactory::make("gtkglsink", None) {
-            let glsinkbin = gst::ElementFactory::make("glsinkbin", None).unwrap();
-            glsinkbin.set_property("sink", &gtkglsink.to_value()).unwrap();
-
-            let widget = gtkglsink.get_property("widget").unwrap();
-            (
-                glsinkbin,
-                widget
-                    .get::<gtk::Widget>()
-                    .expect("Widget property should be a Widget...")
-                    .unwrap(),
-                true,
-            )
-        } else {
-            let sink = gst::ElementFactory::make("glimagesink", None).unwrap();
-            let widget = gtk::DrawingArea::new();
-            (sink, widget.upcast::<gtk::Widget>(), false)
-        };
-
-        let renderer1 = gst_player::PlayerVideoOverlayVideoRenderer::new_with_sink(&sink);
-        let renderer = renderer1.clone();
+    pub fn new(video_renderer: Box<VideoRenderer>, app_context: Option<&glib::MainContext>) -> Self {
+        let context_clone = app_context.clone();
+        let dispatcher = gst_player::PlayerGMainContextSignalDispatcher::new(app_context);
         let player = gst_player::Player::new(
-            Some(&renderer1.upcast::<gst_player::PlayerVideoRenderer>()),
+            video_renderer.gst_video_renderer(),
             Some(&dispatcher.upcast::<gst_player::PlayerSignalDispatcher>()),
+            //None,
         );
+
+        video_renderer.set_player(&player);
 
         // Get position updates every 250ms.
         let mut config = player.get_config();
         config.set_position_update_interval(250);
         player.set_config(config).unwrap();
 
-        if !has_gtkgl {
-            let renderer_weak = renderer.downgrade();
-            video_area.connect_realize(move |video_area| {
-                let renderer = match renderer_weak.upgrade() {
-                    Some(renderer) => renderer,
-                    None => return,
-                };
-                prepare_video_overlay(video_area, &renderer);
-            });
-        }
-
-        video_area.connect_draw(move |video_area, cairo_context| {
-            let width = video_area.get_allocated_width();
-            let height = video_area.get_allocated_height();
-
-            // Paint some black borders
-            cairo_context.rectangle(0., 0., f64::from(width), f64::from(height));
-            cairo_context.fill();
-
-            Inhibit(false)
-        });
-
-        let player_weak = player.downgrade();
-        let renderer_weak = renderer.downgrade();
-        video_area.connect_configure_event(move |video_area, event| -> bool {
-            let (width, height) = event.get_size();
-            let (x, y) = event.get_position();
-            let rect = gst_video::VideoRectangle::new(x, y, width as i32, height as i32);
-
-            let player = match player_weak.upgrade() {
-                Some(player) => player,
-                None => return true,
-            };
-            if let Ok(video_track) = player.get_property("current-video-track") {
-                let video_track = video_track
-                    .get::<gst_player::PlayerVideoInfo>()
-                    .expect("current-video-track should be a PlayerVideoInfo");
-                if let Some(video_track) = video_track {
-                    let video_width = video_track.get_width();
-                    let video_height = video_track.get_height();
-                    let src_rect = gst_video::VideoRectangle::new(0, 0, video_width, video_height);
-
-                    let rect = gst_video::center_video_rectangle(&src_rect, &rect, true);
-                    let renderer = match renderer_weak.upgrade() {
-                        Some(renderer) => renderer,
-                        None => return true,
-                    };
-                    renderer.set_render_rectangle(rect.x, rect.y, rect.w, rect.h);
-                    renderer.expose();
-                    video_area.queue_draw();
-                }
-            }
-            true
-        });
-
         player.connect_uri_loaded(|player, uri| {
+            dbg!(&uri);
             player.pause();
             with_mut_player!(player player_data {
                 if let Some(ref cache) = player_data.cache {
@@ -364,7 +288,8 @@ impl ChannelPlayer {
 
         player.connect_media_info_updated(|player, info| {
             with_mut_player!(player player_data {
-                    player_data.media_info_updated(&info);
+                dbg!(&info);
+                player_data.media_info_updated(&info);
             });
         });
 
@@ -407,26 +332,35 @@ impl ChannelPlayer {
             });
         });
 
-        let player_id = player.get_name();
-        let mut subscribers = Vec::new();
-        subscribers.push(sender);
-        let mut cache = None;
-        if let Some(ref path) = cache_file_path {
-            cache = Some(MediaCache::open(path).unwrap());
-        }
-        let player_data = PlayerDataHolder {
-            subscribers,
-            playlist: vec![],
-            current_uri: "".into(),
-            index: 0,
-            cache,
-        };
+        Self { video_renderer, player }
+    }
 
-        PLAYER_REGISTRY.with(move |registry| {
-            registry.borrow_mut().insert(player_id, player_data);
+    pub fn name(&self) -> glib::GString {
+        self.player.get_name()
+    }
+
+    pub fn set_app(&self, app: &app::Application) {
+        let player = &self.player;
+        with_player!(player player_data {
+            app.set_video_renderer(&*self.video_renderer);
         });
+    }
 
-        Self { player, video_area }
+    pub fn refresh_video_renderer(&self) {
+        if let Ok(video_track) = self.player.get_property("current-video-track") {
+            let video_track = video_track
+                .get::<gst_player::PlayerVideoInfo>()
+                .expect("current-video-track should be a PlayerVideoInfo");
+            if let Some(video_track) = video_track {
+                let video_width = video_track.get_width();
+                let video_height = video_track.get_height();
+                let player = &self.player;
+                with_mut_player!(player player_data {
+                    player_data.set_video_dimensions(video_width, video_height);
+                });
+                self.video_renderer.refresh(video_width, video_height);
+            }
+        }
     }
 
     #[allow(dead_code)]
@@ -444,10 +378,6 @@ impl ChannelPlayer {
             self.load_uri(&*playlist[0]);
             player_data.set_playlist(playlist);
         });
-    }
-
-    pub fn video_area(&self) -> &gtk::Widget {
-        &self.video_area
     }
 
     pub fn load_uri(&self, uri: &str) {
