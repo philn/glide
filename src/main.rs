@@ -541,12 +541,15 @@ impl VideoPlayer {
 
                 // Look for a matching subtitle file in same directory.
                 if let Ok((mut path, _)) = glib::filename_from_uri(&uri) {
-                    path.set_extension("srt");
-                    let subfile = path.as_path();
-                    if subfile.is_file() {
-                        if let Ok(suburi) = glib::filename_to_uri(subfile, None) {
-                            self.player
-                                .configure_subtitle_track(Some(SubtitleTrack::External(suburi)));
+                    for extension in constants::SUB_FILE_EXTENSIONS.iter() {
+                        path.set_extension(extension);
+                        let subfile = path.as_path();
+                        if subfile.is_file() {
+                            if let Ok(suburi) = glib::filename_to_uri(subfile, None) {
+                                self.player
+                                    .configure_subtitle_track(Some(SubtitleTrack::External(suburi)));
+                                break;
+                            }
                         }
                     }
                 }
