@@ -28,7 +28,7 @@ sources = c.stdout().strip().split('\n')
 
 install_data('data/net.baseart.Glide.desktop', install_dir : datadir + '/applications')
 install_data('data/net.baseart.Glide.svg', install_dir : icondir + '/hicolor/scalable/apps/')
-install_data('data/net.baseart.Glide.appdata.xml', install_dir : datadir + '/appdata/')
+install_data('data/net.baseart.Glide.metainfo.xml', install_dir : datadir + '/metainfo/')
 
 cargo_release = custom_target('cargo-build',
                         build_by_default: true,

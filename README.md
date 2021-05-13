@@ -106,7 +106,7 @@ Release procedure
 - Bump version in `Cargo.toml` and `meson.build`
 - Add release info in appstream file and make sure it is valid...
 
-        $ appstream-util validate data/net.baseart.Glide.appdata.xml
+        $ appstream-util validate data/net.baseart.Glide.metainfo.xml
         
 - Commit and tag new version:
 
