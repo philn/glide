@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Copyright 2018 Philippe Normand <phil_AT_base-art.net> -->
-<component type="desktop">
+<!-- Copyright 2018, 2019, 2020, 2021 Philippe Normand <phil_AT_base-art.net> -->
+<component type="desktop-application">
   <id>net.baseart.Glide</id>
   <launchable type="desktop-id">net.baseart.Glide.desktop</launchable>
   <metadata_license>CC-BY-3.0</metadata_license>
@@ -10,14 +10,15 @@
   <description>
     <p>
       Glide is a simple and minimalistic media player relying on GStreamer for the multimedia support
-      and GTK+ for the user interface. Glide should be able to play any multimedia format supported by
-      GStreamer, locally or remotely hosted. Glide is developed in Rust.
+      and GTK for the user interface. Glide should be able to play any multimedia format supported by
+      GStreamer, locally or remotely hosted.
     </p>
     <p>
       Once Glide is running you can use some menus to switch the subtitle and audio
       tracks, play, pause, seek and switch the window to fullscreen. There are
       also some keyboard shortcuts for these actions:
-      <ul>
+    </p>
+    <ul>
         <li>play/pause: space</li>
         <li>seek forward: meta-right or alt-left</li>
         <li>seek backward: meta-left or alt-right</li>
@@ -29,9 +30,9 @@
         <li>decrease volume: meta-up or alt-down</li>
         <li>mute the audio track: meta-m or alt-m</li>
         <li>open a new file: meta-o or alt-o</li>
-      </ul>
-    </p>
+    </ul>
   </description>
+  <launchable type="desktop-id">net.baseart.Glide.desktop</launchable>
   <update_contact>phil_AT_base-art.net</update_contact>
   <developer_name>The Glide Team</developer_name>
   <url type="homepage">https://github.com/philn/glide</url>
@@ -47,6 +48,17 @@
   </screenshots>
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="0.5.9" date="2021-05-23">
+      <description>
+        <p>
+          Maintenance release, also adding a couple new features:
+          <ul>
+            <li>Audio/Video track synchronisation support through a new popup window reachable from the hamburger menu.</li>
+            <li>Incognito mode: start glide from a shell, add the -i option and the media cache file will not be used.</li>
+          </ul>
+        </p>
+      </description>
+    </release>
     <release version="0.5.8" date="2020-09-25">
       <description><p>Fixing appdata markup.</p></description>
     </release>
