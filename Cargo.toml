@@ -1,6 +1,6 @@
 [package]
 authors = ["Philippe Normand <phil@base-art.net>"]
-description = "Cross-platform media player based on GStreamer and GTK+"
+description = "Cross-platform media player based on GStreamer and GTK"
 edition = "2018"
 keywords = ["multimedia", "gstreamer", "gtk", "playback"]
 license = "MIT"
