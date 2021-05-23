@@ -744,10 +744,7 @@ impl VideoPlayer {
                 let args = env::args().collect::<Vec<_>>();
                 let mut args_iter = args.iter();
                 let item = args_iter.find(|&i| i.starts_with(uri_scheme.as_str()));
-                match item {
-                    Some(i) => Some(std::string::String::from(i)),
-                    None => None,
-                }
+                item.map(std::string::String::from)
             };
             if let Some(uri) = uri {
                 playlist.push(uri);
