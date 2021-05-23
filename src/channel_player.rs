@@ -431,8 +431,7 @@ impl ChannelPlayer {
         });
 
         let player_id = player.get_name();
-        let mut subscribers = Vec::new();
-        subscribers.push(sender);
+        let subscribers = vec![sender];
         let mut cache = None;
         if let Some(ref path) = cache_file_path {
             cache = Some(MediaCache::open(path).unwrap());
