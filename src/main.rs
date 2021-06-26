@@ -2,7 +2,6 @@
 extern crate core_foundation;
 extern crate directories;
 extern crate failure;
-extern crate gdk;
 extern crate gio;
 extern crate glib;
 extern crate gstreamer as gst;
@@ -18,12 +17,15 @@ extern crate self_update;
 #[macro_use]
 extern crate serde_derive;
 
+use crate::gst_player::prelude::PlayerStreamInfoExt;
+
 use directories::ProjectDirs;
 use failure::Error;
 #[allow(unused_imports)]
 use gdk::prelude::*;
 use gio::prelude::*;
 use glib::ToVariant;
+use gtk::gdk;
 use std::cell::RefCell;
 use std::env;
 use std::fs::create_dir_all;
@@ -33,9 +35,6 @@ use structopt::StructOpt;
 mod channel_player;
 mod constants;
 use channel_player::{AudioVisualization, ChannelPlayer, PlaybackState, PlayerEvent, SeekDirection, SubtitleTrack};
-
-use gst_player::PlayerStreamInfoExt;
-
 mod ui_context;
 use ui_context::{initialize_and_create_app, UIContext};
 
@@ -248,7 +247,7 @@ impl VideoPlayer {
         });
 
         self.pause_action.connect_change_state(|pause_action, _| {
-            if let Some(is_paused) = pause_action.get_state() {
+            if let Some(is_paused) = pause_action.state() {
                 let paused = is_paused.get::<bool>().unwrap();
 
                 with_video_player!(video_player {
@@ -290,7 +289,7 @@ impl VideoPlayer {
 
         self.audio_mute_action.connect_change_state(|mute_action, _| {
             with_video_player!(video_player {
-                if let Some(is_enabled) = mute_action.get_state() {
+                if let Some(is_enabled) = mute_action.state() {
                     let enabled = is_enabled.get::<bool>().unwrap();
                     video_player.player.toggle_mute(!enabled);
                     mute_action.set_state(&(!enabled).to_variant());
@@ -299,7 +298,7 @@ impl VideoPlayer {
         });
 
         self.fullscreen_action.connect_change_state(|fullscreen_action, _| {
-            if let Some(is_fullscreen) = fullscreen_action.get_state() {
+            if let Some(is_fullscreen) = fullscreen_action.state() {
                 with_video_player!(video_player {
                     let fullscreen = is_fullscreen.get::<bool>().unwrap();
                     if !fullscreen {
@@ -410,11 +409,7 @@ impl VideoPlayer {
         self.ui_context.set_progress_bar_format_callback(|value, duration| {
             let position = gst::ClockTime::from_seconds(value as u64);
             let duration = gst::ClockTime::from_seconds(duration as u64);
-            if duration.is_some() {
-                format!("{:.0} / {:.0}", position, duration)
-            } else {
-                format!("{:.0}", position)
-            }
+            format!("{:.0} / {:.0}", position, duration)
         });
 
         self.ui_context.set_volume_value_changed_callback(|value| {
@@ -535,7 +530,7 @@ impl VideoPlayer {
     pub fn media_info_updated(&self) {
         if let Some(info) = self.player.get_media_info() {
             if let Some(uri) = self.player.get_current_uri() {
-                if let Some(title) = info.get_title() {
+                if let Some(title) = info.title() {
                     self.ui_context.set_window_title(&*title);
                 } else if let Ok((filename, _)) = glib::filename_from_uri(&uri) {
                     self.ui_context
@@ -544,8 +539,8 @@ impl VideoPlayer {
                     self.ui_context.set_window_title(&uri);
                 }
 
-                if let Some(duration) = info.get_duration().seconds() {
-                    self.ui_context.set_position_range_end(duration as f64);
+                if let Some(duration) = info.duration() {
+                    self.ui_context.set_position_range_end(duration.seconds() as f64);
                 }
 
                 // Look for a matching subtitle file in same directory.
@@ -567,7 +562,7 @@ impl VideoPlayer {
             self.fill_audio_track_menu(&info);
             self.fill_video_track_menu(&info);
 
-            if info.get_number_of_video_streams() == 0 {
+            if info.number_of_video_streams() == 0 {
                 self.fill_audio_visualization_menu();
                 // TODO: Might be nice to enable the first audio
                 // visualization by default but it doesn't work
@@ -582,8 +577,8 @@ impl VideoPlayer {
     }
 
     pub fn position_updated(&self) {
-        if let Some(position) = self.player.get_position().seconds() {
-            self.ui_context.set_position_range_value(position);
+        if let Some(position) = self.player.get_position() {
+            self.ui_context.set_position_range_value(position.seconds());
         }
     }
 
@@ -617,16 +612,16 @@ impl VideoPlayer {
             section.append_item(&item);
 
             let current_subtitle_track = self.player.get_current_subtitle_track();
-            for (i, sub_stream) in info.get_subtitle_streams().into_iter().enumerate() {
+            for (i, sub_stream) in info.subtitle_streams().into_iter().enumerate() {
                 let default_title = format!("Track {}", i + 1);
-                let title = match sub_stream.get_tags() {
+                let title = match sub_stream.tags() {
                     Some(tags) => match tags.get::<gst::tags::Title>() {
-                        Some(val) => std::string::String::from(val.get().unwrap()),
+                        Some(val) => std::string::String::from(val.get()),
                         None => default_title,
                     },
                     None => default_title,
                 };
-                let lang = sub_stream.get_language().map(|l| {
+                let lang = sub_stream.language().map(|l| {
                     if l == title {
                         "".to_string()
                     } else {
@@ -642,7 +637,7 @@ impl VideoPlayer {
 
                 if selected_action.is_none() {
                     if let Some(ref track) = current_subtitle_track {
-                        if track.get_language() == sub_stream.get_language() {
+                        if track.language() == sub_stream.language() {
                             selected_action = Some(format!("sub-{}", i));
                         }
                     }
@@ -702,9 +697,9 @@ impl VideoPlayer {
         item.set_detailed_action("app.audio-track::audio--1");
         section.append_item(&item);
 
-        for (i, audio_stream) in info.get_audio_streams().iter().enumerate() {
-            let mut label = format!("{} channels", audio_stream.get_channels());
-            if let Some(l) = audio_stream.get_language() {
+        for (i, audio_stream) in info.audio_streams().iter().enumerate() {
+            let mut label = format!("{} channels", audio_stream.channels());
+            if let Some(l) = audio_stream.language() {
                 label = format!("{} - [{}]", label, l);
             }
             let action_id = format!("app.audio-track::audio-{}", i);
@@ -722,9 +717,9 @@ impl VideoPlayer {
         item.set_detailed_action("app.video-track::video--1");
         section.append_item(&item);
 
-        for (i, video_stream) in info.get_video_streams().iter().enumerate() {
+        for (i, video_stream) in info.video_streams().iter().enumerate() {
             let action_id = format!("app.video-track::video-{}", i);
-            let description = format!("{}x{}", video_stream.get_width(), video_stream.get_height());
+            let description = format!("{}x{}", video_stream.width(), video_stream.height());
             let item = gio::MenuItem::new(Some(&description), Some(&action_id));
             item.set_detailed_action(&*action_id);
             section.append_item(&item);
@@ -735,12 +730,12 @@ impl VideoPlayer {
     pub fn open_files(&mut self, files: &[gio::File]) {
         let mut playlist = vec![];
         for file in files.to_vec() {
-            let uri = if let Some(_path) = file.get_path() {
-                Some(std::string::String::from(file.get_uri().as_str()))
+            let uri = if let Some(_path) = file.path() {
+                Some(std::string::String::from(file.uri().as_str()))
             } else {
                 // Gio built an invalid URI, so try to find the original CLI
                 // argument based on the URI scheme.
-                let uri_scheme: std::string::String = file.get_uri_scheme().into();
+                let uri_scheme = file.uri_scheme().unwrap();
                 let args = env::args().collect::<Vec<_>>();
                 let mut args_iter = args.iter();
                 let item = args_iter.find(|&i| i.starts_with(uri_scheme.as_str()));
@@ -773,7 +768,7 @@ impl VideoPlayer {
 
     pub fn leave_fullscreen(&self) {
         let fullscreen_action = &self.fullscreen_action;
-        if let Some(is_fullscreen) = fullscreen_action.get_state() {
+        if let Some(is_fullscreen) = fullscreen_action.state() {
             let fullscreen = is_fullscreen.get::<bool>().unwrap();
 
             if fullscreen {
@@ -813,7 +808,7 @@ fn main() -> Result<(), Error> {
 
     let mut args = vec![env::args().next().unwrap()];
     args.extend(files);
-    gtk_app_clone.run(&args);
+    gtk_app_clone.run_with_args(&args);
 
     Ok(())
     // unsafe {

@@ -1,4 +1,3 @@
-extern crate gdk;
 extern crate glib;
 extern crate gstreamer as gst;
 extern crate gstreamer_player as gst_player;
@@ -9,7 +8,6 @@ extern crate sha2;
 
 use self::sha2::{Digest, Sha256};
 use failure::Error;
-use gdk::prelude::*;
 use gst::prelude::*;
 use gtk::prelude::*;
 use std::cell::RefCell;
@@ -85,7 +83,7 @@ macro_rules! with_player {
         with_player!($player $player $code)
     };
     ($player_id:ident $player:ident $code:block) => {
-        let player_id = $player_id.get_name();
+        let player_id = $player_id.name();
         PLAYER_REGISTRY.with(|registry| {
             if let Some(ref $player) = registry.borrow().get(&player_id) $code
         })
@@ -94,7 +92,7 @@ macro_rules! with_player {
 
 macro_rules! with_mut_player {
     ($player_id:ident $player_data:ident $code:block) => (
-        let player_id = $player_id.get_name();
+        let player_id = $player_id.name();
         PLAYER_REGISTRY.with(|registry| {
             if let Some(ref mut $player_data) = registry.borrow_mut().get_mut(&player_id) $code
         })
@@ -136,13 +134,13 @@ impl MediaCache {
         Ok(())
     }
 
-    fn find_last_position(&self, uri: &str) -> gst::ClockTime {
+    fn find_last_position(&self, uri: &str) -> Option<gst::ClockTime> {
         let id = uri_to_sha256(uri);
         if let Some(position) = self.data.0.get(&id) {
-            return gst::ClockTime::from_nseconds(*position);
+            return Some(gst::ClockTime::from_nseconds(*position));
         }
 
-        gst::ClockTime::none()
+        None
     }
 }
 
@@ -157,13 +155,13 @@ fn uri_to_sha256(uri: &str) -> string::String {
 }
 
 fn prepare_video_overlay(video_area: &gtk::DrawingArea, video_overlay: &gst_player::PlayerVideoOverlayVideoRenderer) {
-    let gdk_window = video_area.get_window().unwrap();
+    let gdk_window = video_area.window().unwrap();
     if !gdk_window.ensure_native() {
         println!("Can't create native window for widget");
         process::exit(-1);
     }
 
-    let display_type_name = gdk_window.get_display().get_type().name();
+    let display_type_name = gdk_window.display().type_().name();
 
     // Check if we're using X11 or ...
     #[cfg(target_os = "linux")]
@@ -223,7 +221,7 @@ impl PlayerDataHolder {
     }
 
     fn media_info_updated(&mut self, info: &gst_player::PlayerMediaInfo) {
-        let uri = info.get_uri();
+        let uri = info.uri();
 
         // Call this only once per asset.
         if self.current_uri != *uri {
@@ -233,13 +231,13 @@ impl PlayerDataHolder {
     }
 
     fn end_of_stream(&mut self, player: &gst_player::Player) {
-        if let Some(uri) = player.get_uri() {
+        if let Some(uri) = player.uri() {
             self.notify(PlayerEvent::EndOfStream(uri.into()));
             self.index += 1;
 
             if self.index < self.playlist.len() {
                 let next_uri = &*self.playlist[self.index];
-                player.set_property("uri", &glib::Value::from(&next_uri)).unwrap();
+                player.set_property("uri", &next_uri).unwrap();
             } else {
                 self.notify(PlayerEvent::EndOfPlaylist);
             }
@@ -257,14 +255,12 @@ impl PlayerDataHolder {
 fn create_renderer() -> (Option<gst_player::PlayerVideoOverlayVideoRenderer>, Option<gtk::Widget>) {
     if let Ok(gtkglsink) = gst::ElementFactory::make("gtkglsink", None) {
         let glsinkbin = gst::ElementFactory::make("glsinkbin", None).unwrap();
-        glsinkbin.set_property("sink", &gtkglsink.to_value()).unwrap();
+        glsinkbin.set_property("sink", &gtkglsink).unwrap();
 
-        let widget = gtkglsink.get_property("widget").unwrap();
+        let widget = gtkglsink.property("widget").unwrap();
         (
             Some(gst_player::PlayerVideoOverlayVideoRenderer::with_sink(&glsinkbin)),
-            widget
-                .get::<gtk::Widget>()
-                .expect("Widget property should be a Widget..."),
+            widget.get::<gtk::Widget>().ok(),
         )
     } else if let Ok(sink) = gst::ElementFactory::make("glimagesink", None) {
         let video_area = gtk::DrawingArea::new();
@@ -305,18 +301,18 @@ impl ChannelPlayer {
         );
 
         // Get position updates every 250ms.
-        let mut config = player.get_config();
+        let mut config = player.config();
         config.set_position_update_interval(250);
         player.set_config(config).unwrap();
 
         let video_area = video_area.unwrap();
         video_area.connect_draw(move |video_area, cairo_context| {
-            let width = video_area.get_allocated_width();
-            let height = video_area.get_allocated_height();
+            let width = video_area.allocated_width();
+            let height = video_area.allocated_height();
 
             // Paint some black borders
             cairo_context.rectangle(0., 0., f64::from(width), f64::from(height));
-            cairo_context.fill();
+            cairo_context.fill().unwrap();
 
             Inhibit(false)
         });
@@ -324,32 +320,30 @@ impl ChannelPlayer {
         let player_weak = player.downgrade();
         let renderer_weak = renderer.unwrap().downgrade();
         video_area.connect_configure_event(move |video_area, event| -> bool {
-            let (width, height) = event.get_size();
-            let (x, y) = event.get_position();
+            let (width, height) = event.size();
+            let (x, y) = event.position();
             let rect = gst_video::VideoRectangle::new(x, y, width as i32, height as i32);
 
             let player = match player_weak.upgrade() {
                 Some(player) => player,
                 None => return true,
             };
-            if let Ok(video_track) = player.get_property("current-video-track") {
+            if let Ok(video_track) = player.property("current-video-track") {
                 let video_track = video_track
                     .get::<gst_player::PlayerVideoInfo>()
                     .expect("current-video-track should be a PlayerVideoInfo");
-                if let Some(video_track) = video_track {
-                    let video_width = video_track.get_width();
-                    let video_height = video_track.get_height();
-                    let src_rect = gst_video::VideoRectangle::new(0, 0, video_width, video_height);
+                let video_width = video_track.width();
+                let video_height = video_track.height();
+                let src_rect = gst_video::VideoRectangle::new(0, 0, video_width, video_height);
 
-                    let rect = gst_video::center_video_rectangle(&src_rect, &rect, true);
-                    let renderer = match renderer_weak.upgrade() {
-                        Some(renderer) => renderer,
-                        None => return true,
-                    };
-                    renderer.set_render_rectangle(rect.x, rect.y, rect.w, rect.h);
-                    renderer.expose();
-                    video_area.queue_draw();
-                }
+                let rect = gst_video::center_video_rectangle(&src_rect, &rect, true);
+                let renderer = match renderer_weak.upgrade() {
+                    Some(renderer) => renderer,
+                    None => return true,
+                };
+                renderer.set_render_rectangle(rect.x, rect.y, rect.w, rect.h);
+                renderer.expose();
+                video_area.queue_draw();
             }
             true
         });
@@ -358,8 +352,7 @@ impl ChannelPlayer {
             player.pause();
             with_mut_player!(player player_data {
                 if let Some(ref cache) = player_data.cache {
-                    let position = cache.find_last_position(uri);
-                    if position.is_some() {
+                    if let Some(position) = cache.find_last_position(uri) {
                         player.seek(position);
                     }
                 }
@@ -407,7 +400,7 @@ impl ChannelPlayer {
 
         player.connect_volume_changed(|player| {
             with_player!(player player_data {
-                player_data.notify(PlayerEvent::VolumeChanged(player.get_volume()));
+                player_data.notify(PlayerEvent::VolumeChanged(player.volume()));
             });
         });
 
@@ -418,19 +411,19 @@ impl ChannelPlayer {
             });
         });
 
-        player.connect_property_audio_video_offset_notify(|player| {
+        player.connect_audio_video_offset_notify(|player| {
             with_player!(player player_data {
-                player_data.notify(PlayerEvent::AudioVideoOffsetChanged(player.get_audio_video_offset()));
+                player_data.notify(PlayerEvent::AudioVideoOffsetChanged(player.audio_video_offset()));
             });
         });
 
-        player.connect_property_subtitle_video_offset_notify(|player| {
+        player.connect_subtitle_video_offset_notify(|player| {
             with_player!(player player_data {
-                player_data.notify(PlayerEvent::SubtitleVideoOffsetChanged(player.get_subtitle_video_offset()));
+                player_data.notify(PlayerEvent::SubtitleVideoOffsetChanged(player.subtitle_video_offset()));
             });
         });
 
-        let player_id = player.get_name();
+        let player_id = player.name();
         let subscribers = vec![sender];
         let mut cache = None;
         if let Some(ref path) = cache_file_path {
@@ -473,11 +466,11 @@ impl ChannelPlayer {
     }
 
     pub fn load_uri(&self, uri: &str) {
-        self.player.set_property("uri", &glib::Value::from(&uri)).unwrap();
+        self.player.set_property("uri", &uri).unwrap();
     }
 
     pub fn get_current_uri(&self) -> Option<glib::GString> {
-        self.player.get_uri()
+        self.player.uri()
     }
 
     pub fn stop(&self) {
@@ -485,7 +478,7 @@ impl ChannelPlayer {
     }
 
     pub fn get_media_info(&self) -> Option<gst_player::PlayerMediaInfo> {
-        self.player.get_media_info()
+        self.player.media_info()
     }
 
     pub fn set_volume(&self, volume: f64) {
@@ -501,7 +494,7 @@ impl ChannelPlayer {
     }
 
     pub fn increase_volume(&self) {
-        let value = self.player.get_volume();
+        let value = self.player.volume();
         let offset = 0.07;
         if value + offset < 1.0 {
             self.player.set_volume(value + offset);
@@ -511,7 +504,7 @@ impl ChannelPlayer {
     }
 
     pub fn decrease_volume(&self) {
-        let value = self.player.get_volume();
+        let value = self.player.volume();
         let offset = 0.07;
         if value >= offset {
             self.player.set_volume(value - offset);
@@ -525,24 +518,26 @@ impl ChannelPlayer {
     }
 
     pub fn dump_pipeline(&self, label: &str) {
-        let element = self.player.get_pipeline();
+        let element = self.player.pipeline();
         if let Ok(pipeline) = element.downcast::<gst::Pipeline>() {
             gst::debug_bin_to_dot_file_with_ts(&pipeline, gst::DebugGraphDetails::all(), label);
         }
     }
 
     pub fn seek(&self, direction: &SeekDirection) {
-        let position = self.player.get_position();
+        let position = self.player.position();
         if position.is_none() {
             return;
         }
 
-        let duration = self.player.get_duration();
+        let position = position.unwrap();
+        let duration = self.player.duration();
         let destination = match direction {
             SeekDirection::Backward(offset) if position >= *offset => Some(position - *offset),
-            SeekDirection::Forward(offset) if !duration.is_none() && position + *offset <= duration => {
-                Some(position + *offset)
-            }
+            SeekDirection::Forward(offset) => match duration {
+                Some(duration) if position + *offset <= duration => Some(position + *offset),
+                _ => None,
+            },
             _ => None,
         };
         if let Some(d) = destination {
@@ -554,8 +549,8 @@ impl ChannelPlayer {
         self.player.seek(position);
     }
 
-    pub fn get_position(&self) -> gst::ClockTime {
-        self.player.get_position()
+    pub fn get_position(&self) -> Option<gst::ClockTime> {
+        self.player.position()
     }
 
     pub fn configure_subtitle_track(&self, track: Option<SubtitleTrack>) {
@@ -576,11 +571,11 @@ impl ChannelPlayer {
     }
 
     pub fn get_current_subtitle_track(&self) -> Option<gst_player::PlayerSubtitleInfo> {
-        self.player.get_current_subtitle_track()
+        self.player.current_subtitle_track()
     }
 
     pub fn get_subtitle_uri(&self) -> Option<glib::GString> {
-        self.player.get_subtitle_uri()
+        self.player.subtitle_uri()
     }
 
     pub fn set_audio_track_index(&self, idx: i32) {
@@ -610,7 +605,7 @@ impl ChannelPlayer {
     }
 
     pub fn write_last_known_media_position(&self) {
-        if let Some(uri) = self.player.get_uri() {
+        if let Some(uri) = self.player.uri() {
             if let Some(scheme) = glib::uri_parse_scheme(&uri) {
                 if scheme == "fd" {
                     return;
@@ -618,11 +613,11 @@ impl ChannelPlayer {
             }
             let id = uri_to_sha256(&uri);
             let mut position = 0;
-            if let Some(p) = self.player.get_position().nanoseconds() {
-                position = p;
+            if let Some(p) = self.player.position() {
+                position = p.nseconds();
             }
-            if let Some(duration) = self.player.get_duration().nanoseconds() {
-                if position == duration {
+            if let Some(duration) = self.player.duration() {
+                if position == duration.nseconds() {
                     return;
                 }
             } else {
@@ -639,14 +634,10 @@ impl ChannelPlayer {
     }
 
     pub fn set_audio_offset(&self, offset: i64) {
-        self.player
-            .set_property("audio-video-offset", &glib::Value::from(&offset))
-            .unwrap();
+        self.player.set_property("audio-video-offset", &offset).unwrap();
     }
 
     pub fn set_subtitle_offset(&self, offset: i64) {
-        self.player
-            .set_property("subtitle-video-offset", &glib::Value::from(&offset))
-            .unwrap();
+        self.player.set_property("subtitle-video-offset", &offset).unwrap();
     }
 }
