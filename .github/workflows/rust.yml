@@ -16,6 +16,8 @@ jobs:
     - uses: actions/checkout@v2
     - name: rustfmt
       run: cargo fmt -- --check
+    - name: APT update
+      run: sudo apt update
     - name: Install Dependencies
       run: sudo apt install gstreamer1.0-plugins-{base,good,bad} libgstreamer-plugins-{bad,base}1.0-dev libgtk-3-dev gstreamer1.0-{gl,gtk3}
     - name: Build
