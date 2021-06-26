@@ -1,10 +1,8 @@
-extern crate gdk;
 extern crate gio;
 extern crate glib;
 extern crate gstreamer as gst;
 extern crate gtk;
 
-use gdk::prelude::*;
 #[allow(unused_imports)]
 use gio::prelude::*;
 #[allow(unused_imports)]
@@ -45,10 +43,9 @@ pub fn initialize_and_create_app() -> gtk::Application {
 
     gtk::init().expect("Failed to initialize GTK.");
 
-    let gtk_app = gtk::Application::new(Some("net.baseart.Glide"), gio::ApplicationFlags::HANDLES_OPEN)
-        .expect("Application initialization failed");
+    let gtk_app = gtk::Application::new(Some("net.baseart.Glide"), gio::ApplicationFlags::HANDLES_OPEN);
 
-    if let Some(settings) = gtk::Settings::get_default() {
+    if let Some(settings) = gtk::Settings::default() {
         settings
             .set_property("gtk-application-prefer-dark-theme", &true)
             .unwrap();
@@ -86,7 +83,7 @@ impl UIContext {
         let builder = gtk::Builder::from_string(include_str!("../data/net.baseart.Glide.ui"));
 
         let pause_button = {
-            let button: gtk::Button = builder.get_object("pause-button").unwrap();
+            let button: gtk::Button = builder.object("pause-button").unwrap();
             button
                 .clone()
                 .upcast::<gtk::Actionable>()
@@ -96,27 +93,27 @@ impl UIContext {
         let image = gtk::Image::from_icon_name(Some("media-playback-start-symbolic"), gtk::IconSize::SmallToolbar);
         pause_button.set_image(Some(&image));
 
-        let button: gtk::Button = builder.get_object("seek-backward-button").unwrap();
+        let button: gtk::Button = builder.object("seek-backward-button").unwrap();
         button
             .upcast::<gtk::Actionable>()
             .set_action_name(Some("app.seek-backward"));
 
-        let button: gtk::Button = builder.get_object("seek-forward-button").unwrap();
+        let button: gtk::Button = builder.object("seek-forward-button").unwrap();
         button
             .upcast::<gtk::Actionable>()
             .set_action_name(Some("app.seek-forward"));
 
-        let button: gtk::Button = builder.get_object("fullscreen-button").unwrap();
+        let button: gtk::Button = builder.object("fullscreen-button").unwrap();
         button
             .upcast::<gtk::Actionable>()
             .set_action_name(Some("app.fullscreen"));
 
-        let main_box: gtk::Box = builder.get_object("main-box").unwrap();
-        let toolbar_box: gtk::Box = builder.get_object("toolbar-box").unwrap();
-        let progress_bar: gtk::Scale = builder.get_object("progress-bar").unwrap();
-        let volume_button: gtk::VolumeButton = builder.get_object("volume-button").unwrap();
+        let main_box: gtk::Box = builder.object("main-box").unwrap();
+        let toolbar_box: gtk::Box = builder.object("toolbar-box").unwrap();
+        let progress_bar: gtk::Scale = builder.object("progress-bar").unwrap();
+        let volume_button: gtk::VolumeButton = builder.object("volume-button").unwrap();
 
-        let window: gtk::ApplicationWindow = builder.get_object("application-window").unwrap();
+        let window: gtk::ApplicationWindow = builder.object("application-window").unwrap();
         window.connect_map_event(move |widget, _| {
             if let Ok(size) = INITIAL_SIZE.lock() {
                 if let Some((width, height)) = *size {
@@ -131,8 +128,7 @@ impl UIContext {
             Inhibit(false)
         });
 
-        let track_synchronization_window: gtk::ApplicationWindow =
-            builder.get_object("synchronization-window").unwrap();
+        let track_synchronization_window: gtk::ApplicationWindow = builder.object("synchronization-window").unwrap();
 
         let action = gio::SimpleAction::new("close", None);
         track_synchronization_window.add_action(&action);
@@ -143,28 +139,28 @@ impl UIContext {
             }
         });
 
-        let button: gtk::Button = builder.get_object("synchronization-window-close-button").unwrap();
+        let button: gtk::Button = builder.object("synchronization-window-close-button").unwrap();
         button.upcast::<gtk::Actionable>().set_action_name(Some("win.close"));
 
-        let button: gtk::Button = builder.get_object("audio-offset-reset-button").unwrap();
+        let button: gtk::Button = builder.object("audio-offset-reset-button").unwrap();
         button
             .upcast::<gtk::Actionable>()
             .set_action_name(Some("app.audio-offset-reset"));
 
-        let button: gtk::Button = builder.get_object("subtitle-offset-reset-button").unwrap();
+        let button: gtk::Button = builder.object("subtitle-offset-reset-button").unwrap();
         button
             .upcast::<gtk::Actionable>()
             .set_action_name(Some("app.subtitle-offset-reset"));
 
-        let audio_offset_entry: gtk::SpinButton = builder.get_object("audio-video-offset").unwrap();
-        let subtitle_offset_entry: gtk::SpinButton = builder.get_object("subtitle-video-offset").unwrap();
+        let audio_offset_entry: gtk::SpinButton = builder.object("audio-video-offset").unwrap();
+        let subtitle_offset_entry: gtk::SpinButton = builder.object("subtitle-video-offset").unwrap();
 
-        let subtitle_track_menu: gio::Menu = builder.get_object("subtitle-track-menu").unwrap();
-        let audio_track_menu: gio::Menu = builder.get_object("audio-track-menu").unwrap();
-        let video_track_menu: gio::Menu = builder.get_object("video-track-menu").unwrap();
-        let audio_visualization_menu: gio::Menu = builder.get_object("audio-visualization-menu").unwrap();
+        let subtitle_track_menu: gio::Menu = builder.object("subtitle-track-menu").unwrap();
+        let audio_track_menu: gio::Menu = builder.object("audio-track-menu").unwrap();
+        let video_track_menu: gio::Menu = builder.object("video-track-menu").unwrap();
+        let audio_visualization_menu: gio::Menu = builder.object("audio-visualization-menu").unwrap();
 
-        let menu: gio::Menu = builder.get_object("main-menu").unwrap();
+        let menu: gio::Menu = builder.object("main-menu").unwrap();
 
         #[cfg(not(target_os = "linux"))]
         {
@@ -254,7 +250,7 @@ impl UIContext {
                 glib::source_remove(source);
             }
 
-            let gdk_window = window.get_window().unwrap();
+            let gdk_window = window.window().unwrap();
             gdk_window.set_cursor(None);
 
             let toolbar = match toolbar_weak.upgrade() {
@@ -272,9 +268,9 @@ impl UIContext {
                             toolbar.set_visible(false);
                         }
                         if let Some(window) = window_weak.upgrade() {
-                            let gdk_window = window.get_window().unwrap();
+                            let gdk_window = window.window().unwrap();
                             let cursor =
-                                gdk::Cursor::new_for_display(&gdk_window.get_display(), gdk::CursorType::BlankCursor);
+                                gtk::gdk::Cursor::for_display(&gdk_window.display(), gtk::gdk::CursorType::BlankCursor);
                             gdk_window.set_cursor(Some(&cursor));
                         }
                     }
@@ -298,13 +294,13 @@ impl UIContext {
             let flags = gtk::ApplicationInhibitFlags::SUSPEND | gtk::ApplicationInhibitFlags::IDLE;
             *INHIBIT_COOKIE.lock().unwrap() = Some(self.app.inhibit(Some(window), flags, Some("Glide full-screen")));
         }
-        *INITIAL_SIZE.lock().unwrap() = Some(window.get_size());
-        *INITIAL_POSITION.lock().unwrap() = Some(window.get_position());
+        *INITIAL_SIZE.lock().unwrap() = Some(window.size());
+        *INITIAL_POSITION.lock().unwrap() = Some(window.position());
         window.set_show_menubar(false);
         self.toolbar_box.set_visible(false);
         window.fullscreen();
-        let gdk_window = window.get_window().unwrap();
-        let cursor = gdk::Cursor::new_for_display(&gdk_window.get_display(), gdk::CursorType::BlankCursor);
+        let gdk_window = window.window().unwrap();
+        let cursor = gtk::gdk::Cursor::for_display(&gdk_window.display(), gtk::gdk::CursorType::BlankCursor);
         gdk_window.set_cursor(Some(&cursor));
 
         #[cfg(target_os = "linux")]
@@ -313,7 +309,7 @@ impl UIContext {
 
     pub fn leave_fullscreen(&self) {
         let window = &self.window;
-        let gdk_window = window.get_window().unwrap();
+        let gdk_window = window.window().unwrap();
         if let Ok(mut cookie) = INHIBIT_COOKIE.lock() {
             #[cfg(target_os = "macos")]
             iokit_sleep_disabler::release_sleep_assertion(cookie.unwrap());
@@ -350,7 +346,7 @@ impl UIContext {
         }
 
         let result_uri = if dialog.run() == gtk::ResponseType::Ok {
-            dialog.get_uri()
+            dialog.uri()
         } else {
             None
         };
@@ -378,7 +374,7 @@ impl UIContext {
         self.progress_bar
             .connect_format_value(move |widget, value| -> string::String {
                 let range = widget.clone().upcast::<gtk::Range>();
-                f(value, range.get_adjustment().get_upper())
+                f(value, range.adjustment().upper())
             });
     }
 
@@ -392,7 +388,7 @@ impl UIContext {
     pub fn set_position_changed_callback<F: Fn(u64) + Send + Sync + 'static>(&mut self, f: F) {
         let range = self.progress_bar.clone().upcast::<gtk::Range>();
         self.position_signal_handler_id = Some(range.connect_value_changed(move |range| {
-            f(range.get_value() as u64);
+            f(range.value() as u64);
         }));
     }
 
@@ -402,9 +398,9 @@ impl UIContext {
             gtk::TargetEntry::new("text/plain", gtk::TargetFlags::OTHER_APP, 0),
         ];
         self.window
-            .drag_dest_set(gtk::DestDefaults::ALL, &targets, gdk::DragAction::COPY);
+            .drag_dest_set(gtk::DestDefaults::ALL, &targets, gtk::gdk::DragAction::COPY);
         self.window.connect_drag_data_received(move |_, _, _, _, data, _, _| {
-            if let Some(s) = data.get_text() {
+            if let Some(s) = data.text() {
                 f(&s.trim());
             }
         });
@@ -413,14 +409,14 @@ impl UIContext {
     pub fn set_audio_offset_entry_updated_callback<F: Fn(i64) + Send + Sync + 'static>(&mut self, f: F) {
         let entry = self.audio_offset_entry.clone();
         self.audio_offset_entry_signal_handler_id = Some(entry.connect_value_changed(move |button| {
-            f((button.get_value() * 1000000000_f64) as i64);
+            f((button.value() * 1000000000_f64) as i64);
         }));
     }
 
     pub fn set_subtitle_offset_entry_updated_callback<F: Fn(i64) + Send + Sync + 'static>(&mut self, f: F) {
         let entry = self.subtitle_offset_entry.clone();
         self.subtitle_offset_entry_signal_handler_id = Some(entry.connect_value_changed(move |button| {
-            f((button.get_value() * 1000000000_f64) as i64);
+            f((button.value() * 1000000000_f64) as i64);
         }));
     }
 
@@ -470,10 +466,10 @@ impl UIContext {
     pub fn resize_window(&self, width: i32, height: i32) {
         let mut width = width;
         let mut height = height;
-        let display = self.window.get_display();
-        let win = self.window.get_window().unwrap();
-        if let Some(monitor) = display.get_monitor_at_window(&win) {
-            let geometry = monitor.get_geometry();
+        let display = self.window.display();
+        let win = self.window.window().unwrap();
+        if let Some(monitor) = display.monitor_at_window(&win) {
+            let geometry = monitor.geometry();
             width = cmp::min(width, geometry.width);
             height = cmp::min(height, geometry.height - 100);
         }
@@ -512,9 +508,9 @@ impl UIContext {
         let s = format!(
             "Multimedia playback support provided by {}.\nUser interface running on GTK {}.{}.{}",
             gst::version_string(),
-            gtk::get_major_version(),
-            gtk::get_minor_version(),
-            gtk::get_micro_version()
+            gtk::major_version(),
+            gtk::minor_version(),
+            gtk::micro_version()
         );
         dialog.set_comments(Some(s.as_str()));
         dialog.set_transient_for(Some(&self.window));
