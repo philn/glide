@@ -329,21 +329,20 @@ impl ChannelPlayer {
                 None => return true,
             };
             if let Ok(video_track) = player.property("current-video-track") {
-                let video_track = video_track
-                    .get::<gst_player::PlayerVideoInfo>()
-                    .expect("current-video-track should be a PlayerVideoInfo");
-                let video_width = video_track.width();
-                let video_height = video_track.height();
-                let src_rect = gst_video::VideoRectangle::new(0, 0, video_width, video_height);
+                if let Ok(video_track) = video_track.get::<gst_player::PlayerVideoInfo>() {
+                    let video_width = video_track.width();
+                    let video_height = video_track.height();
+                    let src_rect = gst_video::VideoRectangle::new(0, 0, video_width, video_height);
 
-                let rect = gst_video::center_video_rectangle(&src_rect, &rect, true);
-                let renderer = match renderer_weak.upgrade() {
-                    Some(renderer) => renderer,
-                    None => return true,
-                };
-                renderer.set_render_rectangle(rect.x, rect.y, rect.w, rect.h);
-                renderer.expose();
-                video_area.queue_draw();
+                    let rect = gst_video::center_video_rectangle(&src_rect, &rect, true);
+                    let renderer = match renderer_weak.upgrade() {
+                        Some(renderer) => renderer,
+                        None => return true,
+                    };
+                    renderer.set_render_rectangle(rect.x, rect.y, rect.w, rect.h);
+                    renderer.expose();
+                    video_area.queue_draw();
+                }
             }
             true
         });
