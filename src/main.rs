@@ -333,7 +333,7 @@ impl VideoPlayer {
                         } else {
                             video_player.player.set_audio_visualization(Some(AudioVisualization(name)));
                         }
-                        action.set_state(&val);
+                        action.set_state(val);
                     });
                 }
             }
@@ -347,7 +347,7 @@ impl VideoPlayer {
 
                     with_video_player!(video_player {
                         video_player.player.set_audio_track_index(idx);
-                        action.set_state(&val);
+                        action.set_state(val);
                     });
                 }
             }
@@ -361,7 +361,7 @@ impl VideoPlayer {
 
                     with_video_player!(video_player {
                         video_player.player.set_video_track_index(idx);
-                        action.set_state(&val);
+                        action.set_state(val);
                     });
                 }
             }
@@ -426,7 +426,7 @@ impl VideoPlayer {
 
         self.ui_context.set_drop_data_callback(|uri| {
             with_video_player!(video_player {
-                if let Ok((path, _)) = glib::filename_from_uri(&uri) {
+                if let Ok((path, _)) = glib::filename_from_uri(uri) {
                     if let Some(extension) = path.extension() {
                         if constants::SUB_FILE_EXTENSIONS.contains(&extension.to_str().unwrap()) {
                             video_player.player
@@ -437,7 +437,7 @@ impl VideoPlayer {
                 }
                 println!("loading {}", &uri);
                 video_player.player.stop();
-                video_player.player.load_uri(&uri);
+                video_player.player.load_uri(uri);
             })
         });
 
@@ -598,7 +598,7 @@ impl VideoPlayer {
                 };
                 self.player.configure_subtitle_track(track);
             }
-            self.subtitle_action.set_state(&val);
+            self.subtitle_action.set_state(val);
         }
     }
 

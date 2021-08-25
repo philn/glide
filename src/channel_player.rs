@@ -272,7 +272,7 @@ fn create_renderer() -> (Option<gst_player::PlayerVideoOverlayVideoRenderer>, Op
                 Some(renderer) => renderer,
                 None => return,
             };
-            prepare_video_overlay(&video_area, &renderer);
+            prepare_video_overlay(video_area, &renderer);
         });
 
         (Some(renderer), Some(video_area.upcast::<gtk::Widget>()))
@@ -367,7 +367,7 @@ impl ChannelPlayer {
 
         player.connect_media_info_updated(|player, info| {
             with_mut_player!(player player_data {
-                player_data.media_info_updated(&info);
+                player_data.media_info_updated(info);
             });
         });
 
