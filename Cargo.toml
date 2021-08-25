@@ -11,7 +11,8 @@ version = "0.5.9"
 
 [dependencies]
 directories = "3.0"
-failure = "0.1"
+anyhow = "1"
+thiserror = "1"
 gio = "0.14"
 lazy_static = "1.4"
 serde = "1.0"
