@@ -7,7 +7,6 @@ extern crate serde_json;
 extern crate sha2;
 
 use self::sha2::{Digest, Sha256};
-use failure::Error;
 use gst::prelude::*;
 use gtk::prelude::*;
 use std::cell::RefCell;
@@ -19,6 +18,7 @@ use std::os::raw::c_void;
 use std::path;
 use std::process;
 use std::string;
+use thiserror::Error;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub enum PlaybackState {
@@ -100,7 +100,7 @@ macro_rules! with_mut_player {
 }
 
 impl MediaCache {
-    fn open<T: Copy + Into<path::PathBuf>>(path: T) -> Result<Self, Error> {
+    fn open<T: Copy + Into<path::PathBuf>>(path: T) -> anyhow::Result<Self> {
         MediaCache::read(path.into()).or_else(|_| {
             Ok(Self {
                 path: path.into(),
@@ -109,7 +109,7 @@ impl MediaCache {
         })
     }
 
-    fn read<T: AsRef<path::Path> + Into<path::PathBuf>>(path: T) -> Result<Self, Error> {
+    fn read<T: AsRef<path::Path> + Into<path::PathBuf>>(path: T) -> anyhow::Result<Self> {
         let mut file = File::open(path.as_ref())?;
         let mut data = String::new();
         file.read_to_string(&mut data).unwrap();
@@ -125,7 +125,7 @@ impl MediaCache {
         self.data.0.insert(id.into(), value);
     }
 
-    fn write(&self) -> Result<(), Error> {
+    fn write(&self) -> anyhow::Result<()> {
         let mut file = File::create(&self.path)?;
 
         let json = serde_json::to_string(&self.data)?;
@@ -281,11 +281,17 @@ fn create_renderer() -> (Option<gst_player::PlayerVideoOverlayVideoRenderer>, Op
     }
 }
 
+#[derive(Error, Debug)]
+pub enum PlayerError {
+    #[error("Neither gtkglsink nor glimagesink found. Make sure to install gst-plugins-good with GTK support enabled, or gst-plugins-base")]
+    NoRendererFound,
+}
+
 impl ChannelPlayer {
-    pub fn new(sender: glib::Sender<PlayerEvent>, cache_file_path: Option<path::PathBuf>) -> Result<Self, Error> {
+    pub fn new(sender: glib::Sender<PlayerEvent>, cache_file_path: Option<path::PathBuf>) -> anyhow::Result<Self> {
         let (renderer, video_area) = create_renderer();
         if renderer.is_none() {
-            return Err(failure::err_msg("Neither gtkglsink nor glimagesink found. Make sure to install gst-plugins-good with GTK support enabled, or gst-plugins-base"));
+            return Err(anyhow::anyhow!(PlayerError::NoRendererFound));
         }
         let renderer1 = Some(
             renderer

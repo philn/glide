@@ -1,13 +1,14 @@
+extern crate anyhow;
 #[cfg(target_os = "macos")]
 extern crate core_foundation;
 extern crate directories;
-extern crate failure;
 extern crate gio;
 extern crate glib;
 extern crate gstreamer as gst;
 extern crate gstreamer_player as gst_player;
 extern crate gstreamer_video as gst_video;
 extern crate gtk;
+extern crate thiserror;
 #[macro_use]
 extern crate lazy_static;
 #[cfg(feature = "self-updater")]
@@ -20,7 +21,6 @@ extern crate serde_derive;
 use crate::gst_player::prelude::PlayerStreamInfoExt;
 
 use directories::ProjectDirs;
-use failure::Error;
 #[allow(unused_imports)]
 use gdk::prelude::*;
 use gio::prelude::*;
@@ -98,7 +98,7 @@ macro_rules! with_mut_video_player {
 }
 
 impl VideoPlayer {
-    pub fn new(gtk_app: gtk::Application, options: &Opt) -> Result<Self, Error> {
+    pub fn new(gtk_app: gtk::Application, options: &Opt) -> anyhow::Result<Self> {
         let fullscreen_action = gio::SimpleAction::new_stateful("fullscreen", None, &false.to_variant());
         gtk_app.add_action(&fullscreen_action);
 
@@ -775,10 +775,10 @@ impl VideoPlayer {
     }
 }
 
-fn main() -> Result<(), Error> {
+fn main() -> anyhow::Result<()> {
     #[cfg(not(unix))]
     {
-        return Err(failure::err_msg("Add support for target platform"));
+        return Err(anyhow::anyhow!("Add support for target platform"));
     }
 
     gst::init().expect("Failed to initialize GStreamer.");
