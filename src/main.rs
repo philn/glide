@@ -751,19 +751,15 @@ impl VideoPlayer {
 
     #[cfg(feature = "self-updater")]
     pub fn check_update(&self) -> Result<self_update::Status, self_update::errors::Error> {
-        let target = self_update::get_target()?;
-        if let Ok(mut b) = self_update::backends::github::Update::configure() {
-            return b
-                .repo_owner("philn")
-                .repo_name("glide")
-                .bin_name("glide")
-                .target(&target)
-                .current_version(cargo_crate_version!())
-                .build()?
-                .update();
-        }
-
-        Ok(self_update::Status::UpToDate(std::string::String::from("OK")))
+        let target = self_update::get_target();
+        self_update::backends::github::Update::configure()
+            .repo_owner("philn")
+            .repo_name("glide")
+            .bin_name("glide")
+            .target(&target)
+            .current_version(cargo_crate_version!())
+            .build()?
+            .update()
     }
 
     pub fn leave_fullscreen(&self) {
