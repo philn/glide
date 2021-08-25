@@ -401,7 +401,7 @@ impl UIContext {
             .drag_dest_set(gtk::DestDefaults::ALL, &targets, gtk::gdk::DragAction::COPY);
         self.window.connect_drag_data_received(move |_, _, _, _, data, _, _| {
             if let Some(s) = data.text() {
-                f(&s.trim());
+                f(s.trim());
             }
         });
     }
@@ -424,36 +424,36 @@ impl UIContext {
         let button = &self.volume_button;
         let scale = button.clone().upcast::<gtk::ScaleButton>();
         if let Some(ref handler_id) = self.volume_signal_handler_id {
-            glib::signal_handler_block(&scale, &handler_id);
+            glib::signal_handler_block(&scale, handler_id);
             scale.set_value(volume);
-            glib::signal_handler_unblock(&scale, &handler_id);
+            glib::signal_handler_unblock(&scale, handler_id);
         }
     }
 
     pub fn audio_video_offset_changed(&self, offset: i64) {
         let entry = &self.audio_offset_entry;
         if let Some(ref handler_id) = self.audio_offset_entry_signal_handler_id {
-            glib::signal_handler_block(entry, &handler_id);
+            glib::signal_handler_block(entry, handler_id);
             entry.set_value(offset as f64 / 1000000000_f64);
-            glib::signal_handler_unblock(entry, &handler_id);
+            glib::signal_handler_unblock(entry, handler_id);
         }
     }
 
     pub fn subtitle_video_offset_changed(&self, offset: i64) {
         let entry = &self.subtitle_offset_entry;
         if let Some(ref handler_id) = self.subtitle_offset_entry_signal_handler_id {
-            glib::signal_handler_block(entry, &handler_id);
+            glib::signal_handler_block(entry, handler_id);
             entry.set_value(offset as f64 / 1000000000_f64);
-            glib::signal_handler_unblock(entry, &handler_id);
+            glib::signal_handler_unblock(entry, handler_id);
         }
     }
 
     pub fn set_position_range_value(&self, position: u64) {
         let range = self.progress_bar.clone().upcast::<gtk::Range>();
         if let Some(ref handler_id) = self.position_signal_handler_id {
-            glib::signal_handler_block(&range, &handler_id);
+            glib::signal_handler_block(&range, handler_id);
             range.set_value(position as f64);
-            glib::signal_handler_unblock(&range, &handler_id);
+            glib::signal_handler_unblock(&range, handler_id);
         }
     }
 
@@ -488,9 +488,9 @@ impl UIContext {
         let progress_bar = &self.progress_bar;
         let range = progress_bar.clone().upcast::<gtk::Range>();
         if let Some(ref handler_id) = self.position_signal_handler_id {
-            glib::signal_handler_block(&range, &handler_id);
+            glib::signal_handler_block(&range, handler_id);
             range.set_range(0.0, end);
-            glib::signal_handler_unblock(&range, &handler_id);
+            glib::signal_handler_unblock(&range, handler_id);
         }
 
         // Force the GtkScale to recompute its label widget size.
