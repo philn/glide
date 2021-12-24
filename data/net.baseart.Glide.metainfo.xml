@@ -15,27 +15,17 @@
     </p>
     <p>
       Once Glide is running you can use some menus to switch the subtitle and audio
-      tracks, play, pause, seek and switch the window to fullscreen. There are
-      also some keyboard shortcuts for these actions:
+      tracks, play, pause, seek and switch the window to fullscreen.
     </p>
-    <ul>
-        <li>play/pause: space</li>
-        <li>seek forward: meta-right or alt-left</li>
-        <li>seek backward: meta-left or alt-right</li>
-        <li>switch to fullscreen: meta-f or alt-f</li>
-        <li>exit from fullscreen: escape</li>
-        <li>quit the application: meta-q or ctrl-q</li>
-        <li>load a subtitle file: meta-s or alt-s</li>
-        <li>increase volume: meta-up or alt-up</li>
-        <li>decrease volume: meta-up or alt-down</li>
-        <li>mute the audio track: meta-m or alt-m</li>
-        <li>open a new file: meta-o or alt-o</li>
-    </ul>
   </description>
-  <launchable type="desktop-id">net.baseart.Glide.desktop</launchable>
   <update_contact>phil_AT_base-art.net</update_contact>
   <developer_name>The Glide Team</developer_name>
   <url type="homepage">https://github.com/philn/glide</url>
+  <url type="bugtracker">https://github.com/philn/glide/issues</url>
+  <categories>
+    <category>AudioVideo</category>
+    <category>Video</category>
+  </categories>
   <screenshots>
     <screenshot>
       <image>https://github.com/philn/glide/raw/master/screenshot.png</image>
@@ -47,6 +37,14 @@
     </screenshot>
   </screenshots>
   <content_rating type="oars-1.1" />
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>touch</control>
+  </supports>
+  <requires>
+    <display_length compare="ge">medium</display_length>
+  </requires>
   <releases>
     <release version="0.5.9" date="2021-05-23">
       <description>
