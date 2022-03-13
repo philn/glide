@@ -46,9 +46,7 @@ pub fn initialize_and_create_app() -> gtk::Application {
     let gtk_app = gtk::Application::new(Some("net.baseart.Glide"), gio::ApplicationFlags::HANDLES_OPEN);
 
     if let Some(settings) = gtk::Settings::default() {
-        settings
-            .set_property("gtk-application-prefer-dark-theme", &true)
-            .unwrap();
+        settings.set_property("gtk-application-prefer-dark-theme", &true);
     }
 
     gtk_app
@@ -247,7 +245,7 @@ impl UIContext {
         let toolbar_weak = self.toolbar_box.downgrade();
         let notify_signal_id = self.window.connect_motion_notify_event(move |window, _| {
             if let Some(source) = AUTOHIDE_SOURCE.lock().unwrap().take() {
-                glib::source_remove(source);
+                source.remove();
             }
 
             let gdk_window = window.window().unwrap();
@@ -271,7 +269,7 @@ impl UIContext {
                             let gdk_window = window.window().unwrap();
                             let cursor =
                                 gtk::gdk::Cursor::for_display(&gdk_window.display(), gtk::gdk::CursorType::BlankCursor);
-                            gdk_window.set_cursor(Some(&cursor));
+                            gdk_window.set_cursor(cursor.as_ref());
                         }
                     }
                 }
@@ -301,7 +299,7 @@ impl UIContext {
         window.fullscreen();
         let gdk_window = window.window().unwrap();
         let cursor = gtk::gdk::Cursor::for_display(&gdk_window.display(), gtk::gdk::CursorType::BlankCursor);
-        gdk_window.set_cursor(Some(&cursor));
+        gdk_window.set_cursor(cursor.as_ref());
 
         #[cfg(target_os = "linux")]
         self.start_autohide_toolbar();
@@ -470,8 +468,8 @@ impl UIContext {
         let win = self.window.window().unwrap();
         if let Some(monitor) = display.monitor_at_window(&win) {
             let geometry = monitor.geometry();
-            width = cmp::min(width, geometry.width);
-            height = cmp::min(height, geometry.height - 100);
+            width = cmp::min(width, geometry.width());
+            height = cmp::min(height, geometry.height() - 100);
         }
 
         // FIXME: Somehow resize video_area to avoid black borders.
