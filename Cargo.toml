@@ -1,7 +1,7 @@
 [package]
 authors = ["Philippe Normand <phil@base-art.net>"]
 description = "Cross-platform media player based on GStreamer and GTK"
-edition = "2018"
+edition = "2021"
 keywords = ["multimedia", "gstreamer", "gtk", "playback"]
 license = "MIT"
 name = "glide"
@@ -13,28 +13,28 @@ version = "0.5.9"
 directories = "4.0"
 anyhow = "1"
 thiserror = "1"
-gio = "0.14"
+gio = "0.15"
 lazy_static = "1.4"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 sha2 = "0.10"
 structopt = "0.3"
-gstreamer = { version = "0.17", features = ["v1_16"] }
-gstreamer-player = { version = "0.17", features = ["v1_16"] }
-gstreamer-video = { version = "0.17", features = ["v1_16"] }
+gstreamer = { version = "0.18", features = ["v1_16"] }
+gstreamer-player = { version = "0.18", features = ["v1_16"] }
+gstreamer-video = { version = "0.18", features = ["v1_16"] }
 
 [dependencies.glib]
 features = ["v2_64"]
-version = "0.14"
+version = "0.15"
 
 [dependencies.gtk]
 features = ["v3_24"]
-version = "0.14"
+version = "0.15"
 
 [dependencies.self_update]
 optional = true
-version = "0.27"
+version = "0.28"
 
 [features]
 self-updater = ["self_update"]

@@ -237,7 +237,7 @@ impl PlayerDataHolder {
 
             if self.index < self.playlist.len() {
                 let next_uri = &*self.playlist[self.index];
-                player.set_property("uri", &next_uri).unwrap();
+                player.set_property("uri", &next_uri);
             } else {
                 self.notify(PlayerEvent::EndOfPlaylist);
             }
@@ -255,12 +255,12 @@ impl PlayerDataHolder {
 fn create_renderer() -> (Option<gst_player::PlayerVideoOverlayVideoRenderer>, Option<gtk::Widget>) {
     if let Ok(gtkglsink) = gst::ElementFactory::make("gtkglsink", None) {
         let glsinkbin = gst::ElementFactory::make("glsinkbin", None).unwrap();
-        glsinkbin.set_property("sink", &gtkglsink).unwrap();
+        glsinkbin.set_property("sink", &gtkglsink);
 
-        let widget = gtkglsink.property("widget").unwrap();
+        let widget = gtkglsink.property::<gtk::Widget>("widget");
         (
             Some(gst_player::PlayerVideoOverlayVideoRenderer::with_sink(&glsinkbin)),
-            widget.get::<gtk::Widget>().ok(),
+            Some(widget),
         )
     } else if let Ok(sink) = gst::ElementFactory::make("glimagesink", None) {
         let video_area = gtk::DrawingArea::new();
@@ -334,22 +334,20 @@ impl ChannelPlayer {
                 Some(player) => player,
                 None => return true,
             };
-            if let Ok(video_track) = player.property("current-video-track") {
-                if let Ok(video_track) = video_track.get::<gst_player::PlayerVideoInfo>() {
-                    let video_width = video_track.width();
-                    let video_height = video_track.height();
-                    let src_rect = gst_video::VideoRectangle::new(0, 0, video_width, video_height);
 
-                    let rect = gst_video::center_video_rectangle(&src_rect, &rect, true);
-                    let renderer = match renderer_weak.upgrade() {
-                        Some(renderer) => renderer,
-                        None => return true,
-                    };
-                    renderer.set_render_rectangle(rect.x, rect.y, rect.w, rect.h);
-                    renderer.expose();
-                    video_area.queue_draw();
-                }
-            }
+            let video_track = player.property::<gst_player::PlayerVideoInfo>("current-video-track");
+            let video_width = video_track.width();
+            let video_height = video_track.height();
+            let src_rect = gst_video::VideoRectangle::new(0, 0, video_width, video_height);
+
+            let rect = gst_video::center_video_rectangle(&src_rect, &rect, true);
+            let renderer = match renderer_weak.upgrade() {
+                Some(renderer) => renderer,
+                None => return true,
+            };
+            renderer.set_render_rectangle(rect.x, rect.y, rect.w, rect.h);
+            renderer.expose();
+            video_area.queue_draw();
             true
         });
 
@@ -471,7 +469,7 @@ impl ChannelPlayer {
     }
 
     pub fn load_uri(&self, uri: &str) {
-        self.player.set_property("uri", &uri).unwrap();
+        self.player.set_property("uri", &uri);
     }
 
     pub fn get_current_uri(&self) -> Option<glib::GString> {
@@ -562,7 +560,7 @@ impl ChannelPlayer {
         let enabled = match track {
             Some(track) => match track {
                 SubtitleTrack::External(uri) => {
-                    self.player.set_subtitle_uri(&uri);
+                    self.player.set_subtitle_uri(Some(&uri));
                     true
                 }
                 SubtitleTrack::Inband(idx) => {
@@ -639,10 +637,10 @@ impl ChannelPlayer {
     }
 
     pub fn set_audio_offset(&self, offset: i64) {
-        self.player.set_property("audio-video-offset", &offset).unwrap();
+        self.player.set_property("audio-video-offset", &offset);
     }
 
     pub fn set_subtitle_offset(&self, offset: i64) {
-        self.player.set_property("subtitle-video-offset", &offset).unwrap();
+        self.player.set_property("subtitle-video-offset", &offset);
     }
 }

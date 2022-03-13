@@ -729,7 +729,7 @@ impl VideoPlayer {
 
     pub fn open_files(&mut self, files: &[gio::File]) {
         let mut playlist = vec![];
-        for file in files.to_vec() {
+        for file in files {
             let uri = if let Some(_path) = file.path() {
                 Some(std::string::String::from(file.uri().as_str()))
             } else {
