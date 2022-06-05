@@ -30,11 +30,11 @@ Install it with Cargo:
 2.  Install GStreamer and GTK+. On Debian/Linux:
 
         $ sudo apt install gstreamer1.0-plugins-{base,good,bad} libgstreamer-plugins-{bad,base}1.0-dev
-        $ sudo apt install libgtk-3-dev gstreamer1.0-{gl,gtk3}
+        $ sudo apt install libgtk-4-dev gstreamer1.0-gl
 
     On macOS, with [brew](http://brew.sh):
 
-        $ brew install pango gstreamer gtk+3
+        $ brew install pango gstreamer gtk+4
         $ brew install --build-from-source --with-pango --with-{libogg,libvorbis,opus,theora} gst-plugins-base
         $ brew install --build-from-source --with-libvpx gst-plugins-good
         $ brew install gst-plugins-bad
