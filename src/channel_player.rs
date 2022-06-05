@@ -1,24 +1,22 @@
-extern crate glib;
 extern crate gstreamer as gst;
 extern crate gstreamer_player as gst_player;
 extern crate gstreamer_video as gst_video;
-extern crate gtk;
+extern crate gtk4 as gtk;
 extern crate serde_json;
 extern crate sha2;
 
 use self::sha2::{Digest, Sha256};
+use crate::gtk::prelude::PaintableExt;
 use gst::prelude::*;
-use gtk::prelude::*;
+use gstreamer::glib;
+use gtk::gdk;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 use std::io::Write;
-use std::os::raw::c_void;
 use std::path;
-use std::process;
 use std::string;
-use thiserror::Error;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub enum PlaybackState {
@@ -55,7 +53,8 @@ pub enum PlayerEvent {
 
 pub struct ChannelPlayer {
     player: gst_player::Player,
-    video_area: gtk::Widget,
+    renderer: gst_player::PlayerVideoOverlayVideoRenderer,
+    gtksink: gst::Element,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -154,55 +153,6 @@ fn uri_to_sha256(uri: &str) -> string::String {
         .concat()
 }
 
-fn prepare_video_overlay(video_area: &gtk::DrawingArea, video_overlay: &gst_player::PlayerVideoOverlayVideoRenderer) {
-    let gdk_window = video_area.window().unwrap();
-    if !gdk_window.ensure_native() {
-        println!("Can't create native window for widget");
-        process::exit(-1);
-    }
-
-    let display_type_name = gdk_window.display().type_().name();
-
-    // Check if we're using X11 or ...
-    #[cfg(target_os = "linux")]
-    {
-        // Check if we're using X11 or ...
-        if display_type_name == "GdkX11Display" {
-            extern "C" {
-                pub fn gdk_x11_window_get_xid(window: *mut glib::object::GObject) -> *mut c_void;
-            }
-
-            unsafe {
-                let xid = gdk_x11_window_get_xid(gdk_window.as_ptr() as *mut _);
-                video_overlay.set_window_handle(xid as usize);
-            }
-        } else {
-            eprintln!("Add support for display type '{display_type_name}'");
-            process::exit(-1);
-        }
-    }
-
-    #[cfg(target_os = "macos")]
-    {
-        if display_type_name == "GdkQuartzDisplay" {
-            extern "C" {
-                pub fn gdk_quartz_window_get_nsview(window: *mut glib::object::GObject) -> *mut c_void;
-            }
-
-            unsafe {
-                let window = gdk_quartz_window_get_nsview(gdk_window.as_ptr() as *mut _);
-                video_overlay.set_window_handle(window as usize);
-            }
-        } else {
-            eprintln!("Unsupported display type '{}", display_type_name);
-            process::exit(-1);
-        }
-    }
-
-    #[cfg(not(any(target_os = "linux", target_os = "macos")))]
-    unimplemented!();
-}
-
 impl PlayerDataHolder {
     fn set_playlist(&mut self, playlist: Vec<string::String>) {
         self.playlist = playlist;
@@ -252,57 +202,22 @@ impl PlayerDataHolder {
     }
 }
 
-fn create_renderer() -> (Option<gst_player::PlayerVideoOverlayVideoRenderer>, Option<gtk::Widget>) {
-    if let Ok(gtkglsink) = gst::ElementFactory::make("gtkglsink", None) {
-        let glsinkbin = gst::ElementFactory::make("glsinkbin", None).unwrap();
-        glsinkbin.set_property("sink", &gtkglsink);
-
-        let widget = gtkglsink.property::<gtk::Widget>("widget");
-        (
-            Some(gst_player::PlayerVideoOverlayVideoRenderer::with_sink(&glsinkbin)),
-            Some(widget),
-        )
-    } else if let Ok(sink) = gst::ElementFactory::make("glimagesink", None) {
-        let video_area = gtk::DrawingArea::new();
-
-        let renderer = gst_player::PlayerVideoOverlayVideoRenderer::with_sink(&sink);
-        let renderer_weak = renderer.downgrade();
-        video_area.connect_realize(move |video_area| {
-            let renderer = match renderer_weak.upgrade() {
-                Some(renderer) => renderer,
-                None => return,
-            };
-            prepare_video_overlay(video_area, &renderer);
-        });
-
-        (Some(renderer), Some(video_area.upcast::<gtk::Widget>()))
-    } else {
-        (None, None)
-    }
-}
-
-#[derive(Error, Debug)]
-pub enum PlayerError {
-    #[error("Neither gtkglsink nor glimagesink found. Make sure to install gst-plugins-good with GTK support enabled, or gst-plugins-base")]
-    NoRendererFound,
-}
-
 impl ChannelPlayer {
     pub fn new(sender: glib::Sender<PlayerEvent>, cache_file_path: Option<path::PathBuf>) -> anyhow::Result<Self> {
-        let (renderer, video_area) = create_renderer();
-        if renderer.is_none() {
-            return Err(anyhow::anyhow!(PlayerError::NoRendererFound));
-        }
-        let renderer1 = Some(
-            renderer
-                .as_ref()
-                .unwrap()
-                .clone()
-                .upcast::<gst_player::PlayerVideoRenderer>(),
-        );
+        let gtksink = gst::ElementFactory::make("gtk4paintablesink").build()?;
+
+        // Need to set state to Ready to get a GL context
+        gtksink.set_state(gst::State::Ready)?;
+
+        let sink = gst::ElementFactory::make("glsinkbin")
+            .property("sink", &gtksink)
+            .build()?;
+
+        let renderer = gst_player::PlayerVideoOverlayVideoRenderer::with_sink(&sink);
+
         let dispatcher = gst_player::PlayerGMainContextSignalDispatcher::new(None);
         let player = gst_player::Player::new(
-            renderer1.as_ref(),
+            Some(&renderer.clone().upcast::<gst_player::PlayerVideoRenderer>()),
             Some(&dispatcher.upcast::<gst_player::PlayerSignalDispatcher>()),
         );
 
@@ -310,46 +225,6 @@ impl ChannelPlayer {
         let mut config = player.config();
         config.set_position_update_interval(250);
         player.set_config(config).unwrap();
-
-        let video_area = video_area.unwrap();
-        video_area.connect_draw(move |video_area, cairo_context| {
-            let width = video_area.allocated_width();
-            let height = video_area.allocated_height();
-
-            // Paint some black borders
-            cairo_context.rectangle(0., 0., f64::from(width), f64::from(height));
-            cairo_context.fill().unwrap();
-
-            Inhibit(false)
-        });
-
-        let player_weak = player.downgrade();
-        let renderer_weak = renderer.unwrap().downgrade();
-        video_area.connect_configure_event(move |video_area, event| -> bool {
-            let (width, height) = event.size();
-            let (x, y) = event.position();
-            let rect = gst_video::VideoRectangle::new(x, y, width as i32, height as i32);
-
-            let player = match player_weak.upgrade() {
-                Some(player) => player,
-                None => return true,
-            };
-
-            let video_track = player.property::<gst_player::PlayerVideoInfo>("current-video-track");
-            let video_width = video_track.width();
-            let video_height = video_track.height();
-            let src_rect = gst_video::VideoRectangle::new(0, 0, video_width, video_height);
-
-            let rect = gst_video::center_video_rectangle(&src_rect, &rect, true);
-            let renderer = match renderer_weak.upgrade() {
-                Some(renderer) => renderer,
-                None => return true,
-            };
-            renderer.set_render_rectangle(rect.x, rect.y, rect.w, rect.h);
-            renderer.expose();
-            video_area.queue_draw();
-            true
-        });
 
         player.connect_uri_loaded(|player, uri| {
             player.pause();
@@ -444,7 +319,11 @@ impl ChannelPlayer {
             registry.borrow_mut().insert(player_id, player_data);
         });
 
-        Ok(Self { player, video_area })
+        Ok(Self {
+            player,
+            renderer,
+            gtksink,
+        })
     }
 
     #[allow(dead_code)]
@@ -464,8 +343,24 @@ impl ChannelPlayer {
         });
     }
 
-    pub fn video_area(&self) -> &gtk::Widget {
-        &self.video_area
+    pub fn paintable(&self) -> gdk::Paintable {
+        self.gtksink.property::<gdk::Paintable>("paintable")
+    }
+
+    pub fn update_render_rectangle(&self, p: &gdk::Paintable) {
+        if let Some(video_track) = self.player.current_video_track() {
+            let (width, height) = (p.intrinsic_width(), p.intrinsic_height());
+            let (x, y) = (0, 0);
+            let rect = gst_video::VideoRectangle::new(x, y, width, height);
+
+            let video_width = video_track.width();
+            let video_height = video_track.height();
+            let src_rect = gst_video::VideoRectangle::new(0, 0, video_width, video_height);
+
+            let rect = gst_video::center_video_rectangle(&src_rect, &rect, true);
+            self.renderer.set_render_rectangle(rect.x, rect.y, rect.w, rect.h);
+            self.renderer.expose();
+        }
     }
 
     pub fn load_uri(&self, uri: &str) {
@@ -482,6 +377,10 @@ impl ChannelPlayer {
 
     pub fn get_media_info(&self) -> Option<gst_player::PlayerMediaInfo> {
         self.player.media_info()
+    }
+
+    pub fn duration(&self) -> Option<gst::ClockTime> {
+        self.player.duration()
     }
 
     pub fn set_volume(&self, volume: f64) {
