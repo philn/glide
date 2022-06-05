@@ -5,38 +5,46 @@ on:
     branches: [ master ]
   pull_request:
     branches: [ master ]
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   linux-build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - name: Setup Podman
+      run: |
+        sudo apt update
+        sudo apt-get -y install podman
+        podman pull fedora:37
+    - uses: actions/checkout@v3
+    - name: Create container
+      run: |
+        podman build --tag fedora37test -f ./Dockerfile
     - name: rustfmt
       run: cargo fmt -- --check
-    - name: APT update
-      run: sudo apt update
-    - name: Install Dependencies
-      run: sudo apt install gstreamer1.0-plugins-{base,good,bad} libgstreamer-plugins-{bad,base}1.0-dev libgtk-3-dev gstreamer1.0-{gl,gtk3}
     - name: Build
-      run: cargo build --verbose
+      run: |
+        podman run -v $PWD:/workspace -w /workspace --privileged -it fedora37test /root/.cargo/bin/cargo build --verbose
     - name: Annotate commit with clippy warnings
-      run: cargo clippy -- -D warnings
+      run: |
+        podman run -v $PWD:/workspace -w /workspace --privileged -it fedora37test /root/.cargo/bin/cargo clippy -- -D warnings
     - name: Security audit
       uses: actions-rs/audit-check@v1
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
     - name: Run tests
-      run: cargo test --verbose
+      run: |
+        podman run -v $PWD:/workspace -w /workspace --privileged -it fedora37test /root/.cargo/bin/cargo test --verbose
   macos-build:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
     - name: Install Dependencies
       run: |
-        brew install pkg-config pango gstreamer gst-plugins-{base,good} gtk+3
+        brew install pkg-config pango gstreamer gst-plugins-{base,good} gtk+4
         brew install --build-from-source gst-plugins-bad
     - name: Build
       run: cargo build --verbose
