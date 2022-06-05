@@ -3,12 +3,10 @@ extern crate anyhow;
 extern crate core_foundation;
 extern crate directories;
 extern crate gio;
-extern crate glib;
 extern crate gstreamer as gst;
 extern crate gstreamer_player as gst_player;
 extern crate gstreamer_video as gst_video;
-extern crate gtk;
-extern crate thiserror;
+extern crate gtk4 as gtk;
 #[macro_use]
 extern crate lazy_static;
 #[cfg(feature = "self-updater")]
@@ -19,6 +17,7 @@ extern crate self_update;
 extern crate serde_derive;
 
 use crate::gst_player::prelude::PlayerStreamInfoExt;
+use gstreamer::glib;
 
 use directories::ProjectDirs;
 #[allow(unused_imports)]
@@ -36,7 +35,7 @@ mod channel_player;
 mod constants;
 use channel_player::{AudioVisualization, ChannelPlayer, PlaybackState, PlayerEvent, SeekDirection, SubtitleTrack};
 mod ui_context;
-use ui_context::{initialize_and_create_app, UIContext};
+use ui_context::{create_app, UIContext};
 
 #[cfg(target_os = "macos")]
 mod iokit_sleep_disabler;
@@ -85,6 +84,14 @@ macro_rules! with_video_player {
     ($player:ident $code: block) => (
         GLOBAL.with(|global| {
             if let Some(ref $player) = *global.borrow() $code
+        })
+    )
+}
+
+macro_rules! with_optional_video_player {
+    ($player:ident $code: block $else_code: block) => (
+        GLOBAL.with(|global| {
+            if let Some(ref $player) = *global.borrow() $code else $else_code
         })
     )
 }
@@ -173,6 +180,9 @@ impl VideoPlayer {
         gtk_app.connect_activate(|_| {
             with_mut_video_player!(player {
                 player.start();
+            });
+            with_video_player!(player {
+                player.configure();
             })
         });
 
@@ -369,20 +379,24 @@ impl VideoPlayer {
 
         self.open_media_action.connect_activate(|_, _| {
             with_video_player!(video_player {
-                if let Some(uri) = video_player.ui_context.dialog_result(video_player.player.get_current_uri()) {
-                    println!("loading {}", &uri);
-                    video_player.player.stop();
-                    video_player.player.load_uri(&uri);
-                }
+                video_player.ui_context.open_dialog(video_player.player.get_current_uri(), |uri| {
+                    with_video_player!(video_player {
+                        println!("loading {}", &uri);
+                        video_player.player.stop();
+                        video_player.player.load_uri(&uri);
+                    });
+                });
             });
         });
 
         self.open_subtitle_file_action.connect_activate(|_, _| {
             with_video_player!(video_player {
-                if let Some(uri) = video_player.ui_context.dialog_result(video_player.player.get_current_uri()) {
-                    video_player.player.configure_subtitle_track(Some(SubtitleTrack::External(uri)));
-                }
-                video_player.refresh_subtitle_track_menu();
+                video_player.ui_context.open_dialog(video_player.player.get_current_uri(), |uri| {
+                    with_video_player!(video_player {
+                        video_player.player.configure_subtitle_track(Some(SubtitleTrack::External(uri)));
+                        video_player.refresh_subtitle_track_menu();
+                    });
+                });
             });
         });
 
@@ -404,13 +418,13 @@ impl VideoPlayer {
             })
         });
 
-        self.ui_context.set_video_area(self.player.video_area());
-
-        self.ui_context.set_progress_bar_format_callback(|value, duration| {
-            let position = gst::ClockTime::from_seconds(value as u64);
-            let duration = gst::ClockTime::from_seconds(duration as u64);
-            format!("{position:.0} / {duration:.0}")
+        let paintable = self.player.paintable();
+        paintable.connect_invalidate_contents(|p| {
+            with_video_player!(video_player {
+                video_player.player.update_render_rectangle(p);
+            })
         });
+        self.ui_context.set_video_paintable(&paintable);
 
         self.ui_context.set_volume_value_changed_callback(|value| {
             with_video_player!(video_player {
@@ -468,6 +482,21 @@ impl VideoPlayer {
             with_video_player!(video_player {
                 video_player.quit();
             });
+        });
+    }
+
+    pub fn configure(&self) {
+        self.ui_context.set_progress_bar_format_callback(|value| {
+            let position = gst::ClockTime::from_seconds(value as u64);
+            with_optional_video_player!(video_player {
+            if let Some(duration) = video_player.player.duration() {
+                format!("{position:.0} / {duration:.0}")
+            } else {
+                format!("{position:.0}")
+            }
+            } {
+                format!("{position:.0}")
+            })
         });
     }
 
@@ -782,14 +811,15 @@ fn main() -> anyhow::Result<()> {
     }
 
     gst::init().expect("Failed to initialize GStreamer.");
+    gtk::init().expect("Failed to initialize GTK.");
+    gstgtk4::plugin_register_static().expect("Failed to register gstgtk4 plugin.");
 
     glib::set_application_name("Glide");
 
-    let opt = Opt::from_args();
-
-    let gtk_app = initialize_and_create_app();
+    let gtk_app = create_app();
 
     let gtk_app_clone = gtk_app.clone();
+    let opt = Opt::from_args();
     let app = VideoPlayer::new(gtk_app, &opt)?;
 
     GLOBAL.with(move |global| {
