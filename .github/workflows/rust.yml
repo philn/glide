@@ -5,6 +5,7 @@ on:
     branches: [ master ]
   pull_request:
     branches: [ master ]
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
@@ -12,14 +13,12 @@ env:
 jobs:
   linux-build:
     runs-on: ubuntu-20.04
+    container:
+      image: ghcr.io/philn/glide/gtk4:latest
     steps:
     - uses: actions/checkout@v2
     - name: rustfmt
       run: cargo fmt -- --check
-    - name: APT update
-      run: sudo apt update
-    - name: Install Dependencies
-      run: sudo apt install gstreamer1.0-plugins-{base,good,bad} libgstreamer-plugins-{bad,base}1.0-dev libgtk-3-dev gstreamer1.0-{gl,gtk3}
     - name: Build
       run: cargo build --verbose
     - name: Annotate commit with clippy warnings
@@ -36,7 +35,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Install Dependencies
       run: |
-        brew install pkg-config pango gstreamer gst-plugins-{base,good} gtk+3
+        brew install pkg-config pango gstreamer gst-plugins-{base,good} gtk+4
         brew install --build-from-source gst-plugins-bad
     - name: Build
       run: cargo build --verbose
