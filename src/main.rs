@@ -7,7 +7,7 @@ extern crate glib;
 extern crate gstreamer as gst;
 extern crate gstreamer_player as gst_player;
 extern crate gstreamer_video as gst_video;
-extern crate gtk;
+extern crate gtk4 as gtk;
 extern crate thiserror;
 #[macro_use]
 extern crate lazy_static;
@@ -36,7 +36,7 @@ mod channel_player;
 mod constants;
 use channel_player::{AudioVisualization, ChannelPlayer, PlaybackState, PlayerEvent, SeekDirection, SubtitleTrack};
 mod ui_context;
-use ui_context::{initialize_and_create_app, UIContext};
+use ui_context::{create_app, UIContext};
 
 #[cfg(target_os = "macos")]
 mod iokit_sleep_disabler;
@@ -369,20 +369,24 @@ impl VideoPlayer {
 
         self.open_media_action.connect_activate(|_, _| {
             with_video_player!(video_player {
-                if let Some(uri) = video_player.ui_context.dialog_result(video_player.player.get_current_uri()) {
-                    println!("loading {}", &uri);
-                    video_player.player.stop();
-                    video_player.player.load_uri(&uri);
-                }
+                video_player.ui_context.open_dialog(video_player.player.get_current_uri(), |uri| {
+                    with_video_player!(video_player {
+                        println!("loading {}", &uri);
+                        video_player.player.stop();
+                        video_player.player.load_uri(&uri);
+                    });
+                });
             });
         });
 
         self.open_subtitle_file_action.connect_activate(|_, _| {
             with_video_player!(video_player {
-                if let Some(uri) = video_player.ui_context.dialog_result(video_player.player.get_current_uri()) {
-                    video_player.player.configure_subtitle_track(Some(SubtitleTrack::External(uri)));
-                }
-                video_player.refresh_subtitle_track_menu();
+                video_player.ui_context.open_dialog(video_player.player.get_current_uri(), |uri| {
+                    with_video_player!(video_player {
+                        video_player.player.configure_subtitle_track(Some(SubtitleTrack::External(uri)));
+                        video_player.refresh_subtitle_track_menu();
+                    });
+                });
             });
         });
 
@@ -404,7 +408,7 @@ impl VideoPlayer {
             })
         });
 
-        self.ui_context.set_video_area(self.player.video_area());
+        self.ui_context.set_video_paintable(self.player.paintable());
 
         self.ui_context.set_progress_bar_format_callback(|value, duration| {
             let position = gst::ClockTime::from_seconds(value as u64);
@@ -782,14 +786,15 @@ fn main() -> anyhow::Result<()> {
     }
 
     gst::init().expect("Failed to initialize GStreamer.");
+    gtk::init().expect("Failed to initialize GTK.");
+    gstgtk4::plugin_register_static().expect("Failed to register gstgtk4 plugin.");
 
     glib::set_application_name("Glide");
 
-    let opt = Opt::from_args();
-
-    let gtk_app = initialize_and_create_app();
+    let gtk_app = create_app();
 
     let gtk_app_clone = gtk_app.clone();
+    let opt = Opt::from_args();
     let app = VideoPlayer::new(gtk_app, &opt)?;
 
     GLOBAL.with(move |global| {

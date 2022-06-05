@@ -23,13 +23,12 @@ structopt = "0.3"
 gstreamer = { version = "0.18", features = ["v1_16"] }
 gstreamer-player = { version = "0.18", features = ["v1_16"] }
 gstreamer-video = { version = "0.18", features = ["v1_16"] }
+gtk4 = "0.4.8"
+gst-plugin-gtk4 = { version = "0.1.1" }
+# , features = ["x11", "wayland"]
 
 [dependencies.glib]
 features = ["v2_64"]
-version = "0.15"
-
-[dependencies.gtk]
-features = ["v3_24"]
 version = "0.15"
 
 [dependencies.self_update]
