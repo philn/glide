@@ -100,6 +100,9 @@ impl UIContext {
         let progress_bar: gtk::Scale = builder.object("progress-bar").unwrap();
         let volume_button: gtk::VolumeButton = builder.object("volume-button").unwrap();
 
+        // TODO: Switch to set_content_fit() when exposed in GTK bindings and we depend on GTK >= 4.8.
+        video_renderer.set_keep_aspect_ratio(true);
+
         let window: gtk::ApplicationWindow = builder.object("application-window").unwrap();
         // window.connect_map_event(move |widget, _| {
         //     if let Ok(size) = INITIAL_SIZE.lock() {
@@ -430,6 +433,12 @@ impl UIContext {
             range.set_value(position as f64);
             glib::signal_handler_unblock(&range, handler_id);
         }
+    }
+
+    pub fn video_surface(&self) -> gdk::Surface {
+        let native = self.window.native().unwrap();
+        self.window.realize();
+        native.surface()
     }
 
     pub fn set_video_paintable(&self, paintable: &gdk::Paintable) {

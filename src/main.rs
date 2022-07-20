@@ -203,7 +203,7 @@ impl VideoPlayer {
             }
         }
 
-        let player = ChannelPlayer::new(player_sender, cache_file_path)?;
+        let player = ChannelPlayer::new(ui_context.video_surface(), player_sender, cache_file_path)?;
 
         Ok(Self {
             player,

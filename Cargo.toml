@@ -13,23 +13,29 @@ version = "0.5.9"
 directories = "4.0"
 anyhow = "1"
 thiserror = "1"
-gio = "0.15"
+#gio = "0.15"
+gio = { git = "https://github.com/gtk-rs/gtk-rs-core" }
 lazy_static = "1.4"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 sha2 = "0.10"
 structopt = "0.3"
-gstreamer = { version = "0.18", features = ["v1_16"] }
-gstreamer-player = { version = "0.18", features = ["v1_16"] }
-gstreamer-video = { version = "0.18", features = ["v1_16"] }
-gtk4 = "0.4.8"
-gst-plugin-gtk4 = { version = "0.1.1" }
-# , features = ["x11", "wayland"]
+#gstreamer = { version = "0.18", features = ["v1_16"] }
+#gstreamer-player = { version = "0.18", features = ["v1_16"] }
+#gstreamer-video = { version = "0.18", features = ["v1_16"] }
+#gtk4 = "0.4.8"
+#gst-plugin-gtk4 = { version = "0.1.1", features = ["x11", "wayland"] }
+glib = { git = "https://github.com/gtk-rs/gtk-rs-core" }
+gstreamer = { path = "/home/phil/dev/rust/gstreamer-rs/gstreamer/" }
+gstreamer-player = { path = "/home/phil/dev/rust/gstreamer-rs/gstreamer-player/", features = ["v1_16"] }
+gstreamer-video = { path = "/home/phil/dev/rust/gstreamer-rs/gstreamer-video" }
+gtk4 = { git = "https://github.com/gtk-rs/gtk4-rs", features = ["v4_4"] }
+gst-plugin-gtk4 = { path = "/home/phil/dev/rust/gst-plugins-rs/video/gtk4", features = ["wayland"] }
 
-[dependencies.glib]
-features = ["v2_64"]
-version = "0.15"
+# [dependencies.glib]
+# features = ["v2_64"]
+# version = "0.15"
 
 [dependencies.self_update]
 optional = true

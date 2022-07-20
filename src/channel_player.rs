@@ -7,6 +7,7 @@ extern crate serde_json;
 extern crate sha2;
 
 use self::sha2::{Digest, Sha256};
+use crate::gtk::prelude::PaintableExt;
 use gst::prelude::*;
 use gtk::gdk;
 use std::cell::RefCell;
@@ -201,38 +202,24 @@ impl PlayerDataHolder {
     }
 }
 
-fn create_renderer() -> (
-    Option<gst_player::PlayerVideoOverlayVideoRenderer>,
-    Option<gdk::Paintable>,
-) {
-    if let Ok(sink) = gst::ElementFactory::make("gtk4paintablesink", None) {
-        let paintable = sink.property::<gdk::Paintable>("paintable");
-        let renderer = gst_player::PlayerVideoOverlayVideoRenderer::with_sink(&sink);
-        (Some(renderer), Some(paintable))
-    } else {
-        (None, None)
-    }
-}
-
-#[derive(Error, Debug)]
-pub enum PlayerError {
-    #[error("Neither gtkglsink nor glimagesink found. Make sure to install gst-plugins-good with GTK support enabled, or gst-plugins-base")]
-    NoRendererFound,
-}
-
 impl ChannelPlayer {
-    pub fn new(sender: glib::Sender<PlayerEvent>, cache_file_path: Option<path::PathBuf>) -> anyhow::Result<Self> {
-        let (renderer, paintable) = create_renderer();
-        if renderer.is_none() {
-            return Err(anyhow::anyhow!(PlayerError::NoRendererFound));
-        }
-        let renderer1 = Some(
-            renderer
-                .as_ref()
-                .unwrap()
-                .clone()
-                .upcast::<gst_player::PlayerVideoRenderer>(),
-        );
+    pub fn new(
+        video_surface: gdk::Surface,
+        sender: glib::Sender<PlayerEvent>,
+        cache_file_path: Option<path::PathBuf>,
+    ) -> anyhow::Result<Self> {
+        let sink = gst::ElementFactory::make("glsinkbin", None)?;
+        let gtksink = gst::ElementFactory::make("gtk4paintablesink", Some("gtksink"))?;
+
+        // Need to set state to Ready to get a GL context
+        gtksink.set_property("surface", Some(video_surface).to_value());
+        gtksink.set_state(gst::State::Ready)?;
+
+        sink.set_property("sink", &gtksink);
+        let paintable = gtksink.property::<gdk::Paintable>("paintable");
+        let renderer = gst_player::PlayerVideoOverlayVideoRenderer::with_sink(&sink);
+
+        let renderer1 = Some(renderer.clone().upcast::<gst_player::PlayerVideoRenderer>());
         let dispatcher = gst_player::PlayerGMainContextSignalDispatcher::new(None);
         let player = gst_player::Player::new(
             renderer1.as_ref(),
@@ -244,7 +231,6 @@ impl ChannelPlayer {
         config.set_position_update_interval(250);
         player.set_config(config).unwrap();
 
-        let paintable = paintable.unwrap();
         // paintable.connect_draw(move |paintable, cairo_context| {
         //     let width = paintable.allocated_width();
         //     let height = paintable.allocated_height();
@@ -256,31 +242,31 @@ impl ChannelPlayer {
         //     gtk::Inhibit(false)
         // });
 
-        // let player_weak = player.downgrade();
-        // let renderer_weak = renderer.unwrap().downgrade();
-        // paintable.connect_invalidate_contents(move |p| {
-        //     let (width, height) = (p.intrinsic_width(), p.intrinsic_height());
-        //     let (x, y) = (0, 0); //event.position();
-        //     let rect = gst_video::VideoRectangle::new(x, y, width as i32, height as i32);
+        let player_weak = player.downgrade();
+        let renderer_weak = renderer.downgrade();
+        paintable.connect_invalidate_contents(move |p| {
+            let (width, height) = (p.intrinsic_width(), p.intrinsic_height());
+            let (x, y) = (0, 0); //event.position();
+            let rect = gst_video::VideoRectangle::new(x, y, width as i32, height as i32);
 
-        //     let player = match player_weak.upgrade() {
-        //         Some(player) => player,
-        //         None => return,
-        //     };
+            let player = match player_weak.upgrade() {
+                Some(player) => player,
+                None => return,
+            };
 
-        //     let video_track = player.property::<gst_player::PlayerVideoInfo>("current-video-track");
-        //     let video_width = video_track.width();
-        //     let video_height = video_track.height();
-        //     let src_rect = gst_video::VideoRectangle::new(0, 0, video_width, video_height);
+            let video_track = player.property::<gst_player::PlayerVideoInfo>("current-video-track");
+            let video_width = video_track.width();
+            let video_height = video_track.height();
+            let src_rect = gst_video::VideoRectangle::new(0, 0, video_width, video_height);
 
-        //     let rect = gst_video::center_video_rectangle(&src_rect, &rect, true);
-        //     let renderer = match renderer_weak.upgrade() {
-        //         Some(renderer) => renderer,
-        //         None => return,
-        //     };
-        //     renderer.set_render_rectangle(rect.x, rect.y, rect.w, rect.h);
-        //     renderer.expose();
-        // });
+            let rect = gst_video::center_video_rectangle(&src_rect, &rect, true);
+            let renderer = match renderer_weak.upgrade() {
+                Some(renderer) => renderer,
+                None => return,
+            };
+            renderer.set_render_rectangle(rect.x, rect.y, rect.w, rect.h);
+            renderer.expose();
+        });
 
         player.connect_uri_loaded(|player, uri| {
             player.pause();
