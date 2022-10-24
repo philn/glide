@@ -25,26 +25,26 @@ Install it with Cargo:
 
 1.  Install [RustUp](https://rustup.rs):
 
-        $ curl https://sh.rustup.rs -sSf | sh
+        curl https://sh.rustup.rs -sSf | sh
 
 2.  Install GStreamer and GTK+. On Debian/Linux:
 
-        $ sudo apt install gstreamer1.0-plugins-{base,good,bad} libgstreamer-plugins-{bad,base}1.0-dev
-        $ sudo apt install libgtk-3-dev gstreamer1.0-{gl,gtk3}
+        sudo apt install gstreamer1.0-plugins-{base,good,bad} libgstreamer-plugins-{bad,base}1.0-dev
+        sudo apt install libgtk-3-dev gstreamer1.0-{gl,gtk3}
 
     On macOS, with [brew](http://brew.sh):
 
-        $ brew install pango gstreamer gtk+3
-        $ brew install --build-from-source --with-pango --with-{libogg,libvorbis,opus,theora} gst-plugins-base
-        $ brew install --build-from-source --with-libvpx gst-plugins-good
-        $ brew install gst-plugins-bad
+        brew install pango gstreamer gtk+3
+        brew install --build-from-source --with-pango --with-{libogg,libvorbis,opus,theora} gst-plugins-base
+        brew install --build-from-source --with-libvpx gst-plugins-good
+        brew install gst-plugins-bad
 
 3.  Install Glide:
 
-        $ cargo install glide
-        $ # or if you want to have automatic update checking:
-        $ cargo install --features self-updater glide
-        
+        cargo install glide
+        # or if you want to have automatic update checking:
+        cargo install --features self-updater glide
+
 ### Packaging status
 
 #### Flatpak
@@ -53,17 +53,17 @@ This is the most recommended way to use Glide as it will allow the maintainers t
 easily reproduce reported bugs.
 
 Glide is available on [Flathub](https://flathub.org/apps/details/net.baseart.Glide).
-After setting up the flathub Flatpak remote as documented in Flathub, install with the following command, or 
+After setting up the flathub Flatpak remote as documented in Flathub, install with the following command, or
 through GNOME Software.
 
-    $ flatpak install net.baseart.Glide
+    flatpak install net.baseart.Glide
 
 #### Fedora
 
 Available in [COPR](https://copr.fedorainfracloud.org/coprs/atim/glide-rs/):
 
-    $ sudo dnf copr enable atim/glide-rs -y
-    $ sudo dnf install glide-rs
+    sudo dnf copr enable atim/glide-rs -y
+    sudo dnf install glide-rs
 
 Using Glide
 -----------
@@ -71,7 +71,7 @@ Using Glide
 There is currently only one way to use Glide, using the command line
 interface:
 
-    $ glide /path/to/localfile.mp4 http://some.com/remote/file.mp4
+    glide /path/to/localfile.mp4 http://some.com/remote/file.mp4
 
 At some point I will add file chooser support and improve integration
 for desktop so that all you need to do is double-click on a media file
@@ -106,30 +106,30 @@ Release procedure
 - Bump version in `Cargo.toml` and `meson.build`
 - Add release info in appstream file and make sure it is valid...
 
-        $ appstream-util validate data/net.baseart.Glide.metainfo.xml
-        
+      appstream-util validate data/net.baseart.Glide.metainfo.xml
+
 - Commit and tag new version:
 
-        $ git ci -am "Bump to ..."
-        $ git tag -s "version..."
+      git ci -am "Bump to ..."
+      git tag -s "version..."
 
 - Build tarball:
 
-        $ mkdir -p _build
-        $ cargo install cargo-vendor
-        $ pip3 install --user -U meson
-        $ meson _build
-        $ ninja -C _build release
+      mkdir -p _build
+      cargo install cargo-vendor
+      pip3 install --user -U meson
+      meson _build
+      ninja -C _build release
 
 - Publish version and tag:
 
-        $ git push --tags
-        $ git push
+      git push --tags
+      git push
 
 - Update crate on crates.io:
 
-        $ cargo package
-        $ cargo publish
+      cargo package
+      cargo publish
 
 - Upload tarball from `_build/dist/` to Github
 - TODO: Upload self-update binaries to Github
