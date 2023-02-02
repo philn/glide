@@ -115,11 +115,10 @@ Release procedure
 
 - Build tarball:
 
-      mkdir -p _build
       cargo install cargo-vendor
       pip3 install --user -U meson
-      meson _build
-      ninja -C _build release
+      meson setup _build
+      meson dist -C _build
 
 - Publish version and tag:
 
@@ -131,5 +130,5 @@ Release procedure
       cargo package
       cargo publish
 
-- Upload tarball from `_build/dist/` to Github
+- Upload tarball from `_build/meson-dist/` to Github
 - TODO: Upload self-update binaries to Github
