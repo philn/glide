@@ -183,7 +183,7 @@ impl UIContext {
                 ("dump-pipeline", ["<Ctrl>d"]),
             ];
             for (action, accels) in accels_per_action.iter() {
-                app.set_accels_for_action(&format!("app.{}", action), accels);
+                app.set_accels_for_action(&format!("app.{action}"), accels);
             }
 
             if let Some(window) = window_weak.upgrade() {
@@ -456,8 +456,8 @@ impl UIContext {
     }
 
     pub fn set_video_area(&self, video_area: &gtk::Widget) {
-        self.main_box.pack_start(&*video_area, true, true, 0);
-        self.main_box.reorder_child(&*video_area, 0);
+        self.main_box.pack_start(video_area, true, true, 0);
+        self.main_box.reorder_child(video_area, 0);
         video_area.show();
     }
 

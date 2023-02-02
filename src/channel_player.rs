@@ -149,7 +149,7 @@ fn uri_to_sha256(uri: &str) -> string::String {
     sh.update(uri.as_bytes());
     sh.finalize()
         .into_iter()
-        .map(|b| format!("{:02x}", b))
+        .map(|b| format!("{b:02x}"))
         .collect::<Vec<_>>()
         .concat()
 }
@@ -177,7 +177,7 @@ fn prepare_video_overlay(video_area: &gtk::DrawingArea, video_overlay: &gst_play
                 video_overlay.set_window_handle(xid as usize);
             }
         } else {
-            eprintln!("Add support for display type '{}'", display_type_name);
+            eprintln!("Add support for display type '{display_type_name}'");
             process::exit(-1);
         }
     }
@@ -459,7 +459,7 @@ impl ChannelPlayer {
         assert!(!playlist.is_empty());
         let player = &self.player;
         with_mut_player!(player player_data {
-            self.load_uri(&*playlist[0]);
+            self.load_uri(&playlist[0]);
             player_data.set_playlist(playlist);
         });
     }
