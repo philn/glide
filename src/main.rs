@@ -409,7 +409,7 @@ impl VideoPlayer {
         self.ui_context.set_progress_bar_format_callback(|value, duration| {
             let position = gst::ClockTime::from_seconds(value as u64);
             let duration = gst::ClockTime::from_seconds(duration as u64);
-            format!("{:.0} / {:.0}", position, duration)
+            format!("{position:.0} / {duration:.0}")
         });
 
         self.ui_context.set_volume_value_changed_callback(|value| {
@@ -503,7 +503,7 @@ impl VideoPlayer {
 
     pub fn player_error(&self, msg: std::string::String) {
         // FIXME: display some GTK error dialog...
-        eprintln!("Internal player error: {}", msg);
+        eprintln!("Internal player error: {msg}");
         with_video_player!(video_player { video_player.quit() });
     }
 
@@ -531,7 +531,7 @@ impl VideoPlayer {
         if let Some(info) = self.player.get_media_info() {
             if let Some(uri) = self.player.get_current_uri() {
                 if let Some(title) = info.title() {
-                    self.ui_context.set_window_title(&*title);
+                    self.ui_context.set_window_title(&title);
                 } else if let Ok((filename, _)) = glib::filename_from_uri(&uri) {
                     self.ui_context
                         .set_window_title(&filename.as_os_str().to_string_lossy());
@@ -625,20 +625,20 @@ impl VideoPlayer {
                     if l == title {
                         "".to_string()
                     } else {
-                        format!(" - [{}]", l)
+                        format!(" - [{l}]")
                     }
                 });
 
-                let action_label = format!("{}{}", title, lang.unwrap_or_else(|| "".to_string()));
-                let action_id = format!("app.subtitle::sub-{}", i);
+                let action_label = format!("{}{}", title, lang.unwrap_or_default());
+                let action_id = format!("app.subtitle::sub-{i}");
                 let item = gio::MenuItem::new(Some(&action_label), Some(&action_id));
-                item.set_detailed_action(&*action_id);
+                item.set_detailed_action(&action_id);
                 section.append_item(&item);
 
                 if selected_action.is_none() {
                     if let Some(ref track) = current_subtitle_track {
                         if track.language() == sub_stream.language() {
-                            selected_action = Some(format!("sub-{}", i));
+                            selected_action = Some(format!("sub-{i}"));
                         }
                     }
                 }
@@ -650,10 +650,10 @@ impl VideoPlayer {
                 let subfile = path.as_path();
                 if let Some(filename) = subfile.file_name() {
                     if let Some(f) = filename.to_str() {
-                        let v = format!("ext-{}", uri);
-                        let action_id = format!("app.subtitle::{}", v);
+                        let v = format!("ext-{uri}");
+                        let action_id = format!("app.subtitle::{v}");
                         let item = gio::MenuItem::new(Some(f), Some(&action_id));
-                        item.set_detailed_action(&*action_id);
+                        item.set_detailed_action(&action_id);
                         section.append_item(&item);
                         selected_action = Some(v);
                     }
@@ -683,7 +683,7 @@ impl VideoPlayer {
         for vis in gst_player::Player::visualizations_get() {
             let action_id = format!("app.audio-visualization::{}", vis.name());
             let item = gio::MenuItem::new(Some(vis.description()), Some(&action_id));
-            item.set_detailed_action(&*action_id);
+            item.set_detailed_action(&action_id);
             section.append_item(&item);
         }
 
@@ -700,11 +700,11 @@ impl VideoPlayer {
         for (i, audio_stream) in info.audio_streams().iter().enumerate() {
             let mut label = format!("{} channels", audio_stream.channels());
             if let Some(l) = audio_stream.language() {
-                label = format!("{} - [{}]", label, l);
+                label = format!("{label} - [{l}]");
             }
-            let action_id = format!("app.audio-track::audio-{}", i);
+            let action_id = format!("app.audio-track::audio-{i}");
             let item = gio::MenuItem::new(Some(&label), Some(&action_id));
-            item.set_detailed_action(&*action_id);
+            item.set_detailed_action(&action_id);
             section.append_item(&item);
         }
         self.ui_context.update_audio_track_menu(&section);
@@ -718,10 +718,10 @@ impl VideoPlayer {
         section.append_item(&item);
 
         for (i, video_stream) in info.video_streams().iter().enumerate() {
-            let action_id = format!("app.video-track::video-{}", i);
+            let action_id = format!("app.video-track::video-{i}");
             let description = format!("{}x{}", video_stream.width(), video_stream.height());
             let item = gio::MenuItem::new(Some(&description), Some(&action_id));
-            item.set_detailed_action(&*action_id);
+            item.set_detailed_action(&action_id);
             section.append_item(&item);
         }
         self.ui_context.update_video_track_menu(&section);
