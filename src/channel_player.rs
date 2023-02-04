@@ -1,5 +1,5 @@
 extern crate gstreamer as gst;
-extern crate gstreamer_player as gst_player;
+extern crate gstreamer_play as gst_play;
 extern crate gstreamer_video as gst_video;
 extern crate gtk4 as gtk;
 extern crate serde_json;
@@ -8,8 +8,10 @@ extern crate sha2;
 use self::sha2::{Digest, Sha256};
 use crate::gtk::prelude::PaintableExt;
 use gst::prelude::*;
+use gst_play::PlayMessage;
 use gstreamer::glib;
 use gtk::gdk;
+use gtk::glib::clone;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fs::File;
@@ -44,7 +46,7 @@ pub enum PlayerEvent {
     EndOfStream(string::String),
     EndOfPlaylist,
     StateChanged(PlaybackState),
-    VideoDimensionsChanged(i32, i32),
+    VideoDimensionsChanged(u32, u32),
     VolumeChanged(f64),
     Error(string::String),
     AudioVideoOffsetChanged(i64),
@@ -52,8 +54,8 @@ pub enum PlayerEvent {
 }
 
 pub struct ChannelPlayer {
-    player: gst_player::Player,
-    renderer: gst_player::PlayerVideoOverlayVideoRenderer,
+    player: gst_play::Play,
+    renderer: gst_play::PlayVideoOverlayVideoRenderer,
     gtksink: gst::Element,
 }
 
@@ -170,7 +172,7 @@ impl PlayerDataHolder {
         }
     }
 
-    fn media_info_updated(&mut self, info: &gst_player::PlayerMediaInfo) {
+    fn media_info_updated(&mut self, info: &gst_play::PlayMediaInfo) {
         let uri = info.uri();
 
         // Call this only once per asset.
@@ -180,7 +182,7 @@ impl PlayerDataHolder {
         }
     }
 
-    fn end_of_stream(&mut self, player: &gst_player::Player) {
+    fn end_of_stream(&mut self, player: &gst_play::Play) {
         if let Some(uri) = player.uri() {
             self.notify(PlayerEvent::EndOfStream(uri.into()));
             self.index += 1;
@@ -213,81 +215,87 @@ impl ChannelPlayer {
             .property("sink", &gtksink)
             .build()?;
 
-        let renderer = gst_player::PlayerVideoOverlayVideoRenderer::with_sink(&sink);
+        let renderer = gst_play::PlayVideoOverlayVideoRenderer::with_sink(&sink);
 
-        let dispatcher = gst_player::PlayerGMainContextSignalDispatcher::new(None);
-        let player = gst_player::Player::new(
-            Some(&renderer.clone().upcast::<gst_player::PlayerVideoRenderer>()),
-            Some(&dispatcher.upcast::<gst_player::PlayerSignalDispatcher>()),
-        );
+        let player = gst_play::Play::new(Some(&renderer.clone().upcast::<gst_play::PlayVideoRenderer>()));
 
         // Get position updates every 250ms.
         let mut config = player.config();
         config.set_position_update_interval(250);
         player.set_config(config).unwrap();
 
-        player.connect_uri_loaded(|player, uri| {
-            player.pause();
-            with_mut_player!(player player_data {
-                if let Some(ref cache) = player_data.cache {
-                    if let Some(position) = cache.find_last_position(uri) {
-                        player.seek(position);
+        player
+            .message_bus()
+            .add_watch_local(
+                clone!(@weak player => @default-return glib::Continue(false), move |_, message| {
+                    match PlayMessage::parse(message) {
+                        Ok(PlayMessage::UriLoaded) => {
+                            player.pause();
+                            let uri = player.uri().unwrap();
+                            with_mut_player!(player player_data {
+                                if let Some(ref cache) = player_data.cache {
+                                    if let Some(position) = cache.find_last_position(&uri) {
+                                        player.seek(position);
+                                    }
+                                }
+                            });
+                            player.play();
+                        }
+                        Ok(PlayMessage::EndOfStream) => {
+                            with_mut_player!(player player_data {
+                                player_data.end_of_stream(&player);
+                            });
+                        }
+                        Ok(PlayMessage::MediaInfoUpdated { info }) => {
+                            with_mut_player!(player player_data {
+                                player_data.media_info_updated(&info);
+                            });
+
+                        }
+                        Ok(PlayMessage::PositionUpdated { position: _ }) => {
+                            with_player!(player {
+                                player.notify(PlayerEvent::PositionUpdated);
+                            });
+
+                        }
+                        Ok(PlayMessage::VideoDimensionsChanged { width, height }) => {
+                            with_player!(player {
+                                player.notify(PlayerEvent::VideoDimensionsChanged(width, height));
+                            });
+
+                        }
+                        Ok(PlayMessage::StateChanged { state }) => {
+                            let state = match state {
+                                gst_play::PlayState::Playing => Some(PlaybackState::Playing),
+                                gst_play::PlayState::Paused => Some(PlaybackState::Paused),
+                                gst_play::PlayState::Stopped => Some(PlaybackState::Stopped),
+                                _ => None,
+                            };
+                            if let Some(s) = state {
+                                with_player!(player {
+                                    player.notify(PlayerEvent::StateChanged(s));
+                                });
+                            }
+                        }
+                        Ok(PlayMessage::VolumeChanged { volume }) => {
+                            with_player!(player player_data {
+                                player_data.notify(PlayerEvent::VolumeChanged(volume));
+                            });
+
+                        }
+                        Ok(PlayMessage::Error { error, .. }) => {
+                            with_player!(player {
+                                // FIXME: Pass error to enum.
+                                player.notify(PlayerEvent::Error(error.to_string()));
+                            });
+                        }
+                        _ => {}
                     }
-                }
-            });
-            player.play();
-        });
 
-        player.connect_end_of_stream(|player| {
-            with_mut_player!(player player_data {
-                player_data.end_of_stream(player);
-            });
-        });
-
-        player.connect_media_info_updated(|player, info| {
-            with_mut_player!(player player_data {
-                player_data.media_info_updated(info);
-            });
-        });
-
-        player.connect_position_updated(|player, _| {
-            with_player!(player {
-                player.notify(PlayerEvent::PositionUpdated);
-            });
-        });
-
-        player.connect_video_dimensions_changed(|player, width, height| {
-            with_player!(player {
-                player.notify(PlayerEvent::VideoDimensionsChanged(width, height));
-            });
-        });
-
-        player.connect_state_changed(|player, state| {
-            let state = match state {
-                gst_player::PlayerState::Playing => Some(PlaybackState::Playing),
-                gst_player::PlayerState::Paused => Some(PlaybackState::Paused),
-                gst_player::PlayerState::Stopped => Some(PlaybackState::Stopped),
-                _ => None,
-            };
-            if let Some(s) = state {
-                with_player!(player {
-                    player.notify(PlayerEvent::StateChanged(s));
-                });
-            }
-        });
-
-        player.connect_volume_changed(|player| {
-            with_player!(player player_data {
-                player_data.notify(PlayerEvent::VolumeChanged(player.volume()));
-            });
-        });
-
-        player.connect_error(|player, error| {
-            with_player!(player {
-                // FIXME: Pass error to enum.
-                player.notify(PlayerEvent::Error(error.to_string()));
-            });
-        });
+                    glib::Continue(true)
+                }),
+            )
+            .unwrap();
 
         player.connect_audio_video_offset_notify(|player| {
             with_player!(player player_data {
@@ -375,7 +383,7 @@ impl ChannelPlayer {
         self.player.stop();
     }
 
-    pub fn get_media_info(&self) -> Option<gst_player::PlayerMediaInfo> {
+    pub fn get_media_info(&self) -> Option<gst_play::PlayMediaInfo> {
         self.player.media_info()
     }
 
@@ -472,7 +480,7 @@ impl ChannelPlayer {
         self.player.set_subtitle_track_enabled(enabled);
     }
 
-    pub fn get_current_subtitle_track(&self) -> Option<gst_player::PlayerSubtitleInfo> {
+    pub fn get_current_subtitle_track(&self) -> Option<gst_play::PlaySubtitleInfo> {
         self.player.current_subtitle_track()
     }
 

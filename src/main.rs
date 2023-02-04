@@ -4,7 +4,7 @@ extern crate core_foundation;
 extern crate directories;
 extern crate gio;
 extern crate gstreamer as gst;
-extern crate gstreamer_player as gst_player;
+extern crate gstreamer_play as gst_play;
 extern crate gstreamer_video as gst_video;
 extern crate gtk4 as gtk;
 #[macro_use]
@@ -16,7 +16,7 @@ extern crate self_update;
 #[macro_use]
 extern crate serde_derive;
 
-use crate::gst_player::prelude::PlayerStreamInfoExt;
+use crate::gst_play::prelude::PlayStreamInfoExt;
 use gstreamer::glib;
 
 use directories::ProjectDirs;
@@ -552,7 +552,7 @@ impl VideoPlayer {
         self.ui_context.playback_state_changed(playback_state);
     }
 
-    pub fn video_dimensions_changed(&self, width: i32, height: i32) {
+    pub fn video_dimensions_changed(&self, width: u32, height: u32) {
         self.ui_context.resize_window(width, height);
     }
 
@@ -709,7 +709,7 @@ impl VideoPlayer {
         item.set_detailed_action("app.audio-visualization::none");
         section.append_item(&item);
 
-        for vis in gst_player::Player::visualizations_get() {
+        for vis in gst_play::Play::visualizations_get() {
             let action_id = format!("app.audio-visualization::{}", vis.name());
             let item = gio::MenuItem::new(Some(vis.description()), Some(&action_id));
             item.set_detailed_action(&action_id);
@@ -719,7 +719,7 @@ impl VideoPlayer {
         self.ui_context.update_audio_visualization_menu(&section);
     }
 
-    pub fn fill_audio_track_menu(&self, info: &gst_player::PlayerMediaInfo) {
+    pub fn fill_audio_track_menu(&self, info: &gst_play::PlayMediaInfo) {
         let section = gio::Menu::new();
 
         let item = gio::MenuItem::new(Some("Disable"), Some("subtitle"));
@@ -739,7 +739,7 @@ impl VideoPlayer {
         self.ui_context.update_audio_track_menu(&section);
     }
 
-    pub fn fill_video_track_menu(&self, info: &gst_player::PlayerMediaInfo) {
+    pub fn fill_video_track_menu(&self, info: &gst_play::PlayMediaInfo) {
         let section = gio::Menu::new();
 
         let item = gio::MenuItem::new(Some("Disable"), Some("subtitle"));
