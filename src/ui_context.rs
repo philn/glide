@@ -426,8 +426,8 @@ impl UIContext {
         self.video_renderer.set_paintable(Some(paintable));
     }
 
-    pub fn resize_window(&self, width: i32, height: i32) {
-        self.window.set_default_size(width, height);
+    pub fn resize_window(&self, width: u32, height: u32) {
+        self.window.set_default_size(width as i32, height as i32);
     }
 
     pub fn set_window_title(&self, title: &str) {
