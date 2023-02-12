@@ -63,32 +63,32 @@
       </item>
     </submenu>
   </menu>
-  <object class="GtkApplicationWindow" id="application-window">
+  <object class="AdwApplicationWindow" id="application-window">
     <property name="default_width">640</property>
     <property name="default_height">480</property>
     <child>
       <placeholder/>
     </child>
-    <child type="titlebar">
-      <object class="GtkHeaderBar" id="header-bar">
-        <child type="end">
-          <object class="GtkMenuButton" id="gear_menu_button">
-            <property name="valign">3</property>
-            <property name="focus-on-click">0</property>
-            <property name="popover">
-              <object class="GtkPopoverMenu" id="gear_menu">
-                <property name="menu-model">main-menu</property>
-              </object>
-            </property>
-            <property name="icon-name">open-menu-symbolic</property>
-          </object>
-        </child>
-      </object>
-    </child>
 
     <child>
       <object class="GtkBox" id="main-box">
         <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkHeaderBar" id="header-bar">
+            <child type="end">
+              <object class="GtkMenuButton" id="gear_menu_button">
+                <property name="valign">3</property>
+                <property name="focus-on-click">0</property>
+                <property name="popover">
+                  <object class="GtkPopoverMenu" id="gear_menu">
+                    <property name="menu-model">main-menu</property>
+                  </object>
+                </property>
+                <property name="icon-name">open-menu-symbolic</property>
+              </object>
+            </child>
+          </object>
+        </child>
         <child>
           <object class="GtkPicture" id="video-renderer">
             <property name="vexpand">True</property>
@@ -205,7 +205,7 @@ audio-volume-medium-symbolic</property>
     <property name="step-increment">0.1</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkApplicationWindow" id="synchronization-window">
+  <object class="AdwApplicationWindow" id="synchronization-window">
     <property name="title" translatable="1">Track synchronization</property>
     <property name="deletable">0</property>
     <child>

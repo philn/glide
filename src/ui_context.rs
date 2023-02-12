@@ -1,3 +1,4 @@
+extern crate adw;
 extern crate gio;
 extern crate gstreamer as gst;
 extern crate gtk4 as gtk;
@@ -27,25 +28,25 @@ lazy_static! {
 #[cfg(target_os = "macos")]
 use crate::iokit_sleep_disabler;
 
-pub fn create_app() -> gtk::Application {
-    let gtk_app = gtk::Application::new(Some("net.baseart.Glide"), gio::ApplicationFlags::HANDLES_OPEN);
+pub fn create_app() -> adw::Application {
+    let gtk_app = adw::Application::new(Some("net.baseart.Glide"), gio::ApplicationFlags::HANDLES_OPEN);
 
-    if let Some(settings) = gtk::Settings::default() {
-        settings.set_property("gtk-application-prefer-dark-theme", &true);
-    }
+    let style_manager = adw::StyleManager::default();
+    style_manager.set_property("color-scheme", adw::ColorScheme::PreferDark);
 
     gtk_app
 }
 
 pub struct UIContext {
-    window: gtk::ApplicationWindow,
+    window: adw::ApplicationWindow,
+    header_bar: gtk::HeaderBar,
     motion_controller: gtk::EventControllerMotion,
     video_renderer: gtk::Picture,
     pause_button: gtk::Button,
     progress_bar: gtk::Scale,
     volume_button: gtk::VolumeButton,
     toolbar_box: gtk::Box,
-    track_synchronization_window: gtk::ApplicationWindow,
+    track_synchronization_window: adw::ApplicationWindow,
     audio_offset_entry: gtk::SpinButton,
     subtitle_offset_entry: gtk::SpinButton,
     subtitle_track_menu: gio::Menu,
@@ -56,14 +57,16 @@ pub struct UIContext {
     position_signal_handler_id: Option<glib::SignalHandlerId>,
     audio_offset_entry_signal_handler_id: Option<glib::SignalHandlerId>,
     subtitle_offset_entry_signal_handler_id: Option<glib::SignalHandlerId>,
-    app: gtk::Application,
+    app: adw::Application,
 }
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 impl UIContext {
-    pub fn new(gtk_app: gtk::Application) -> Self {
+    pub fn new(gtk_app: adw::Application) -> Self {
         let builder = gtk::Builder::from_string(include_str!("../data/net.baseart.Glide.ui"));
+
+        let header_bar: gtk::HeaderBar = builder.object("header-bar").unwrap();
 
         let pause_button = {
             let button: gtk::Button = builder.object("pause-button").unwrap();
@@ -98,9 +101,9 @@ impl UIContext {
 
         video_renderer.set_content_fit(gtk::ContentFit::Fill);
 
-        let window: gtk::ApplicationWindow = builder.object("application-window").unwrap();
+        let window: adw::ApplicationWindow = builder.object("application-window").unwrap();
 
-        let track_synchronization_window: gtk::ApplicationWindow = builder.object("synchronization-window").unwrap();
+        let track_synchronization_window: adw::ApplicationWindow = builder.object("synchronization-window").unwrap();
 
         let action = gio::SimpleAction::new("close", None);
         track_synchronization_window.add_action(&action);
@@ -169,6 +172,7 @@ impl UIContext {
 
         Self {
             window,
+            header_bar,
             motion_controller,
             video_renderer,
             pause_button,
@@ -263,7 +267,7 @@ impl UIContext {
         }
         *INITIAL_SIZE.lock().unwrap() = Some(window.default_size());
         //*INITIAL_POSITION.lock().unwrap() = Some(window.position());
-        window.set_show_menubar(false);
+        self.header_bar.hide();
         window.fullscreen();
         self.toolbar_box.hide();
         let cursor = gtk::gdk::Cursor::from_name("none", None);
@@ -289,7 +293,7 @@ impl UIContext {
         }
         window.unfullscreen();
         self.toolbar_box.show();
-        window.set_show_menubar(true);
+        self.header_bar.show();
         let cursor = gtk::gdk::Cursor::from_name("default", None);
         window.set_cursor(cursor.as_ref());
     }
@@ -449,12 +453,6 @@ impl UIContext {
     }
 
     pub fn display_about_dialog(&self) {
-        let dialog = gtk::AboutDialog::new();
-        dialog.set_authors(&["Philippe Normand"]);
-        dialog.set_website_label("base-art.net");
-        dialog.set_website(Some("http://base-art.net"));
-        dialog.set_title(Some("About"));
-        dialog.set_version(Some(VERSION));
         let s = format!(
             "Multimedia playback support provided by {}.\nUser interface running on GTK {}.{}.{}",
             gst::version_string(),
@@ -462,8 +460,16 @@ impl UIContext {
             gtk::minor_version(),
             gtk::micro_version()
         );
-        dialog.set_comments(Some(s.as_str()));
-        dialog.set_transient_for(Some(&self.window));
+        let dialog = adw::AboutWindow::builder()
+            .application_name("Glide")
+            .developer_name("Philippe Normand")
+            .website("http://github.com/philn/glide")
+            .issue_url("https://github.com/philn/glide/issues/new")
+            .version(VERSION)
+            .debug_info(s)
+            .application(&self.app)
+            .transient_for(&self.window)
+            .build();
         dialog.show();
     }
 

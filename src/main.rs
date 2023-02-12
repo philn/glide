@@ -105,7 +105,7 @@ macro_rules! with_mut_video_player {
 }
 
 impl VideoPlayer {
-    pub fn new(gtk_app: gtk::Application, options: &Opt) -> anyhow::Result<Self> {
+    pub fn new(gtk_app: adw::Application, options: &Opt) -> anyhow::Result<Self> {
         let fullscreen_action = gio::SimpleAction::new_stateful("fullscreen", None, false.into());
         gtk_app.add_action(&fullscreen_action);
 
