@@ -106,19 +106,19 @@ macro_rules! with_mut_video_player {
 
 impl VideoPlayer {
     pub fn new(gtk_app: gtk::Application, options: &Opt) -> anyhow::Result<Self> {
-        let fullscreen_action = gio::SimpleAction::new_stateful("fullscreen", None, &false.to_variant());
+        let fullscreen_action = gio::SimpleAction::new_stateful("fullscreen", None, false.into());
         gtk_app.add_action(&fullscreen_action);
 
-        let restore_action = gio::SimpleAction::new_stateful("restore", None, &true.to_variant());
+        let restore_action = gio::SimpleAction::new_stateful("restore", None, true.into());
         gtk_app.add_action(&restore_action);
 
-        let pause_action = gio::SimpleAction::new_stateful("pause", None, &false.to_variant());
+        let pause_action = gio::SimpleAction::new_stateful("pause", None, false.into());
         gtk_app.add_action(&pause_action);
 
-        let seek_forward_action = gio::SimpleAction::new_stateful("seek-forward", None, &false.to_variant());
+        let seek_forward_action = gio::SimpleAction::new_stateful("seek-forward", None, false.into());
         gtk_app.add_action(&seek_forward_action);
 
-        let seek_backward_action = gio::SimpleAction::new_stateful("seek-backward", None, &false.to_variant());
+        let seek_backward_action = gio::SimpleAction::new_stateful("seek-backward", None, false.into());
         gtk_app.add_action(&seek_backward_action);
 
         let open_media_action = gio::SimpleAction::new("open-media", None);
@@ -127,37 +127,31 @@ impl VideoPlayer {
         let open_subtitle_file_action = gio::SimpleAction::new("open-subtitle-file", None);
         gtk_app.add_action(&open_subtitle_file_action);
 
-        let audio_mute_action = gio::SimpleAction::new_stateful("audio-mute", None, &false.to_variant());
+        let audio_mute_action = gio::SimpleAction::new_stateful("audio-mute", None, false.into());
         gtk_app.add_action(&audio_mute_action);
 
-        let volume_increase_action =
-            gio::SimpleAction::new_stateful("audio-volume-increase", None, &false.to_variant());
+        let volume_increase_action = gio::SimpleAction::new_stateful("audio-volume-increase", None, false.into());
         gtk_app.add_action(&volume_increase_action);
 
-        let volume_decrease_action =
-            gio::SimpleAction::new_stateful("audio-volume-decrease", None, &false.to_variant());
+        let volume_decrease_action = gio::SimpleAction::new_stateful("audio-volume-decrease", None, false.into());
         gtk_app.add_action(&volume_decrease_action);
 
-        let dump_pipeline_action = gio::SimpleAction::new_stateful("dump-pipeline", None, &false.to_variant());
+        let dump_pipeline_action = gio::SimpleAction::new_stateful("dump-pipeline", None, false.into());
         gtk_app.add_action(&dump_pipeline_action);
 
-        let subtitle_action =
-            gio::SimpleAction::new_stateful("subtitle", glib::VariantTy::new("s").ok(), &"".to_variant());
+        let subtitle_action = gio::SimpleAction::new_stateful("subtitle", glib::VariantTy::new("s").ok(), "".into());
         gtk_app.add_action(&subtitle_action);
 
-        let audio_visualization_action = gio::SimpleAction::new_stateful(
-            "audio-visualization",
-            glib::VariantTy::new("s").ok(),
-            &"none".to_variant(),
-        );
+        let audio_visualization_action =
+            gio::SimpleAction::new_stateful("audio-visualization", glib::VariantTy::new("s").ok(), "none".into());
         gtk_app.add_action(&audio_visualization_action);
 
         let audio_track_action =
-            gio::SimpleAction::new_stateful("audio-track", glib::VariantTy::new("s").ok(), &"audio-0".to_variant());
+            gio::SimpleAction::new_stateful("audio-track", glib::VariantTy::new("s").ok(), "audio-0".into());
         gtk_app.add_action(&audio_track_action);
 
         let video_track_action =
-            gio::SimpleAction::new_stateful("video-track", glib::VariantTy::new("s").ok(), &"video-0".to_variant());
+            gio::SimpleAction::new_stateful("video-track", glib::VariantTy::new("s").ok(), "video-0".into());
         gtk_app.add_action(&video_track_action);
 
         let open_sync_window_action = gio::SimpleAction::new("open-sync-window", None);
@@ -263,7 +257,7 @@ impl VideoPlayer {
                 with_video_player!(video_player {
                     video_player.player.toggle_pause(paused);
                 });
-                pause_action.set_state(&(!paused).to_variant());
+                pause_action.set_state((!paused).into());
             }
         });
 
@@ -302,7 +296,7 @@ impl VideoPlayer {
                 if let Some(is_enabled) = mute_action.state() {
                     let enabled = is_enabled.get::<bool>().unwrap();
                     video_player.player.toggle_mute(!enabled);
-                    mute_action.set_state(&(!enabled).to_variant());
+                    mute_action.set_state((!enabled).into());
                 }
             });
         });
@@ -317,7 +311,7 @@ impl VideoPlayer {
                         video_player.ui_context.leave_fullscreen();
                     }
                     let new_state = !fullscreen;
-                    fullscreen_action.set_state(&new_state.to_variant());
+                    fullscreen_action.set_state(new_state.into());
                 });
             }
         });
@@ -343,7 +337,7 @@ impl VideoPlayer {
                         } else {
                             video_player.player.set_audio_visualization(Some(AudioVisualization(name)));
                         }
-                        action.set_state(val);
+                        action.set_state(val.into());
                     });
                 }
             }
@@ -357,7 +351,7 @@ impl VideoPlayer {
 
                     with_video_player!(video_player {
                         video_player.player.set_audio_track_index(idx);
-                        action.set_state(val);
+                        action.set_state(val.into());
                     });
                 }
             }
@@ -371,7 +365,7 @@ impl VideoPlayer {
 
                     with_video_player!(video_player {
                         video_player.player.set_video_track_index(idx);
-                        action.set_state(val);
+                        action.set_state(val.into());
                     });
                 }
             }
@@ -627,7 +621,7 @@ impl VideoPlayer {
                 };
                 self.player.configure_subtitle_track(track);
             }
-            self.subtitle_action.set_state(val);
+            self.subtitle_action.set_state(val.into());
         }
     }
 
@@ -798,7 +792,7 @@ impl VideoPlayer {
 
             if fullscreen {
                 self.ui_context.leave_fullscreen();
-                fullscreen_action.set_state(&false.to_variant());
+                fullscreen_action.set_state(false.into());
             }
         }
     }

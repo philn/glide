@@ -217,7 +217,7 @@ impl ChannelPlayer {
 
         let renderer = gst_play::PlayVideoOverlayVideoRenderer::with_sink(&sink);
 
-        let player = gst_play::Play::new(Some(&renderer.clone().upcast::<gst_play::PlayVideoRenderer>()));
+        let player = gst_play::Play::new(Some(renderer.clone().upcast::<gst_play::PlayVideoRenderer>()));
 
         // Get position updates every 250ms.
         let mut config = player.config();

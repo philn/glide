@@ -165,7 +165,7 @@ impl UIContext {
         });
 
         let motion_controller = gtk::EventControllerMotion::builder().build();
-        window.add_controller(&motion_controller);
+        window.add_controller(motion_controller.clone());
 
         Self {
             window,
@@ -368,7 +368,7 @@ impl UIContext {
             }
             true
         });
-        self.window.add_controller(&dest);
+        self.window.add_controller(dest);
     }
 
     pub fn set_audio_offset_entry_updated_callback<F: Fn(i64) + Send + Sync + 'static>(&mut self, f: F) {
