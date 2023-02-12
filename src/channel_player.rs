@@ -211,9 +211,15 @@ impl ChannelPlayer {
         // Need to set state to Ready to get a GL context
         gtksink.set_state(gst::State::Ready)?;
 
-        let sink = gst::ElementFactory::make("glsinkbin")
-            .property("sink", &gtksink)
-            .build()?;
+        let paintable = gtksink.property::<gdk::Paintable>("paintable");
+
+        let sink = if paintable.property::<Option<gdk::GLContext>>("gl-context").is_some() {
+            gst::ElementFactory::make("glsinkbin")
+                .property("sink", &gtksink)
+                .build()?
+        } else {
+            gtksink.clone()
+        };
 
         let renderer = gst_play::PlayVideoOverlayVideoRenderer::with_sink(&sink);
 

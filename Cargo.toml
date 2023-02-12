@@ -32,6 +32,9 @@ version = "0.28"
 
 [features]
 self-updater = ["self_update"]
+x11egl = ["gst-plugin-gtk4/x11egl"]
+x11glx = ["gst-plugin-gtk4/x11glx"]
+wayland = ["gst-plugin-gtk4/wayland"]
 
 [target.'cfg(target_os = "macos")'.dependencies]
 core-foundation = "0.9"
