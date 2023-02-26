@@ -21,7 +21,6 @@ lazy_static! {
     pub static ref INHIBIT_COOKIE: Mutex<Option<u32>> = Mutex::new(None);
     pub static ref INITIAL_POSITION: Mutex<Option<(i32, i32)>> = Mutex::new(None);
     pub static ref INITIAL_SIZE: Mutex<Option<(i32, i32)>> = Mutex::new(None);
-    pub static ref MOUSE_NOTIFY_SIGNAL_ID: Mutex<Option<glib::SignalHandlerId>> = Mutex::new(None);
     pub static ref AUTOHIDE_SOURCE: Mutex<Option<glib::SourceId>> = Mutex::new(None);
 }
 
@@ -48,7 +47,7 @@ pub struct UIContext {
     pause_button: gtk::Button,
     progress_bar: gtk::Scale,
     volume_button: gtk::VolumeButton,
-    toolbar_box: gtk::Box,
+    toolbar_revealer: gtk::Revealer,
     track_synchronization_window: adw::ApplicationWindow,
     audio_offset_entry: gtk::SpinButton,
     subtitle_offset_entry: gtk::SpinButton,
@@ -98,9 +97,10 @@ impl UIContext {
             .set_action_name(Some("app.fullscreen"));
 
         let video_renderer: gtk::Picture = builder.object("video-renderer").unwrap();
-        let toolbar_box: gtk::Box = builder.object("toolbar-box").unwrap();
         let progress_bar: gtk::Scale = builder.object("progress-bar").unwrap();
         let volume_button: gtk::VolumeButton = builder.object("volume-button").unwrap();
+
+        let toolbar_revealer: gtk::Revealer = builder.object("toolbar-revealer").unwrap();
 
         video_renderer.set_content_fit(gtk::ContentFit::Fill);
 
@@ -181,7 +181,7 @@ impl UIContext {
             pause_button,
             progress_bar,
             volume_button,
-            toolbar_box,
+            toolbar_revealer,
             track_synchronization_window,
             audio_offset_entry,
             subtitle_offset_entry,
@@ -205,12 +205,11 @@ impl UIContext {
         window.show();
     }
 
-    #[cfg(target_os = "linux")]
     pub fn start_autohide_toolbar(&self) {
-        let toolbar_weak = self.toolbar_box.downgrade();
+        let toolbar_weak = self.toolbar_revealer.downgrade();
         let window_weak = self.window.downgrade();
         let coords_cache: std::sync::Arc<Mutex<(f64, f64)>> = std::sync::Arc::new(Mutex::new((0.0, 0.0)));
-        let notify_signal_id = self.motion_controller.connect_motion(move |_controller, x, y| {
+        self.motion_controller.connect_motion(move |_controller, x, y| {
             let coords = (x, y);
             let mut cached_coords = coords_cache.lock().unwrap();
             if coords == *cached_coords {
@@ -234,27 +233,32 @@ impl UIContext {
                 Some(t) => t,
                 None => return,
             };
-            toolbar.set_visible(true);
+            toolbar.set_reveal_child(true);
 
             let window_weak2 = SendWeakRef::from(window_weak.clone());
             let toolbar_weak2 = SendWeakRef::from(toolbar_weak.clone());
             *AUTOHIDE_SOURCE.lock().unwrap() = Some(glib::timeout_add_seconds(5, move || {
+                if let Some(toolbar) = toolbar_weak2.upgrade() {
+                    toolbar.set_reveal_child(false);
+                }
                 if let Ok(cookie) = INHIBIT_COOKIE.lock() {
                     if cookie.is_some() {
-                        if let Some(toolbar) = toolbar_weak2.upgrade() {
-                            toolbar.hide();
-                        }
-                        if let Some(window) = window_weak2.upgrade() {
-                            let cursor = gtk::gdk::Cursor::from_name("none", None);
-                            window.set_cursor(cursor.as_ref());
-                        }
+                        let window = match window_weak2.upgrade() {
+                            Some(t) => t,
+                            None => {
+                                *AUTOHIDE_SOURCE.lock().unwrap() = None;
+                                return glib::ControlFlow::Break;
+                            }
+                        };
+
+                        let cursor = gtk::gdk::Cursor::from_name("none", None);
+                        window.set_cursor(cursor.as_ref());
                     }
                 }
                 *AUTOHIDE_SOURCE.lock().unwrap() = None;
                 glib::ControlFlow::Break
             }));
         });
-        *MOUSE_NOTIFY_SIGNAL_ID.lock().unwrap() = Some(notify_signal_id);
     }
 
     pub fn enter_fullscreen(&self) {
@@ -272,12 +276,8 @@ impl UIContext {
         //*INITIAL_POSITION.lock().unwrap() = Some(window.position());
         self.header_bar.hide();
         window.fullscreen();
-        self.toolbar_box.hide();
         let cursor = gtk::gdk::Cursor::from_name("none", None);
         window.set_cursor(cursor.as_ref());
-
-        #[cfg(target_os = "linux")]
-        self.start_autohide_toolbar();
     }
 
     pub fn leave_fullscreen(&self) {
@@ -289,13 +289,7 @@ impl UIContext {
             self.app.uninhibit(cookie.unwrap());
             *cookie = None;
         }
-        if let Ok(mut signal_handler_id) = MOUSE_NOTIFY_SIGNAL_ID.lock() {
-            if let Some(handler) = signal_handler_id.take() {
-                self.motion_controller.disconnect(handler);
-            }
-        }
         window.unfullscreen();
-        self.toolbar_box.show();
         self.header_bar.show();
         let cursor = gtk::gdk::Cursor::from_name("default", None);
         window.set_cursor(cursor.as_ref());
@@ -338,6 +332,8 @@ impl UIContext {
             f();
             glib::Propagation::Proceed
         });
+
+        self.start_autohide_toolbar();
     }
 
     pub fn stop(&self) {

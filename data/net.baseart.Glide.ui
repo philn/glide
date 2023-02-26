@@ -90,100 +90,108 @@
           </object>
         </child>
         <child>
-          <object class="GtkPicture" id="video-renderer">
-            <property name="vexpand">True</property>
-          </object>
-        </child>
-        <child>
-          <object class="GtkBox" id="toolbar-box">
-            <property name="valign">end</property>
+          <object class="GtkOverlay">
             <child>
-              <object class="GtkButton" id="seek-backward-button">
-                <property name="halign">center</property>
-                <property name="focusable">1</property>
-                <property name="receives_default">1</property>
+              <object class="GtkPicture" id="video-renderer">
+                <property name="vexpand">True</property>
+              </object>
+            </child>
+            <child type="overlay">
+              <object class="GtkRevealer" id="toolbar-revealer">
                 <child>
-                  <object class="GtkImage">
-                    <property name="icon_name">media-seek-backward-symbolic</property>
-                    <property name="icon_size">normal</property>
-                  </object>
-                </child>
-              </object>
-            </child>
-            <child>
-              <object class="GtkButton" id="pause-button">
-                <property name="halign">center</property>
-                <property name="focusable">1</property>
-                <property name="receives_default">1</property>
-                <child>
-                  <object class="GtkImage">
-                    <property name="icon_name">media-playback-pause-symbolic</property>
-                    <property name="icon_size">normal</property>
-                  </object>
-                </child>
-              </object>
-            </child>
-            <child>
-              <object class="GtkButton" id="seek-forward-button">
-                <property name="halign">center</property>
-                <property name="focusable">1</property>
-                <property name="receives_default">1</property>
-                <child>
-                  <object class="GtkImage">
-                    <property name="icon_name">media-seek-forward-symbolic</property>
-                    <property name="icon_size">normal</property>
-                  </object>
-                </child>
-              </object>
-            </child>
-            <child>
-              <object class="GtkScale" id="progress-bar">
-                <property name="hexpand">1</property>
-                <property name="draw-value">1</property>
-                <property name="focusable">1</property>
-                <property name="round_digits">1</property>
-                <property name="value_pos">right</property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkButton" id="fullscreen-button">
-                <property name="halign">center</property>
-                <property name="focusable">1</property>
-                <property name="receives_default">1</property>
-                <child>
-                  <object class="GtkImage">
-                    <property name="icon_name">view-fullscreen-symbolic</property>
-                    <property name="icon_size">normal</property>
-                  </object>
-                </child>
-              </object>
-            </child>
-            <child>
-              <object class="GtkVolumeButton" id="volume-button">
-                <property name="halign">center</property>
-                <property name="focusable">1</property>
-                <property name="focus_on_click">0</property>
-                <property name="receives_default">1</property>
-                <property name="icons">audio-volume-muted-symbolic
+                  <object class="GtkBox" id="toolbar-box">
+                    <property name="valign">end</property>
+                    <child>
+                      <object class="GtkButton" id="seek-backward-button">
+                        <property name="halign">center</property>
+                        <property name="focusable">1</property>
+                        <property name="receives_default">1</property>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="icon_name">media-seek-backward-symbolic</property>
+                            <property name="icon_size">normal</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="pause-button">
+                        <property name="halign">center</property>
+                        <property name="focusable">1</property>
+                        <property name="receives_default">1</property>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="icon_name">media-playback-pause-symbolic</property>
+                            <property name="icon_size">normal</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="seek-forward-button">
+                        <property name="halign">center</property>
+                        <property name="focusable">1</property>
+                        <property name="receives_default">1</property>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="icon_name">media-seek-forward-symbolic</property>
+                            <property name="icon_size">normal</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkScale" id="progress-bar">
+                        <property name="hexpand">1</property>
+                        <property name="draw-value">1</property>
+                        <property name="focusable">1</property>
+                        <property name="round_digits">1</property>
+                        <property name="value_pos">right</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="fullscreen-button">
+                        <property name="halign">center</property>
+                        <property name="focusable">1</property>
+                        <property name="receives_default">1</property>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="icon_name">view-fullscreen-symbolic</property>
+                            <property name="icon_size">normal</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkVolumeButton" id="volume-button">
+                        <property name="halign">center</property>
+                        <property name="focusable">1</property>
+                        <property name="focus_on_click">0</property>
+                        <property name="receives_default">1</property>
+                        <property name="icons">audio-volume-muted-symbolic
 audio-volume-high-symbolic
 audio-volume-low-symbolic
 audio-volume-medium-symbolic</property>
-                <child internal-child="plus_button">
-                  <object class="GtkButton">
-                    <property name="visible">0</property>
-                    <property name="focusable">1</property>
-                    <property name="receives_default">1</property>
-                    <property name="halign">center</property>
-                    <property name="valign">center</property>
-                  </object>
-                </child>
-                <child internal-child="minus_button">
-                  <object class="GtkButton">
-                    <property name="visible">0</property>
-                    <property name="focusable">1</property>
-                    <property name="receives_default">1</property>
-                    <property name="halign">center</property>
-                    <property name="valign">center</property>
+                        <child internal-child="plus_button">
+                          <object class="GtkButton">
+                            <property name="visible">0</property>
+                            <property name="focusable">1</property>
+                            <property name="receives_default">1</property>
+                            <property name="halign">center</property>
+                            <property name="valign">center</property>
+                          </object>
+                        </child>
+                        <child internal-child="minus_button">
+                          <object class="GtkButton">
+                            <property name="visible">0</property>
+                            <property name="focusable">1</property>
+                            <property name="receives_default">1</property>
+                            <property name="halign">center</property>
+                            <property name="valign">center</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
                   </object>
                 </child>
               </object>
