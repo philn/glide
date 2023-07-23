@@ -189,7 +189,7 @@ impl PlayerDataHolder {
 
             if self.index < self.playlist.len() {
                 let next_uri = &*self.playlist[self.index];
-                player.set_property("uri", &next_uri);
+                player.set_property("uri", next_uri);
             } else {
                 self.notify(PlayerEvent::EndOfPlaylist);
             }
@@ -378,7 +378,7 @@ impl ChannelPlayer {
     }
 
     pub fn load_uri(&self, uri: &str) {
-        self.player.set_property("uri", &uri);
+        self.player.set_property("uri", uri);
     }
 
     pub fn get_current_uri(&self) -> Option<glib::GString> {
@@ -550,10 +550,10 @@ impl ChannelPlayer {
     }
 
     pub fn set_audio_offset(&self, offset: i64) {
-        self.player.set_property("audio-video-offset", &offset);
+        self.player.set_property("audio-video-offset", offset);
     }
 
     pub fn set_subtitle_offset(&self, offset: i64) {
-        self.player.set_property("subtitle-video-offset", &offset);
+        self.player.set_property("subtitle-video-offset", offset);
     }
 }
