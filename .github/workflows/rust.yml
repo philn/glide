@@ -45,8 +45,7 @@ jobs:
     - name: Install Dependencies
       run: |
         sudo chown -R $(whoami) $(brew --prefix)/*
-        brew install pkg-config pango gtk+4 libadwaita
-        brew install --build-from-source gstreamer
+        brew install pkg-config pango gtk+4 libadwaita gstreamer
     - name: Build
       run: cargo build --verbose
     - name: Run tests
