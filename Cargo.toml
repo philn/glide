@@ -24,7 +24,7 @@ gstreamer-play = { version = "0.20" }
 gstreamer-video = { version = "0.20", features = ["v1_16"] }
 gtk4 = { version = "0.6", features = ["v4_8"]}
 gst-plugin-gtk4 = { version = "0.10" }
-adw = { version = "0.3.0", package = "libadwaita", features = ["v1_2"] }
+adw = { version = "0.4", package = "libadwaita", features = ["v1_2"] }
 
 [dependencies.self_update]
 optional = true
