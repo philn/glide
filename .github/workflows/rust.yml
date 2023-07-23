@@ -44,7 +44,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Install Dependencies
       run: |
-        sudo chown -R `whoami` /usr/local
+        sudo chown -R $(whoami) $(brew --prefix)/*
         brew install pkg-config pango gstreamer gst-plugins-{base,good} gtk+4 libadwaita
         brew install --build-from-source gst-plugins-bad
     - name: Build
