@@ -441,24 +441,18 @@ impl ChannelPlayer {
     }
 
     pub fn seek(&self, direction: &SeekDirection) {
-        let position = self.player.position();
-        if position.is_none() {
+        let Some(position) = self.player.position() else {
             return;
-        }
+        };
 
-        let position = position.unwrap();
         let duration = self.player.duration();
         let destination = match direction {
-            SeekDirection::Backward(offset) if position >= *offset => Some(position - *offset),
-            SeekDirection::Forward(offset) => match duration {
-                Some(duration) if position + *offset <= duration => Some(position + *offset),
-                _ => None,
-            },
-            _ => None,
+            SeekDirection::Backward(offset) => position.saturating_sub(*offset),
+            SeekDirection::Forward(offset) if duration.is_some() => (position + *offset).min(duration.unwrap()),
+            _ => return,
         };
-        if let Some(d) = destination {
-            self.player.seek(d)
-        }
+
+        self.player.seek(destination);
     }
 
     pub fn seek_to(&self, position: gst::ClockTime) {
