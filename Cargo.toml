@@ -18,7 +18,7 @@ serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 sha2 = "0.10"
-structopt = "0.3"
+clap = { version = "4", features = ["derive", "help", "usage", "error-context"] }
 gstreamer = { version = "0.21", features = ["v1_16"] }
 gstreamer-play = { version = "0.21" }
 gstreamer-video = { version = "0.21", features = ["v1_16"] }

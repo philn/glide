@@ -19,6 +19,7 @@ extern crate serde_derive;
 use crate::gst_play::prelude::PlayStreamInfoExt;
 use gstreamer::glib;
 
+use clap::Parser;
 use directories::ProjectDirs;
 #[allow(unused_imports)]
 use gdk::prelude::*;
@@ -29,7 +30,6 @@ use std::cell::RefCell;
 use std::env;
 use std::fs::create_dir_all;
 use std::path::PathBuf;
-use structopt::StructOpt;
 
 mod channel_player;
 mod constants;
@@ -40,15 +40,15 @@ use ui_context::{create_app, UIContext};
 #[cfg(target_os = "macos")]
 mod iokit_sleep_disabler;
 
-#[derive(StructOpt, Debug)]
-#[structopt(name = "Glide")]
+#[derive(clap::Parser, Debug)]
+#[clap(about, version, author)]
 struct Opt {
     /// Activate incognito mode. Playback position won't be recorded/loaded to/from the media cache
-    #[structopt(short, long)]
+    #[clap(short, long)]
     incognito: bool,
 
     /// Files to play
-    #[structopt(name = "FILE", parse(from_os_str))]
+    #[clap(name = "FILE", value_parser)]
     files: Vec<PathBuf>,
 }
 
@@ -819,7 +819,7 @@ fn main() -> anyhow::Result<()> {
     let gtk_app = create_app();
 
     let gtk_app_clone = gtk_app.clone();
-    let opt = Opt::from_args();
+    let opt = Opt::parse();
     let app = VideoPlayer::new(gtk_app, &opt)?;
 
     GLOBAL.with(move |global| {
