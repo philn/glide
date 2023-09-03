@@ -28,6 +28,7 @@ meson.add_install_script('scripts/meson_post_install.py')
 cargo_options = [ '--manifest-path', meson.project_source_root() / 'Cargo.toml' ]
 cargo_options += [ '--target-dir', meson.project_build_root() ]
 cargo_options += [ '--release' ]
+cargo_options += [ '--features', 'wayland,x11egl,x11glx']
 rust_target = 'release'
 
 cargo_env = [ 'CARGO_HOME=' + meson.project_build_root() / 'cargo-home' ]
