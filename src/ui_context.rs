@@ -29,7 +29,10 @@ lazy_static! {
 use crate::iokit_sleep_disabler;
 
 pub fn create_app() -> adw::Application {
-    let gtk_app = adw::Application::new(Some("net.baseart.Glide"), gio::ApplicationFlags::HANDLES_OPEN);
+    let gtk_app = adw::Application::builder()
+        .application_id("net.baseart.Glide")
+        .flags(gio::ApplicationFlags::HANDLES_OPEN)
+        .build();
 
     let style_manager = adw::StyleManager::default();
     style_manager.set_property("color-scheme", adw::ColorScheme::PreferDark);
@@ -248,7 +251,7 @@ impl UIContext {
                     }
                 }
                 *AUTOHIDE_SOURCE.lock().unwrap() = None;
-                glib::Continue(false)
+                glib::ControlFlow::Break
             }));
         });
         *MOUSE_NOTIFY_SIGNAL_ID.lock().unwrap() = Some(notify_signal_id);
@@ -333,7 +336,7 @@ impl UIContext {
         self.window.show();
         self.window.connect_close_request(move |_| {
             f();
-            gtk::Inhibit(false)
+            glib::Propagation::Proceed
         });
     }
 
