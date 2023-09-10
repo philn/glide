@@ -58,6 +58,10 @@
         <attribute name="action">app.open-sync-window</attribute>
       </item>
       <item>
+        <attribute name="label" translatable="yes">Keyboard Shortcuts</attribute>
+        <attribute name="action">app.show-shortcuts</attribute>
+      </item>
+      <item>
         <attribute name="label" translatable="yes">About</attribute>
         <attribute name="action">app.about</attribute>
       </item>
@@ -212,6 +216,85 @@ audio-volume-medium-symbolic</property>
     <property name="lower">-100</property>
     <property name="step-increment">0.1</property>
     <property name="page-increment">10</property>
+  </object>
+  <object class="GtkShortcutsWindow" id="shortcuts-window">
+    <property name="modal">1</property>
+    <child>
+      <object class="GtkShortcutsSection">
+        <property name="section-name">Shortcuts</property>
+        <property name="max-height">12</property>
+        <child>
+          <object class="GtkShortcutsGroup">
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="accelerator">space</property>
+                <property name="title" translatable="yes">Toggle between play and pause states</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="accelerator">&lt;primary&gt;Right</property>
+                <property name="title" translatable="yes">Seek forward</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="accelerator">&lt;primary&gt;Left</property>
+                <property name="title" translatable="yes">Seek backward</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="accelerator">&lt;primary&gt;f</property>
+                <property name="title" translatable="yes">Switch to fullscreen mode</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="accelerator">Escape</property>
+                <property name="title" translatable="yes">Exit from fullscreen mode</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="accelerator">&lt;primary&gt;q</property>
+                <property name="title" translatable="yes">Exit from the application</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="accelerator">&lt;primary&gt;s</property>
+                <property name="title" translatable="yes">Load a subtitle file</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="accelerator">&lt;primary&gt;Up</property>
+                <property name="title" translatable="yes">Increase audio volume</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="accelerator">&lt;primary&gt;Down</property>
+                <property name="title" translatable="yes">Decrease audio volume</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="accelerator">&lt;primary&gt;m</property>
+                <property name="title" translatable="yes">Mute the audio track</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="accelerator">&lt;primary&gt;o</property>
+                <property name="title" translatable="yes">Open a new media file</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
   </object>
   <object class="AdwApplicationWindow" id="synchronization-window">
     <property name="title" translatable="1">Track synchronization</property>

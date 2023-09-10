@@ -81,17 +81,18 @@ Once running you can use some menus to switch the subtitle and audio
 tracks, play, pause, seek and switch the window to fullscreen. There are
 also some keyboard shortcuts for these actions:
 
+- show shortcuts window: meta-? or ctrl-?
 - play/pause: space
-- seek forward: meta-right or alt-left
-- seek backward: meta-left or alt-right
-- switch to fullscreen: meta-f or alt-f
+- seek forward: meta-right or ctrl-right
+- seek backward: meta-left or ctrl-left
+- switch to fullscreen: meta-f or ctrl-f
 - exit from fullscreen: escape
 - quit the application: meta-q or ctrl-q
-- load a subtitle file: meta-s or alt-s
-- increase volume: meta-up or alt-up
-- decrease volume: meta-up or alt-down
-- mute the audio track: meta-m or alt-m
-- open a new file: meta-o or alt-o
+- load a subtitle file: meta-s or ctrl-s
+- increase volume: meta-up or ctrl-up
+- decrease volume: meta-up or ctrl-down
+- mute the audio track: meta-m or ctrl-m
+- open a new file: meta-o or ctrl-o
 
 Contact
 -------

@@ -49,6 +49,7 @@ pub struct UIContext {
     volume_button: gtk::VolumeButton,
     toolbar_revealer: gtk::Revealer,
     track_synchronization_window: adw::ApplicationWindow,
+    shortcuts_window: gtk::ShortcutsWindow,
     audio_offset_entry: gtk::SpinButton,
     subtitle_offset_entry: gtk::SpinButton,
     subtitle_track_menu: gio::Menu,
@@ -138,6 +139,8 @@ impl UIContext {
         let video_track_menu: gio::Menu = builder.object("video-track-menu").unwrap();
         let audio_visualization_menu: gio::Menu = builder.object("audio-visualization-menu").unwrap();
 
+        let shortcuts_window: gtk::ShortcutsWindow = builder.object("shortcuts-window").unwrap();
+
         #[cfg(not(target_os = "linux"))]
         {
             let menu: gio::Menu = builder.object("main-menu").unwrap();
@@ -160,6 +163,7 @@ impl UIContext {
                 ("audio-mute", ["<Primary>m"]),
                 ("open-subtitle-file", ["<Primary>s"]),
                 ("dump-pipeline", ["<Ctrl>d"]),
+                ("show-shortcuts", ["<Primary>question"]),
             ];
             for (action, accels) in accels_per_action.iter() {
                 app.set_accels_for_action(&format!("app.{action}"), accels);
@@ -183,6 +187,7 @@ impl UIContext {
             volume_button,
             toolbar_revealer,
             track_synchronization_window,
+            shortcuts_window,
             audio_offset_entry,
             subtitle_offset_entry,
             subtitle_track_menu,
@@ -201,6 +206,13 @@ impl UIContext {
         let window = &self.track_synchronization_window;
         window.set_transient_for(Some(&self.window));
         window.set_modal(true);
+        window.set_application(Some(&self.app));
+        window.show();
+    }
+
+    pub fn show_shortcuts(&self) {
+        let window = &self.shortcuts_window;
+        window.set_transient_for(Some(&self.window));
         window.set_application(Some(&self.app));
         window.show();
     }

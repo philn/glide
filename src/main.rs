@@ -71,6 +71,7 @@ struct VideoPlayer {
     volume_decrease_action: gio::SimpleAction,
     dump_pipeline_action: gio::SimpleAction,
     open_sync_window_action: gio::SimpleAction,
+    show_shortcuts_action: gio::SimpleAction,
     audio_offset_reset_action: gio::SimpleAction,
     subtitle_offset_reset_action: gio::SimpleAction,
     player_receiver: Option<glib::Receiver<PlayerEvent>>,
@@ -163,6 +164,9 @@ impl VideoPlayer {
         let open_sync_window_action = gio::SimpleAction::new("open-sync-window", None);
         gtk_app.add_action(&open_sync_window_action);
 
+        let show_shortcuts_action = gio::SimpleAction::new("show-shortcuts", None);
+        gtk_app.add_action(&show_shortcuts_action);
+
         let audio_offset_reset_action = gio::SimpleAction::new("audio-offset-reset", None);
         gtk_app.add_action(&audio_offset_reset_action);
 
@@ -234,6 +238,7 @@ impl VideoPlayer {
             volume_decrease_action,
             dump_pipeline_action,
             open_sync_window_action,
+            show_shortcuts_action,
             audio_offset_reset_action,
             subtitle_offset_reset_action,
             player_receiver: Some(player_receiver),
@@ -403,6 +408,12 @@ impl VideoPlayer {
         self.open_sync_window_action.connect_activate(|_, _| {
             with_video_player!(video_player {
                 video_player.ui_context.open_track_synchronization_window();
+            });
+        });
+
+        self.show_shortcuts_action.connect_activate(|_, _| {
+            with_video_player!(video_player {
+                video_player.ui_context.show_shortcuts();
             });
         });
 
