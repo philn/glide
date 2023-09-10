@@ -105,6 +105,7 @@
                 <child>
                   <object class="GtkBox" id="toolbar-box">
                     <property name="valign">end</property>
+                    <property name="css-classes">background</property>
                     <child>
                       <object class="GtkButton" id="seek-backward-button">
                         <property name="halign">center</property>
