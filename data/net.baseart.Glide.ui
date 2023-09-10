@@ -216,14 +216,23 @@ audio-volume-medium-symbolic</property>
   <object class="AdwApplicationWindow" id="synchronization-window">
     <property name="title" translatable="1">Track synchronization</property>
     <property name="deletable">0</property>
-    <child>
+    <property name="content">
       <object class="GtkBox">
         <property name="orientation">vertical</property>
         <child>
-          <object class="GtkBox">
+          <object class="GtkHeaderBar"/>
+        </child>
+        <child>
+          <object class="GtkGrid">
+            <property name="column-spacing">5</property>
+            <property name="row-spacing">5</property>
             <child>
               <object class="GtkLabel">
                 <property name="label" translatable="1">Audio track synchronization</property>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="row">0</property>
+                </layout>
               </object>
             </child>
             <child>
@@ -234,6 +243,10 @@ audio-volume-medium-symbolic</property>
                 <property name="adjustment">audio-offset-adjustment</property>
                 <property name="digits">3</property>
                 <property name="numeric">1</property>
+                <layout>
+                  <property name="column">1</property>
+                  <property name="row">0</property>
+                </layout>
               </object>
             </child>
             <child>
@@ -241,15 +254,19 @@ audio-volume-medium-symbolic</property>
                 <property name="icon-name">edit-clear</property>
                 <property name="focusable">1</property>
                 <property name="receives-default">1</property>
+                <layout>
+                  <property name="column">2</property>
+                  <property name="row">0</property>
+                </layout>
               </object>
             </child>
-          </object>
-        </child>
-        <child>
-          <object class="GtkBox">
             <child>
               <object class="GtkLabel">
                 <property name="label" translatable="1">Subtitle track synchronization</property>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="row">1</property>
+                </layout>
               </object>
             </child>
             <child>
@@ -260,6 +277,10 @@ audio-volume-medium-symbolic</property>
                 <property name="climb-rate">0.01</property>
                 <property name="digits">3</property>
                 <property name="numeric">1</property>
+                <layout>
+                  <property name="column">1</property>
+                  <property name="row">1</property>
+                </layout>
               </object>
             </child>
             <child>
@@ -267,20 +288,30 @@ audio-volume-medium-symbolic</property>
                 <property name="icon-name">edit-clear</property>
                 <property name="focusable">1</property>
                 <property name="receives-default">1</property>
+                <layout>
+                  <property name="column">2</property>
+                  <property name="row">1</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="synchronization-window-close-button">
+                <property name="vexpand">1</property>
+                <property name="icon-name">window-close</property>
+                <property name="focusable">1</property>
+                <property name="receives-default">1</property>
+                <property name="action-name">win.close</property>
+                <property name="label" translatable="1">Close</property>
+                <layout>
+                  <property name="row">2</property>
+                  <property name="column">0</property>
+                  <property name="column-span">3</property>
+                </layout>
               </object>
             </child>
           </object>
         </child>
-        <child>
-          <object class="GtkButton" id="synchronization-window-close-button">
-            <property name="vexpand">1</property>
-            <property name="icon-name">window-close</property>
-            <property name="focusable">1</property>
-            <property name="receives-default">1</property>
-            <property name="action-name">win.close</property>
-          </object>
-        </child>
       </object>
-    </child>
+    </property>
   </object>
 </interface>
