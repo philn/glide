@@ -439,6 +439,7 @@ impl VideoPlayer {
                 if let Some(is_paused) = video_player.pause_action.state() {
                     if !is_paused.get::<bool>().unwrap() {
                         video_player.player.toggle_pause(false);
+                        video_player.pause_action.set_state(&(true).to_variant());
                     }
                 }
                 video_player.player.video_frame_step();
