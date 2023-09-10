@@ -1,9 +1,8 @@
-Glide Media Player
-==================
+# Glide Media Player
 
 Glide is a simple and minimalistic media player relying on
 [GStreamer](http://gstreamer.freedesktop.org) for the multimedia support
-and [GTK+](http://gtk.org) for the user interface. Glide should be able
+and [GTK](http://gtk.org) for the user interface. Glide should be able
 to play any multimedia format supported by
 [GStreamer](http://gstreamer.freedesktop.org), locally or remotely
 hosted. Glide is developed in [Rust](http://rust-lang.org) and was
@@ -18,8 +17,7 @@ encouraged to file issues on the Github bug tracker of course.
 ![alt text](https://github.com/philn/glide/raw/master/screenshot.png "Glide screenshot")
 ![alt text](https://github.com/philn/glide/raw/master/audio-screenshot.png "Glide audio playback screenshot")
 
-Installation
-------------
+## Installation
 
 Install it with Cargo:
 
@@ -65,17 +63,20 @@ Available in [COPR](https://copr.fedorainfracloud.org/coprs/atim/glide-rs/):
     sudo dnf copr enable atim/glide-rs -y
     sudo dnf install glide-rs
 
-Using Glide
------------
+## Using Glide
 
-There is currently only one way to use Glide, using the command line
-interface:
+When used from the installed Flatpak, Glide can be set up as default media
+player, so double-clicking on a media file in your favorite file browser should
+bring up Glide.
 
-    glide /path/to/localfile.mp4 http://some.com/remote/file.mp4
+Glide can also be used from the command line interface. In a terminal:
 
-At some point I will add file chooser support and improve integration
-for desktop so that all you need to do is double-click on a media file
-or drag it to the Glide window.
+```bash
+$ # starting the flatpak version
+$ flatpak run net.baseart.Glide /path/to/localfile.mp4 http://some.com/remote/file.mp4
+$ # starting the version installed with cargo or traditional distro packages
+$ glide /path/to/localfile.mp4 http://some.com/remote/file.mp4
+```
 
 Once running you can use some menus to switch the subtitle and audio
 tracks, play, pause, seek and switch the window to fullscreen. There are
@@ -94,42 +95,8 @@ also some keyboard shortcuts for these actions:
 - mute the audio track: meta-m or ctrl-m
 - open a new file: meta-o or ctrl-o
 
-Contact
--------
+## Contacting the maintainer
 
-I usually hang out on Freenode IRC, in \#gstreamer using the philn
-nickname. Feel free to also reach out by mail (check git logs to find my
+Philippe usually hangs out on Freenode IRC, in \#gstreamer using the philn
+nickname. Feel free to also reach out by mail (check git logs to find the
 address).
-
-Release procedure
------------------
-
-- Bump version in `Cargo.toml` and `meson.build`
-- Add release info in appstream file and make sure it is valid...
-
-      appstream-util validate data/net.baseart.Glide.metainfo.xml
-
-- Commit and tag new version:
-
-      git ci -am "Bump to ..."
-      git tag -s "version..."
-
-- Build tarball:
-
-      cargo install cargo-vendor
-      pip3 install --user -U meson
-      meson setup _build
-      meson dist -C _build
-
-- Publish version and tag:
-
-      git push --tags
-      git push
-
-- Update crate on crates.io:
-
-      cargo package
-      cargo publish
-
-- Upload tarball from `_build/meson-dist/` to Github
-- TODO: Upload self-update binaries to Github
