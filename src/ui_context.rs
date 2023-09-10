@@ -211,15 +211,12 @@ impl UIContext {
     pub fn open_track_synchronization_window(&self) {
         let window = &self.track_synchronization_window;
         window.set_transient_for(Some(&self.window));
-        window.set_modal(true);
-        window.set_application(Some(&self.app));
         window.show();
     }
 
     pub fn show_shortcuts(&self) {
         let window = &self.shortcuts_window;
         window.set_transient_for(Some(&self.window));
-        window.set_application(Some(&self.app));
         window.show();
     }
 
