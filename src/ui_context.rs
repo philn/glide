@@ -131,6 +131,11 @@ impl UIContext {
             .upcast::<gtk::Actionable>()
             .set_action_name(Some("app.subtitle-offset-reset"));
 
+        let button: gtk::Button = builder.object("video-frame-step-button").unwrap();
+        button
+            .upcast::<gtk::Actionable>()
+            .set_action_name(Some("app.video-frame-step"));
+
         let audio_offset_entry: gtk::SpinButton = builder.object("audio-video-offset").unwrap();
         let subtitle_offset_entry: gtk::SpinButton = builder.object("subtitle-video-offset").unwrap();
 
@@ -164,6 +169,7 @@ impl UIContext {
                 ("open-subtitle-file", ["<Primary>s"]),
                 ("dump-pipeline", ["<Ctrl>d"]),
                 ("show-shortcuts", ["<Primary>question"]),
+                ("video-frame-step", ["<Primary>n"]),
             ];
             for (action, accels) in accels_per_action.iter() {
                 app.set_accels_for_action(&format!("app.{action}"), accels);

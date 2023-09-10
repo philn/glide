@@ -74,6 +74,7 @@ struct VideoPlayer {
     show_shortcuts_action: gio::SimpleAction,
     audio_offset_reset_action: gio::SimpleAction,
     subtitle_offset_reset_action: gio::SimpleAction,
+    video_frame_step_action: gio::SimpleAction,
     player_receiver: Option<glib::Receiver<PlayerEvent>>,
 }
 
@@ -173,6 +174,9 @@ impl VideoPlayer {
         let subtitle_offset_reset_action = gio::SimpleAction::new("subtitle-offset-reset", None);
         gtk_app.add_action(&subtitle_offset_reset_action);
 
+        let video_frame_step_action = gio::SimpleAction::new("video-frame-step", None);
+        gtk_app.add_action(&video_frame_step_action);
+
         let about = gio::SimpleAction::new("about", None);
         about.connect_activate(move |_, _| {
             with_video_player!(video_player {
@@ -241,6 +245,7 @@ impl VideoPlayer {
             show_shortcuts_action,
             audio_offset_reset_action,
             subtitle_offset_reset_action,
+            video_frame_step_action,
             player_receiver: Some(player_receiver),
         })
     }
@@ -426,6 +431,17 @@ impl VideoPlayer {
         self.subtitle_offset_reset_action.connect_activate(|_, _| {
             with_video_player!(video_player {
                 video_player.player.set_subtitle_offset(0);
+            })
+        });
+
+        self.video_frame_step_action.connect_activate(|_, _| {
+            with_video_player!(video_player {
+                if let Some(is_paused) = video_player.pause_action.state() {
+                    if !is_paused.get::<bool>().unwrap() {
+                        video_player.player.toggle_pause(false);
+                    }
+                }
+                video_player.player.video_frame_step();
             })
         });
 

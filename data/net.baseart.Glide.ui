@@ -145,6 +145,19 @@
                       </object>
                     </child>
                     <child>
+                      <object class="GtkButton" id="video-frame-step-button">
+                        <property name="halign">center</property>
+                        <property name="focusable">1</property>
+                        <property name="receives_default">1</property>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="icon_name">edit-redo-symbolic</property>
+                            <property name="icon_size">normal</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkScale" id="progress-bar">
                         <property name="hexpand">1</property>
                         <property name="draw-value">1</property>
@@ -242,6 +255,12 @@ audio-volume-medium-symbolic</property>
               <object class="GtkShortcutsShortcut">
                 <property name="accelerator">&lt;primary&gt;Left</property>
                 <property name="title" translatable="yes">Seek backward</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="accelerator">&lt;primary&gt;n</property>
+                <property name="title" translatable="yes">Step to next video frame</property>
               </object>
             </child>
             <child>

@@ -9,6 +9,7 @@ use self::sha2::{Digest, Sha256};
 use crate::gtk::prelude::PaintableExt;
 use gst::prelude::*;
 use gst_play::PlayMessage;
+use gstreamer::format::Buffers;
 use gstreamer::glib;
 use gtk::gdk;
 use gtk::glib::clone;
@@ -549,5 +550,10 @@ impl ChannelPlayer {
 
     pub fn set_subtitle_offset(&self, offset: i64) {
         self.player.set_property("subtitle-video-offset", offset);
+    }
+
+    pub fn video_frame_step(&self) {
+        self.gtksink
+            .send_event(gst::event::Step::new(Buffers::ONE, 1.0, true, false));
     }
 }
