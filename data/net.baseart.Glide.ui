@@ -221,10 +221,11 @@ audio-volume-medium-symbolic</property>
     <property name="modal">1</property>
     <child>
       <object class="GtkShortcutsSection">
-        <property name="section-name">Shortcuts</property>
+        <property name="section-name">Playback controls</property>
         <property name="max-height">12</property>
         <child>
           <object class="GtkShortcutsGroup">
+            <property name="title">Playback controls</property>
             <child>
               <object class="GtkShortcutsShortcut">
                 <property name="accelerator">space</property>
@@ -243,6 +244,29 @@ audio-volume-medium-symbolic</property>
                 <property name="title" translatable="yes">Seek backward</property>
               </object>
             </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="accelerator">&lt;primary&gt;Up</property>
+                <property name="title" translatable="yes">Increase audio volume</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="accelerator">&lt;primary&gt;Down</property>
+                <property name="title" translatable="yes">Decrease audio volume</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="accelerator">&lt;primary&gt;m</property>
+                <property name="title" translatable="yes">Mute the audio track</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkShortcutsGroup">
+            <property name="title">UI controls</property>
             <child>
               <object class="GtkShortcutsShortcut">
                 <property name="accelerator">&lt;primary&gt;f</property>
@@ -265,24 +289,6 @@ audio-volume-medium-symbolic</property>
               <object class="GtkShortcutsShortcut">
                 <property name="accelerator">&lt;primary&gt;s</property>
                 <property name="title" translatable="yes">Load a subtitle file</property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkShortcutsShortcut">
-                <property name="accelerator">&lt;primary&gt;Up</property>
-                <property name="title" translatable="yes">Increase audio volume</property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkShortcutsShortcut">
-                <property name="accelerator">&lt;primary&gt;Down</property>
-                <property name="title" translatable="yes">Decrease audio volume</property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkShortcutsShortcut">
-                <property name="accelerator">&lt;primary&gt;m</property>
-                <property name="title" translatable="yes">Mute the audio track</property>
               </object>
             </child>
             <child>
