@@ -27,7 +27,7 @@
     <category>Video</category>
   </categories>
   <screenshots>
-    <screenshot>
+    <screenshot type="default">
       <image>https://github.com/philn/glide/raw/master/screenshot.png</image>
       <caption>Glide playing a video</caption>
     </screenshot>
@@ -46,6 +46,17 @@
     <display_length compare="ge">medium</display_length>
   </requires>
   <releases>
+    <release version="0.6.0" date="2023-10-15">
+      <description>
+        <p>Major release, including bug fixes and new features:</p>
+        <ul>
+          <li>Video frame stepping, allowing to seek frame by frame</li>
+          <li>UI ported to GTK4 and Adwaita</li>
+          <li>Helper window showing keyboard shortcuts</li>
+          <li>Under the hood the player engine was ported to GstPlay</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.5.11" date="2023-02-02">
       <description>
         <p>Maintenance release, fixing meson builds.</p>
@@ -58,13 +69,11 @@
     </release>
     <release version="0.5.9" date="2021-05-23">
       <description>
-        <p>
-          Maintenance release, also adding a couple new features:
+          <p>Maintenance release, also adding a couple new features:</p>
           <ul>
             <li>Audio/Video track synchronisation support through a new popup window reachable from the hamburger menu.</li>
             <li>Incognito mode: start glide from a shell, add the -i option and the media cache file will not be used.</li>
           </ul>
-        </p>
       </description>
     </release>
     <release version="0.5.8" date="2020-09-25">
