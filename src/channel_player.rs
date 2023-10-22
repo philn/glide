@@ -6,6 +6,7 @@ extern crate serde_json;
 extern crate sha2;
 
 use self::sha2::{Digest, Sha256};
+use crate::gst_play::prelude::PlayStreamInfoExt;
 use crate::gtk::prelude::PaintableExt;
 use gst::prelude::*;
 use gst_play::PlayMessage;
@@ -513,6 +514,13 @@ impl ChannelPlayer {
                 self.player.set_visualization_enabled(false);
             }
         };
+    }
+
+    pub fn get_audio_track_cover(&self) -> Option<gst::Sample> {
+        let track = self.player.current_audio_track()?;
+        let tags = track.tags()?;
+        let cover = tags.get::<gst::tags::Image>()?;
+        Some(cover.get())
     }
 
     pub fn write_last_known_media_position(&self) {

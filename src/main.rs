@@ -348,9 +348,32 @@ impl VideoPlayer {
             if let Some(val) = value {
                 if let Some(name) = val.get::<std::string::String>() {
                     with_video_player!(video_player {
+                        let fallback_to_first_vis = || {
+                            if let Some(vis) = gst_play::Play::visualizations_get().first() {
+                                video_player.player
+                                    .set_audio_visualization(Some(AudioVisualization(vis.name().to_string())));
+                            } else {
+                                video_player.player.set_audio_visualization(None);
+                            }
+                        };
+
                         if name == "none" {
-                            video_player.player.set_audio_visualization(None);
+                            match video_player.player.get_audio_track_cover() {
+                                Some(sample) => {
+                                    match video_player.ui_context.set_audio_cover_art(&sample) {
+                                        Ok(_) => {}
+                                        Err(_) => {
+                                            fallback_to_first_vis();
+                                        }
+                                    };
+                                }
+                                None => {
+                                    fallback_to_first_vis();
+                                }
+                            };
                         } else {
+                            let paintable = video_player.player.paintable();
+                            video_player.ui_context.set_video_paintable(&paintable);
                             video_player.player.set_audio_visualization(Some(AudioVisualization(name)));
                         }
                         action.set_state(val);
@@ -622,10 +645,7 @@ impl VideoPlayer {
             if info.number_of_video_streams() == 0 {
                 self.fill_audio_visualization_menu();
                 self.audio_visualization_action.set_enabled(true);
-                if let Some(vis) = gst_play::Play::visualizations_get().first() {
-                    self.player
-                        .set_audio_visualization(Some(AudioVisualization(vis.name().to_string())));
-                }
+                self.audio_visualization_action.activate(Some(&"none".to_variant()));
             } else {
                 self.ui_context.clear_audio_visualization_menu();
                 self.audio_visualization_action.set_enabled(false);

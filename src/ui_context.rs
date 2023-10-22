@@ -10,6 +10,7 @@ use glib::SendWeakRef;
 use gstreamer::glib;
 use gtk::gdk;
 use gtk::prelude::*;
+use std::io::Write;
 #[allow(unused_imports)]
 use std::os::raw::c_void;
 use std::string;
@@ -438,6 +439,20 @@ impl UIContext {
             range.set_value(position as f64);
             glib::signal_handler_unblock(&range, handler_id);
         }
+    }
+
+    pub fn set_audio_cover_art(&self, sample: &gst::Sample) -> Result<(), anyhow::Error> {
+        let buffer = sample
+            .buffer()
+            .ok_or(anyhow::anyhow!("Failed to map cover art sample"))?;
+
+        let mut temp_file = tempfile::NamedTempFile::new()?;
+        let data = buffer.map_readable()?;
+        temp_file.write_all(data.as_slice())?;
+
+        let file = gio::File::for_path(temp_file.path().display().to_string());
+        self.video_renderer.set_file(Some(&file));
+        Ok(())
     }
 
     pub fn set_video_paintable(&self, paintable: &gdk::Paintable) {

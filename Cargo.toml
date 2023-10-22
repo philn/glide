@@ -25,6 +25,7 @@ gstreamer-video = { version = "0.21", features = ["v1_16"] }
 gtk4 = { version = "0.7", features = ["v4_8"]}
 gst-plugin-gtk4 = { version = "0.11" }
 adw = { version = "0.5", package = "libadwaita", features = ["v1_2"] }
+tempfile = "3"
 
 [dependencies.self_update]
 optional = true
