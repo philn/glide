@@ -621,11 +621,11 @@ impl VideoPlayer {
 
             if info.number_of_video_streams() == 0 {
                 self.fill_audio_visualization_menu();
-                // TODO: Might be nice to enable the first audio
-                // visualization by default but it doesn't work
-                // yet. See also
-                // https://bugzilla.gnome.org/show_bug.cgi?id=796552
                 self.audio_visualization_action.set_enabled(true);
+                if let Some(vis) = gst_play::Play::visualizations_get().first() {
+                    self.player
+                        .set_audio_visualization(Some(AudioVisualization(vis.name().to_string())));
+                }
             } else {
                 self.ui_context.clear_audio_visualization_menu();
                 self.audio_visualization_action.set_enabled(false);
