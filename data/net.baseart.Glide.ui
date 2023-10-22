@@ -68,8 +68,8 @@
     </submenu>
   </menu>
   <object class="AdwApplicationWindow" id="application-window">
-    <property name="default_width">640</property>
-    <property name="default_height">480</property>
+    <property name="width-request">640</property>
+    <property name="height-request">480</property>
     <child>
       <placeholder/>
     </child>
