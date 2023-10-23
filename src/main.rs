@@ -185,7 +185,7 @@ impl VideoPlayer {
         });
         gtk_app.add_action(&about);
 
-        gtk_app.connect_activate(|_| {
+        gtk_app.connect_startup(|_| {
             with_mut_video_player!(player {
                 player.start();
             });
