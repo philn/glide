@@ -194,6 +194,8 @@ impl VideoPlayer {
             })
         });
 
+        gtk_app.connect_activate(|_| {});
+
         let quit = gio::SimpleAction::new("quit", None);
         quit.connect_activate(|_, _| {
             with_video_player!(video_player {
