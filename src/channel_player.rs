@@ -61,6 +61,12 @@ pub struct ChannelPlayer {
     gtksink: gst::Element,
 }
 
+impl Drop for ChannelPlayer {
+    fn drop(&mut self) {
+        self.player.message_bus().set_flushing(true);
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 struct MediaCacheData(pub HashMap<string::String, u64>);
 
