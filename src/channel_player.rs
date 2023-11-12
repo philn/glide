@@ -242,8 +242,14 @@ impl ChannelPlayer {
 
         let bus_watch = player.message_bus().add_watch_local(
             clone!(@weak player => @default-return glib::ControlFlow::Break, move |_, message| {
-                match PlayMessage::parse(message) {
-                    Ok(PlayMessage::UriLoaded) => {
+                let play_message = if let Ok(msg) = PlayMessage::parse(message) {
+                    msg
+                } else {
+                    return glib::ControlFlow::Continue;
+                };
+
+                match play_message {
+                    PlayMessage::UriLoaded => {
                         player.pause();
                         let uri = player.uri().unwrap();
                         with_mut_player!(player player_data {
@@ -255,30 +261,30 @@ impl ChannelPlayer {
                         });
                         player.play();
                     }
-                    Ok(PlayMessage::EndOfStream) => {
+                    PlayMessage::EndOfStream => {
                         with_mut_player!(player player_data {
                             player_data.end_of_stream(&player);
                         });
                     }
-                    Ok(PlayMessage::MediaInfoUpdated { info }) => {
+                    PlayMessage::MediaInfoUpdated { info } => {
                         with_mut_player!(player player_data {
                             player_data.media_info_updated(&info);
                         });
 
                     }
-                    Ok(PlayMessage::PositionUpdated { position: _ }) => {
+                    PlayMessage::PositionUpdated { position: _ } => {
                         with_player!(player {
                             player.notify(PlayerEvent::PositionUpdated);
                         });
 
                     }
-                    Ok(PlayMessage::VideoDimensionsChanged { width, height }) => {
+                    PlayMessage::VideoDimensionsChanged { width, height } => {
                         with_player!(player {
                             player.notify(PlayerEvent::VideoDimensionsChanged(width, height));
                         });
 
                     }
-                    Ok(PlayMessage::StateChanged { state }) => {
+                    PlayMessage::StateChanged { state } => {
                         let state = match state {
                             gst_play::PlayState::Playing => Some(PlaybackState::Playing),
                             gst_play::PlayState::Paused => Some(PlaybackState::Paused),
@@ -291,13 +297,13 @@ impl ChannelPlayer {
                             });
                         }
                     }
-                    Ok(PlayMessage::VolumeChanged { volume }) => {
+                    PlayMessage::VolumeChanged { volume } => {
                         with_player!(player player_data {
                             player_data.notify(PlayerEvent::VolumeChanged(volume));
                         });
 
                     }
-                    Ok(PlayMessage::Error { error, .. }) => {
+                    PlayMessage::Error { error, .. } => {
                         with_player!(player {
                             // FIXME: Pass error to enum.
                             player.notify(PlayerEvent::Error(error.to_string()));
