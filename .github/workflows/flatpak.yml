@@ -25,10 +25,6 @@ jobs:
       # Checkout a repository with Flatpak manifests
       - name: Checkout
         uses: actions/checkout@v3
-        run: |
-          wget https://github.com/flatpak/flatpak-builder-tools/raw/master/cargo/flatpak-cargo-generator.py
-          python3 ./flatpak-cargo-generator.py ./Cargo.lock -o cargo-sources.json
-
 
       - name: Generate Cargo sources
         run: |
