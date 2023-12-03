@@ -46,6 +46,17 @@
     <display_length compare="ge">medium</display_length>
   </requires>
   <releases>
+    <release version="0.6.1" date="2023-12-03">
+      <description>
+        <p>Maintenance release, also adding a couple new features:</p>
+        <ul>
+          <li>When playing audio-only files the first audio visualization is now enabled by default.</li>
+          <li>Audio covert art rendering support.</li>
+          <li>Playback speed control.</li>
+          <li>New icon, designed by Jakub Steiner.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.6.0" date="2023-10-15">
       <description>
         <p>Major release, including bug fixes and new features:</p>
