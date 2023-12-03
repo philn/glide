@@ -3,8 +3,8 @@ Version=1
 Title=Glide
 Description=Media Player for the Linux Desktop
 Homepage=https://philn.github.io/glide/
-Icon=https://raw.githubusercontent.com/philn/glide/master/data/net.baseart.Glide.svg
-Name=net.baseart.Glide
+Icon=https://raw.githubusercontent.com/philn/glide/master/data/net.baseart.Glide.Devel.svg
+Name=net.baseart.Glide.Devel
 Url=https://philn.github.io/glide
 RuntimeRepo=https://flathub.org/repo/flathub.flatpakrepo
 GPGKey=mDMEZWxj9RYJKwYBBAHaRw8BAQdAc7DwwEzMayJrtnJUkhBy/RayiWgEwkkkvurDJdUVuPC0EXBoaWxAYmFzZS1hcnQubmV0iJkEExYKAEEWIQR4Xr47/2/uH0mxY6Zkw+Fb4LFOowUCZWxj9QIbAwUJBaOagAULCQgHAgIiAgYVCgkICwIEFgIDAQIeBwIXgAAKCRBkw+Fb4LFOo05yAP9ZFuLe3PNuARJPhKDfI+Yd3fthm980ansm0FmVdExiCQEA7UdGBiBnJzHhK+eqIbEPomacvDm1l62N0bsF7xtnIwS4OARlbGP1EgorBgEEAZdVAQUBAQdAUOvzO70y2BlTs4q6QLIsa1eBQLY9L+HYBlWRCtJMR3cDAQgHiHgEGBYKACAWIQR4Xr47/2/uH0mxY6Zkw+Fb4LFOowUCZWxj9QIbDAAKCRBkw+Fb4LFOo9AeAQCWdT1NVbaZQIubrKlHjxKnBow0c3/GPKGefDqJCkmebwD6A7UrGGi7aenTIuMxkXB5JhM1tskQDQ/nUqSjM01b3gE=
