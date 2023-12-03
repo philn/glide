@@ -31,7 +31,6 @@ jobs:
           curl -sSL -o flatpak-cargo-generator.py https://github.com/flatpak/flatpak-builder-tools/raw/master/cargo/flatpak-cargo-generator.py
           python3 ./flatpak-cargo-generator.py ./Cargo.lock -o cargo-sources.json
 
-      # See "Multiple Architectures" below
       - name: Setup QEMU
         if: ${{ matrix.arch == 'aarch64' }}
         id: qemu
@@ -39,7 +38,6 @@ jobs:
         with:
           platforms: arm64
 
-      # See "GPG Signing" below
       - name: Setup GPG
         id: gpg
         uses: crazy-max/ghaction-import-gpg@v6
@@ -64,7 +62,8 @@ jobs:
           upload-bundles: true
           upload-pages-artifact: ${{ matrix.arch == 'aarch64' }}
           upload-pages-includes: |
-            default.css
+            base.css
+            style.css
             index.html
 
   # See "Github Pages" below

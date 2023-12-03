@@ -1,0 +1,265 @@
+/* Author: Andy Holmes */
+
+/*
+ * Palette
+ */
+:root {
+  /* GNOME Palette: https://developer.gnome.org/hig/reference/palette.html */
+  --blue1: rgb(153,193,241);
+  --blue2: rgb(98,160,234);
+  --blue3: rgb(53,132,228);
+  --blue4: rgb(28,113,216);
+  --blue5: rgb(26,95,180);
+  --green1: rgb(143,240,164);
+  --green2: rgb(87,227,137);
+  --green3: rgb(51,209,122);
+  --green4: rgb(46,194,126);
+  --green5: rgb(38,162,105);
+  --yellow1: rgb(249,240,107);
+  --yellow2: rgb(248,228,92);
+  --yellow3: rgb(246,211,45);
+  --yellow4: rgb(245,194,17);
+  --yellow5: rgb(229,165,10);
+  --orange1: rgb(255,190,111);
+  --orange2: rgb(255,163,72);
+  --orange3: rgb(255,120,0);
+  --orange4: rgb(230,97,0);
+  --orange5: rgb(198,70,0);
+  --red1: rgb(246,97,81);
+  --red2: rgb(237,51,59);
+  --red3: rgb(224,27,36);
+  --red4: rgb(192,28,40);
+  --red5: rgb(165,29,45);
+  --purple1: rgb(220,138,221);
+  --purple2: rgb(192,97,203);
+  --purple3: rgb(145,65,172);
+  --purple4: rgb(129,61,156);
+  --purple5: rgb(97,53,131);
+  --brown1: rgb(205,171,143);
+  --brown2: rgb(181,131,90);
+  --brown3: rgb(152,106,68);
+  --brown4: rgb(134,94,60);
+  --brown5: rgb(99,69,44);
+  --light1: rgb(255,255,255);
+  --light2: rgb(246,245,244);
+  --light3: rgb(222,221,218);
+  --light4: rgb(192,191,188);
+  --light5: rgb(154,153,150);
+  --dark1: rgb(119,118,123);
+  --dark2: rgb(94,92,100);
+  --dark3: rgb(61,56,70);
+  --dark4: rgb(36,31,49);
+  --dark5: rgb(0,0,0);
+  --text: #f6f5f4;
+
+  /* Extra */
+  --dark-background: rgb(48,48,48);
+  --dark-foreground: rgb(255,255,255);
+  --dark-prelight: rgba(255,255,255,0.1);
+
+  --light-background: rgb(250,250,250);
+  --light-foreground: rgb(61,56,70);
+  --light-prelight: rgba(0,0,0,0.1);
+
+  --dim-label: color-mix(in srgb, currentColor 75%, transparent);
+  --dim-borders: color-mix(in srgb, currentColor 12.5%, transparent);
+
+  /* Defaults */
+  --borders: rgba(0,0,0,0.25);
+}
+
+/*
+ * Fonts
+ */
+html, body {
+  font-family: "Cantarell", -ui-sans-serif, "Helvetica", sans-serif;
+  font-size: 12pt;
+}
+
+pre, code, kbd {
+  font-family: "Source Code Pro", -ui-monospace, "Cascadia Code", monospace;
+  font-size: 10pt;
+}
+
+@media (max-width: 720px) {
+  html, body {
+    font-size: 10pt;
+  }
+  pre, code, kbd {
+    font-size: 9pt;
+  }
+}
+
+/*
+ * General
+ */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  scroll-behavior: smooth;
+}
+
+h1 {
+  font-weight: normal;
+  font-size: 2rem;
+}
+
+h2 {
+  font-weight: normal;
+  font-size: 1.5rem;
+}
+
+h3 {
+  font-weight: normal;
+  font-size: 1.25rem;
+}
+
+h4 {
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+kbd {
+  border-radius: 0.25em;
+  box-shadow: inset -0.1em -0.1em 0 var(--borders);
+  padding: 0.1em 0.5em;
+}
+
+/*
+ * Common Elements
+ */
+#copyright {
+}
+
+#logo {
+}
+
+/*
+ * Helper Classes
+ */
+.dim-label {
+  opacity: 0.75;
+}
+
+.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.disabled:focus,
+.disabled:hover {
+  background-color: revert;
+}
+
+/* https://www.a11yproject.com/posts/how-to-hide-content/ */
+.visually-hidden:not(:focus):not(:active) {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+/*
+ * Pill Button
+ */
+a.pill {
+  display: inline-block;
+  transition: all 250ms ease-in-out;
+
+  font-weight: bold;
+  font-size: 1.125rem;
+  text-align: center;
+  text-decoration: none;
+
+  border-radius: 2em;
+  padding: 0.5em 1.5em;
+}
+
+a.pill:focus,
+a.pill:hover {
+  text-decoration: none;
+  filter: brightness(1.125);
+}
+
+/*
+ * Default Scheme
+ */
+.scheme1 {
+  background-color: var(--light1);
+  color: var(--dark3);
+}
+
+.scheme2 {
+  background-color: var(--light2);
+  color: var(--dark3);
+}
+
+.scheme3 {
+  background-color: var(--light3);
+  color: var(--dark3);
+}
+
+.scheme4 {
+  background-color: var(--light4);
+  color: var(--dark4);
+}
+
+.scheme5 {
+  background-color: var(--light5);
+  color: var(--dark5);
+}
+
+@media (prefers-color-scheme: light) {
+  .scheme1 {
+    background-color: var(--light1);
+    color: var(--dark3);
+  }
+  .scheme2 {
+    background-color: var(--light2);
+    color: var(--dark3);
+  }
+  .scheme3 {
+    background-color: var(--light3);
+    color: var(--dark3);
+  }
+  .scheme4 {
+    background-color: var(--light4);
+    color: var(--dark4);
+  }
+  .scheme5 {
+    background-color: var(--light5);
+    color: var(--dark5);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .scheme1 {
+    background-color: var(--dark1);
+    color: var(--light2);
+  }
+  .scheme2 {
+    background-color: var(--dark2);
+    color: var(--light2);
+  }
+  .scheme3 {
+    background-color: var(--dark3);
+    color: var(--light2);
+  }
+  .scheme4 {
+    background-color: var(--dark4);
+    color: var(--light3);
+  }
+  .scheme5 {
+    background-color: var(--dark5);
+    color: var(--light3);
+  }
+}
+

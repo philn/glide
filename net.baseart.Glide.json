@@ -1,7 +1,7 @@
 {
   "app-id": "net.baseart.Glide.Devel",
   "runtime": "org.gnome.Platform",
-  "runtime-version": "45",
+  "runtime-version": "master",
   "sdk": "org.gnome.Sdk",
   "sdk-extensions": [
     "org.freedesktop.Sdk.Extension.rust-stable"
@@ -100,7 +100,8 @@
         "install -Dm755 ./target/release/glide -t /app/bin/",
         "install -Dm644 ./data/net.baseart.Glide.metainfo.xml -t /app/share/metainfo/,",
         "install -Dm644 ./data/net.baseart.Glide.desktop -t /app/share/applications/,",
-        "install -Dm644 ./data/net.baseart.Glide.Devel.svg -t /app/share/icons/hicolor/scalable/apps/net.baseart.Glide.svg"
+        "install -Dm644 ./data/net.baseart.Glide.Devel.svg -t /app/share/icons/hicolor/scalable/apps/",
+        "mv /app/share/icons/hicolor/scalable/apps/net.baseart.Glide{.Devel,}.svg"
       ],
       "sources": [
         {
