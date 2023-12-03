@@ -19,7 +19,7 @@ icon_name = '@0@.svg'.format(app_id)
 if get_option('profile') == 'development'
   profile = 'Devel'
   install_data('data/net.baseart.Glide.Devel.svg', install_dir : icondir + '/hicolor/scalable/apps/',
-               rename: '@0@.svg'.format(application_id))
+               rename: '@0@.svg'.format(app_id))
 else
   install_data('data/net.baseart.Glide.svg', install_dir : icondir + '/hicolor/scalable/apps/')
 endif
