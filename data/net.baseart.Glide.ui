@@ -40,6 +40,19 @@
         <attribute name="label" translatable="yes">Video track</attribute>
       </submenu>
     </submenu>
+    <submenu id="playback-menu">
+      <attribute name="label" translatable="yes">Playback</attribute>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">Increase speed</attribute>
+          <attribute name="action">app.speed-increase</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">Decrease speed</attribute>
+          <attribute name="action">app.speed-decrease</attribute>
+        </item>
+      </section>
+    </submenu>
     <submenu id="subtitles-menu">
       <attribute name="label" translatable="yes">Subtitles</attribute>
       <section>
@@ -283,6 +296,19 @@ audio-volume-medium-symbolic</property>
                 <property name="title" translatable="yes">Mute the audio track</property>
               </object>
             </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="accelerator">Page_Up</property>
+                <property name="title" translatable="yes">Increase playback speed</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="accelerator">Page_Down</property>
+                <property name="title" translatable="yes">Decrease playback speed</property>
+              </object>
+            </child>
+
           </object>
         </child>
         <child>

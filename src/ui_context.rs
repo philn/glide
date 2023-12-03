@@ -171,6 +171,8 @@ impl UIContext {
                 ("dump-pipeline", ["<Ctrl>d"]),
                 ("show-shortcuts", ["<Primary>question"]),
                 ("video-frame-step", ["<Primary>n"]),
+                ("speed-increase", ["Page_Up"]),
+                ("speed-decrease", ["Page_Down"]),
             ];
             for (action, accels) in accels_per_action.iter() {
                 app.set_accels_for_action(&format!("app.{action}"), accels);

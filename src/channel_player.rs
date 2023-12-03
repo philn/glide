@@ -576,4 +576,24 @@ impl ChannelPlayer {
         self.gtksink
             .send_event(gst::event::Step::new(Buffers::ONE, 1.0, true, false));
     }
+
+    pub fn playback_rate(&self) -> f64 {
+        self.player.rate()
+    }
+
+    pub fn increase_speed(&self) {
+        let rate = self.player.rate();
+        let offset = 0.25;
+        if rate + offset <= 2.0 {
+            self.player.set_rate(rate + offset);
+        }
+    }
+
+    pub fn decrease_speed(&self) {
+        let rate = self.player.rate();
+        let offset = 0.25;
+        if rate > offset {
+            self.player.set_rate(rate - offset);
+        }
+    }
 }

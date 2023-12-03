@@ -75,6 +75,8 @@ struct VideoPlayer {
     audio_offset_reset_action: gio::SimpleAction,
     subtitle_offset_reset_action: gio::SimpleAction,
     video_frame_step_action: gio::SimpleAction,
+    speed_increase_action: gio::SimpleAction,
+    speed_decrease_action: gio::SimpleAction,
     player_receiver: Option<glib::Receiver<PlayerEvent>>,
 }
 
@@ -177,6 +179,12 @@ impl VideoPlayer {
         let video_frame_step_action = gio::SimpleAction::new("video-frame-step", None);
         gtk_app.add_action(&video_frame_step_action);
 
+        let speed_increase_action = gio::SimpleAction::new("speed-increase", None);
+        gtk_app.add_action(&speed_increase_action);
+
+        let speed_decrease_action = gio::SimpleAction::new("speed-decrease", None);
+        gtk_app.add_action(&speed_decrease_action);
+
         let about = gio::SimpleAction::new("about", None);
         about.connect_activate(move |_, _| {
             with_video_player!(video_player {
@@ -248,6 +256,8 @@ impl VideoPlayer {
             audio_offset_reset_action,
             subtitle_offset_reset_action,
             video_frame_step_action,
+            speed_increase_action,
+            speed_decrease_action,
             player_receiver: Some(player_receiver),
         })
     }
@@ -471,6 +481,18 @@ impl VideoPlayer {
             })
         });
 
+        self.speed_decrease_action.connect_activate(|_, _| {
+            with_video_player!(video_player {
+                video_player.player.decrease_speed();
+            });
+        });
+
+        self.speed_increase_action.connect_activate(|_, _| {
+            with_video_player!(video_player {
+                video_player.player.increase_speed();
+            });
+        });
+
         let paintable = self.player.paintable();
         paintable.connect_invalidate_contents(|p| {
             with_video_player!(video_player {
@@ -542,11 +564,18 @@ impl VideoPlayer {
         self.ui_context.set_progress_bar_format_callback(|value| {
             let position = gst::ClockTime::from_seconds(value as u64);
             with_optional_video_player!(video_player {
-            if let Some(duration) = video_player.player.duration() {
-                format!("{position:.0} / {duration:.0}")
-            } else {
-                format!("{position:.0}")
-            }
+                let status = if let Some(duration) = video_player.player.duration() {
+                    format!("{position:.0} / {duration:.0}")
+                } else {
+                    format!("{position:.0}")
+                };
+                // FIXME: Ideally it'd be nice to show this on an OSD overlay?
+                let playback_rate = video_player.player.playback_rate();
+                if playback_rate != 1.0 {
+                    format!("{status} @ {playback_rate}.x")
+                } else {
+                    status
+                }
             } {
                 format!("{position:.0}")
             })
