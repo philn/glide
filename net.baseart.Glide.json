@@ -99,9 +99,13 @@
         "cargo --offline build --release --verbose",
         "install -Dm755 ./target/release/glide -t /app/bin/",
         "install -Dm644 ./data/net.baseart.Glide.metainfo.xml -t /app/share/metainfo/",
+        "mv /app/share/metainfo/net.baseart.Glide{,.Devel}.metainfo.xml",
+        "sed -i 's/net.baseart.Glide/net.baseart.Glide.Devel/g' /app/share/metainfo/net.baseart.Glide.Devel.metainfo.xml",
         "install -Dm644 ./data/net.baseart.Glide.desktop -t /app/share/applications/",
-        "install -Dm644 ./data/net.baseart.Glide.Devel.svg -t /app/share/icons/hicolor/scalable/apps/",
-        "mv /app/share/icons/hicolor/scalable/apps/net.baseart.Glide{.Devel,}.svg"
+        "mv /app/share/applications/net.baseart.Glide{,.Devel}.desktop",
+        "sed -i 's/net.baseart.Glide/net.baseart.Glide.Devel/g' /app/share/applications/net.baseart.Glide.Devel.Desktop",
+        "sed -i 's/name=Glide/name=Glide Tech Preview/g' /app/share/applications/net.baseart.Glide.Devel.Desktop",
+        "install -Dm644 ./data/net.baseart.Glide.Devel.svg -t /app/share/icons/hicolor/scalable/apps/"
       ],
       "sources": [
         {
