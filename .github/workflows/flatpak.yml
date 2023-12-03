@@ -26,6 +26,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Generate Cargo sources
+        run: |
+          wget https://github.com/flatpak/flatpak-builder-tools/raw/master/cargo/flatpak-cargo-generator.py
+          python3 ./flatpak-cargo-generator.py ./Cargo.lock -o cargo-sources.json
+
       # See "Multiple Architectures" below
       - name: Setup QEMU
         if: ${{ matrix.arch == 'aarch64' }}
