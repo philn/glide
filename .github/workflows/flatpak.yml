@@ -65,6 +65,7 @@ jobs:
             base.css
             style.css
             index.html
+            glide.flatpakref
 
   # See "Github Pages" below
   deploy:
