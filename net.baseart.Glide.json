@@ -107,7 +107,7 @@
           "type": "dir",
           "path": "."
         },
-        "cargo-sources.yaml"
+        "cargo-sources.json"
       ]
     }
   ]
