@@ -29,8 +29,14 @@ lazy_static! {
 use crate::iokit_sleep_disabler;
 
 pub fn create_app() -> adw::Application {
+    let application_id = if cfg!(feature = "devel") {
+        "net.baseart.Glide.Devel"
+    } else {
+        "net.baseart.Glide"
+    };
+
     let gtk_app = adw::Application::builder()
-        .application_id("net.baseart.Glide")
+        .application_id(application_id)
         .flags(gio::ApplicationFlags::HANDLES_OPEN)
         .build();
 

@@ -95,8 +95,8 @@
       "name": "glide",
       "buildsystem": "simple",
       "build-commands": [
-        "cargo --offline fetch --manifest-path Cargo.toml --verbose",
-        "cargo --offline build --release --verbose",
+        "cargo --offline fetch --manifest-path Cargo.toml",
+        "cargo --offline build --release --features wayland,x11egl,x11glx,devel",
         "install -Dm755 ./target/release/glide -t /app/bin/",
         "install -Dm644 ./data/net.baseart.Glide.metainfo.xml -t /app/share/metainfo/",
         "mv /app/share/metainfo/net.baseart.Glide{,.Devel}.metainfo.xml",
@@ -104,7 +104,7 @@
         "install -Dm644 ./data/net.baseart.Glide.desktop -t /app/share/applications/",
         "mv /app/share/applications/net.baseart.Glide{,.Devel}.desktop",
         "sed -i 's/net.baseart.Glide/net.baseart.Glide.Devel/g' /app/share/applications/net.baseart.Glide.Devel.desktop",
-        "sed -i 's/name=Glide/name=Glide Tech Preview/g' /app/share/applications/net.baseart.Glide.Devel.desktop",
+        "sed -i 's/Name=Glide/Name=Glide Tech Preview/g' /app/share/applications/net.baseart.Glide.Devel.desktop",
         "install -Dm644 ./data/net.baseart.Glide.Devel.svg -t /app/share/icons/hicolor/scalable/apps/"
       ],
       "sources": [
