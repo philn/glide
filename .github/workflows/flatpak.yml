@@ -28,8 +28,7 @@ jobs:
 
       - name: Generate Cargo sources
         run: |
-          curl -sSL -o flatpak-cargo-generator.py https://github.com/flatpak/flatpak-builder-tools/raw/master/cargo/flatpak-cargo-generator.py
-          python3 ./flatpak-cargo-generator.py ./Cargo.lock -o cargo-sources.json
+          python3 ./build-aux/flatpak-cargo-generator.py ./Cargo.lock -o cargo-sources.json
 
       - name: Setup QEMU
         if: ${{ matrix.arch == 'aarch64' }}
@@ -54,7 +53,7 @@ jobs:
         uses: andyholmes/flatter@main
         with:
           files: |
-            net.baseart.Glide.json
+            build-aux/net.baseart.Glide.json
           arch: ${{ matrix.arch }}
           flatpak-builder-args: |
             --install-deps-from=flathub
@@ -67,7 +66,6 @@ jobs:
             index.html
             glide.flatpakref
 
-  # See "Github Pages" below
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
