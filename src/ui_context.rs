@@ -192,6 +192,10 @@ impl UIContext {
         let motion_controller = gtk::EventControllerMotion::builder().build();
         window.add_controller(motion_controller.clone());
 
+        if cfg!(feature = "devel") {
+            window.add_css_class("devel");
+        }
+
         Self {
             window,
             header_bar,
