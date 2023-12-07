@@ -501,12 +501,18 @@ impl UIContext {
             gtk::minor_version(),
             gtk::micro_version()
         );
+
+        let version = if cfg!(feature = "devel") {
+            std::env::var("VERGEN_GIT_DESCRIBE").unwrap()
+        } else {
+            VERSION.to_string()
+        };
         let dialog = adw::AboutWindow::builder()
             .application_name("Glide")
             .developer_name("Philippe Normand")
             .website("http://github.com/philn/glide")
             .issue_url("https://github.com/philn/glide/issues/new")
-            .version(VERSION)
+            .version(version)
             .debug_info(s)
             .application(&self.app)
             .transient_for(&self.window)

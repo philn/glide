@@ -27,6 +27,9 @@ gst-plugin-gtk4 = { version = "0.11" }
 adw = { version = "0.5", package = "libadwaita", features = ["v1_4"] }
 tempfile = "3"
 
+[build-dependencies]
+vergen = { version = "8.2", features = [ "build", "git", "gitcl" ]}
+
 [dependencies.self_update]
 optional = true
 version = "0.28"
