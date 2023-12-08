@@ -33,6 +33,7 @@ use std::path::PathBuf;
 
 mod channel_player;
 mod constants;
+mod debug_infos;
 use channel_player::{AudioVisualization, ChannelPlayer, PlaybackState, PlayerEvent, SeekDirection, SubtitleTrack};
 mod ui_context;
 use ui_context::{create_app, UIContext};

@@ -16,6 +16,7 @@ use std::os::raw::c_void;
 use std::string;
 use std::sync::Mutex;
 
+use crate::debug_infos::DebugInfos;
 use crate::PlaybackState;
 
 lazy_static! {
@@ -494,13 +495,7 @@ impl UIContext {
     }
 
     pub fn display_about_dialog(&self) {
-        let s = format!(
-            "Multimedia playback support provided by {}.\nUser interface running on GTK {}.{}.{}",
-            gst::version_string(),
-            gtk::major_version(),
-            gtk::minor_version(),
-            gtk::micro_version()
-        );
+        let debug_info = DebugInfos::new();
 
         let version = if cfg!(feature = "devel") {
             std::env::var("VERGEN_GIT_DESCRIBE").unwrap()
@@ -513,7 +508,7 @@ impl UIContext {
             .website("http://github.com/philn/glide")
             .issue_url("https://github.com/philn/glide/issues/new")
             .version(version)
-            .debug_info(s)
+            .debug_info(debug_info.to_json().unwrap())
             .application(&self.app)
             .transient_for(&self.window)
             .build();
