@@ -498,9 +498,9 @@ impl UIContext {
         let debug_info = DebugInfos::new();
 
         let version = if cfg!(feature = "devel") {
-            std::env::var("VERGEN_GIT_DESCRIBE").unwrap()
+            env!("VERGEN_GIT_DESCRIBE")
         } else {
-            VERSION.to_string()
+            VERSION
         };
         let dialog = adw::AboutWindow::builder()
             .application_name("Glide")
