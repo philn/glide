@@ -18,26 +18,26 @@ jobs:
       run: |
         sudo apt update
         sudo apt-get -y install podman
-        podman pull fedora:38
+        podman pull fedora:39
     - uses: actions/checkout@v3
     - name: Create container
       run: |
-        podman build --tag fedora38test -f ./Dockerfile
+        podman build --tag fedora39test -f ./Dockerfile
     - name: rustfmt
       run: cargo fmt -- --check
     - name: Build
       run: |
-        podman run -v $PWD:/workspace -w /workspace --privileged -it fedora38test /root/.cargo/bin/cargo build --verbose
+        podman run -v $PWD:/workspace -w /workspace --privileged -it fedora39test /root/.cargo/bin/cargo build --verbose
     - name: Annotate commit with clippy warnings
       run: |
-        podman run -v $PWD:/workspace -w /workspace --privileged -it fedora38test /root/.cargo/bin/cargo clippy -- -D warnings
+        podman run -v $PWD:/workspace -w /workspace --privileged -it fedora39test /root/.cargo/bin/cargo clippy -- -D warnings
     - name: Security audit
       uses: actions-rs/audit-check@v1
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
     - name: Run tests
       run: |
-        podman run -v $PWD:/workspace -w /workspace --privileged -it fedora38test /root/.cargo/bin/cargo test --verbose
+        podman run -v $PWD:/workspace -w /workspace --privileged -it fedora39test /root/.cargo/bin/cargo test --verbose
   macos-build:
     runs-on: macos-latest
     steps:
