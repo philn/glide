@@ -9,5 +9,5 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("cargo:rustc-link-lib=framework=IOKit");
     }
 
-    Ok(EmitBuilder::builder().all_build().all_git().emit()?)
+    Ok(EmitBuilder::builder().all_build().all_git().cargo_features().emit()?)
 }
