@@ -224,15 +224,13 @@ impl VideoPlayer {
 
         let (player_sender, player_receiver) = async_channel::unbounded();
 
-        let mut cache_file_path = None;
-        if !options.incognito {
-            if let Some(d) = ProjectDirs::from("net", "baseart", "Glide") {
-                create_dir_all(d.cache_dir()).unwrap();
-                cache_file_path = Some(d.cache_dir().join("media-cache.json"));
-            }
+        let mut cache_dir_path = None;
+        if let Some(d) = ProjectDirs::from("net", "baseart", "Glide") {
+            create_dir_all(d.cache_dir()).unwrap();
+            cache_dir_path = Some(d.cache_dir().to_path_buf());
         }
 
-        let player = ChannelPlayer::new(player_sender, cache_file_path)?;
+        let player = ChannelPlayer::new(player_sender, options.incognito, cache_dir_path)?;
 
         Ok(Self {
             player,
