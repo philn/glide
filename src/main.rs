@@ -599,8 +599,8 @@ impl VideoPlayer {
             PlayerEvent::VolumeChanged(volume) => {
                 self.volume_changed(volume);
             }
-            PlayerEvent::Error(msg) => {
-                self.player_error(msg);
+            PlayerEvent::Error(msg, details) => {
+                self.player_error(msg, details);
             }
             PlayerEvent::AudioVideoOffsetChanged(offset) => {
                 self.audio_video_offset_changed(offset);
@@ -612,10 +612,16 @@ impl VideoPlayer {
         };
     }
 
-    pub fn player_error(&self, msg: std::string::String) {
-        // FIXME: display some GTK error dialog...
-        eprintln!("Internal player error: {msg}");
-        with_video_player!(video_player { video_player.quit() });
+    pub fn player_error(&self, msg: std::string::String, details: Option<gst::Structure>) {
+        let mut debug: Option<String> = None;
+        let report_path = match self.player.write_error_report(&msg, details) {
+            Ok(path) => Some(path),
+            Err(e) => {
+                debug = Some(e.to_string());
+                None
+            }
+        };
+        self.ui_context.show_error_dialog(report_path, debug);
     }
 
     pub fn volume_changed(&self, volume: f64) {

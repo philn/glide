@@ -4,6 +4,7 @@ extern crate gstreamer_video as gst_video;
 extern crate gtk4 as gtk;
 extern crate serde_json;
 extern crate sha2;
+extern crate tar;
 
 use self::sha2::{Digest, Sha256};
 use crate::gst_play::prelude::PlayStreamInfoExt;
@@ -21,6 +22,7 @@ use std::io::Read;
 use std::io::Write;
 use std::path;
 use std::string;
+use tar::Builder;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub enum PlaybackState {
@@ -50,7 +52,7 @@ pub enum PlayerEvent {
     StateChanged(PlaybackState),
     VideoDimensionsChanged(u32, u32),
     VolumeChanged(f64),
-    Error(string::String),
+    Error(String, Option<gst::Structure>),
     AudioVideoOffsetChanged(i64),
     SubtitleVideoOffsetChanged(i64),
 }
@@ -59,7 +61,6 @@ pub struct ChannelPlayer {
     player: gst_play::Play,
     renderer: gst_play::PlayVideoOverlayVideoRenderer,
     gtksink: gst::Element,
-    #[allow(dead_code)]
     cache_dir_path: Option<path::PathBuf>,
 }
 
@@ -244,7 +245,21 @@ impl ChannelPlayer {
         // Get position updates every 250ms.
         let mut config = player.config();
         config.set_position_update_interval(250);
+
+        // TODO: Enable pipeline_dump_in_error_details, guarded by gst 1.24 feature check.
+        // https://gitlab.freedesktop.org/gstreamer/gstreamer/-/merge_requests/5828
+
         player.set_config(config).unwrap();
+
+        if std::env::var("GST_DEBUG").is_err() {
+            gst::debug_remove_default_log_function();
+            gst::debug_add_ring_buffer_logger(2048, 60);
+            let threshold = match std::env::var("GLIDE_DEBUG") {
+                Ok(val) => val,
+                Err(_) => "2,videodec*:5,playbin*:5".to_string(),
+            };
+            gst::debug_set_threshold_from_string(&threshold, true);
+        }
 
         let bus_watch = player.message_bus().add_watch_local(
             clone!(@weak player => @default-return glib::ControlFlow::Break, move |_, message| {
@@ -309,10 +324,9 @@ impl ChannelPlayer {
                         });
 
                     }
-                    PlayMessage::Error { error, .. } => {
+                    PlayMessage::Error { error, details } => {
                         with_player!(player {
-                            // FIXME: Pass error to enum.
-                            player.notify(PlayerEvent::Error(error.to_string()));
+                            player.notify(PlayerEvent::Error(error.to_string(), details));
                         });
                     }
                     _ => {}
@@ -605,5 +619,95 @@ impl ChannelPlayer {
         if rate > offset {
             self.player.set_rate(rate - offset);
         }
+    }
+
+    pub fn write_error_report(
+        &self,
+        error_message: &String,
+        details: Option<gst::Structure>,
+    ) -> anyhow::Result<String> {
+        let cache_dir = self
+            .cache_dir_path
+            .as_ref()
+            .ok_or(anyhow::anyhow!("Unable to determine cache directory path."))?;
+
+        let uri = self.player.uri().unwrap();
+        let id = uri_to_sha256(&uri);
+
+        let tar_directory_name = format!("glide-error-{id}");
+        let tar_filename = format!("{tar_directory_name}.tar");
+        let tar_path = cache_dir.join(tar_filename);
+        let tar_file = File::create(&tar_path)?;
+        let mut a = Builder::new(tar_file);
+
+        let tar_directory_path = cache_dir.join(&tar_directory_name);
+        std::fs::create_dir_all(&tar_directory_path)?;
+
+        // Dump contents of the GStreamer debug ring-buffer to a file.
+        if std::env::var("GST_DEBUG").is_ok() {
+            eprintln!("GST_DEBUG was set. GStreamer logs will not be automatically included the report");
+        } else {
+            let gst_log = tar_directory_path.join("gst.log");
+            let mut file = File::create(gst_log)?;
+            for log_data in gst::debug_ring_buffer_logger_get_logs().iter() {
+                file.write_all(log_data.as_bytes())?;
+            }
+            file.sync_all()?;
+        }
+
+        // Dump pipeline graph to a file, making sure we don't leak private informations (URIs).
+        let dump_pipeline = || -> anyhow::Result<String> {
+            let element = self.player.pipeline();
+            let pipeline = element
+                .downcast::<gst::Pipeline>()
+                .map_err(|_| anyhow::anyhow!("Missing pipeline"))?;
+            Ok(gst::debug_bin_to_dot_data(&pipeline, gst::DebugGraphDetails::all()).to_string())
+        };
+
+        let dot_data = match details {
+            Some(d) => {
+                if d.has_field("pipeline-dump") {
+                    Ok(d.get::<String>("pipeline-dump").unwrap().to_string())
+                } else {
+                    dump_pipeline()
+                }
+            }
+            None => dump_pipeline(),
+        }?;
+
+        let dot_path = tar_directory_path.join("pipeline.dot");
+        let mut dot_file = File::create(dot_path)?;
+        let uri_re = regex::Regex::new(r#"uri\=(\\"[^\\"]*\\")"#)?;
+        let file_re = regex::Regex::new(r#"location\=(\\"[^\\"]*\\")"#)?;
+        for line in dot_data.lines() {
+            let modified_line = uri_re.replace_all(line, r#"uri=\"redacted\""#);
+            let modified_line2 = file_re.replace_all(&modified_line, r#"location=\"redacted\""#);
+            dot_file.write_all(modified_line2.as_bytes())?;
+        }
+        dot_file.sync_all()?;
+
+        // Dump media info to a file, making sure we don't leak private informations (URIs).
+        let discoverer = gstreamer_pbutils::Discoverer::new(gst::ClockTime::from_seconds(2))?;
+        let info = discoverer.discover_uri(&uri)?;
+        let variant = info.to_variant(gstreamer_pbutils::DiscovererSerializeFlags::all());
+        let dump = variant.print(true).to_string();
+        let uri_re2 = regex::Regex::new(r#"<\(@ms ('[^']*')"#)?;
+        let modified_dump = uri_re2.replace_all(&dump, r#"<\(@ms 'redacted'"#);
+        let disco_path = tar_directory_path.join("media-info.variant");
+        let mut disco_file = File::create(disco_path)?;
+        disco_file.write_all(modified_dump.as_bytes())?;
+        disco_file.sync_all()?;
+
+        let mut error_file = File::create(tar_directory_path.join("error.txt"))?;
+        error_file.write_all(error_message.as_bytes())?;
+        error_file.sync_all()?;
+
+        a.append_dir_all(&tar_directory_name, &tar_directory_path)?;
+        std::fs::remove_dir_all(&tar_directory_path)?;
+
+        tar_path
+            .into_os_string()
+            .into_string()
+            .map_err(|e| anyhow::anyhow!(format!("{}", e.to_str().unwrap())))
     }
 }
