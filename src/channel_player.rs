@@ -59,6 +59,8 @@ pub struct ChannelPlayer {
     player: gst_play::Play,
     renderer: gst_play::PlayVideoOverlayVideoRenderer,
     gtksink: gst::Element,
+    #[allow(dead_code)]
+    cache_dir_path: Option<path::PathBuf>,
 }
 
 impl Drop for ChannelPlayer {
@@ -217,7 +219,8 @@ impl PlayerDataHolder {
 impl ChannelPlayer {
     pub fn new(
         sender: async_channel::Sender<PlayerEvent>,
-        cache_file_path: Option<path::PathBuf>,
+        incognito: bool,
+        cache_dir_path: Option<path::PathBuf>,
     ) -> anyhow::Result<Self> {
         let gtksink = gst::ElementFactory::make("gtk4paintablesink").build()?;
 
@@ -334,8 +337,11 @@ impl ChannelPlayer {
         let player_id = player.name();
         let subscribers = vec![sender];
         let mut cache = None;
-        if let Some(ref path) = cache_file_path {
-            cache = Some(MediaCache::open(path).unwrap());
+        if !incognito {
+            if let Some(ref path) = cache_dir_path {
+                let cache_path = path.join("media-cache.json");
+                cache = Some(MediaCache::open(&cache_path).unwrap());
+            }
         }
         let player_data = PlayerDataHolder {
             subscribers,
@@ -354,6 +360,7 @@ impl ChannelPlayer {
             player,
             renderer,
             gtksink,
+            cache_dir_path: cache_dir_path.map(|d| d.to_path_buf()),
         })
     }
 
