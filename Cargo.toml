@@ -31,6 +31,7 @@ async-channel = "2.1.1"
 tar = "0.4"
 regex = "1"
 open = "5"
+mpris-server = { version = "0.6", optional = true }
 
 [build-dependencies]
 vergen = { version = "8.2", features = [ "build", "git", "gitcl", "cargo" ]}
@@ -45,6 +46,7 @@ x11egl = ["gst-plugin-gtk4/x11egl"]
 x11glx = ["gst-plugin-gtk4/x11glx"]
 wayland = ["gst-plugin-gtk4/wayland"]
 devel = []
+mpris = ["mpris-server"]
 
 [target.'cfg(target_os = "macos")'.dependencies]
 core-foundation = "0.9"
