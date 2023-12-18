@@ -2,7 +2,9 @@ extern crate adw;
 extern crate gio;
 extern crate gstreamer as gst;
 extern crate gtk4 as gtk;
+extern crate open;
 
+use adw::prelude::MessageDialogExt;
 #[allow(unused_imports)]
 use gio::prelude::*;
 #[allow(unused_imports)]
@@ -13,6 +15,7 @@ use gtk::prelude::*;
 use std::io::Write;
 #[allow(unused_imports)]
 use std::os::raw::c_void;
+use std::path;
 use std::string;
 use std::sync::Mutex;
 
@@ -554,5 +557,36 @@ impl UIContext {
 
     pub fn mutable_audio_visualization_menu(&self) -> bool {
         self.audio_visualization_menu.is_mutable()
+    }
+
+    pub fn show_error_dialog(&self, report_path: Option<String>, debug: Option<String>) {
+        let body = if report_path.is_some() {
+            "An error report was saved. If you decide to file a bug, please include the report file.".to_string()
+        } else {
+            format!("Debug informations: {}", debug.expect("Missing debug message"))
+        };
+        let dialog = adw::MessageDialog::builder()
+            .title("An error occurred")
+            .body(format!("Glide failed to play this media file. {body}"))
+            .decorated(true)
+            .transient_for(&self.window)
+            .build();
+
+        if let Some(path_str) = report_path {
+            let path = path::PathBuf::from(path_str);
+            let dir_name = path.parent().unwrap().display();
+            let label = path.file_name().unwrap().to_str().unwrap();
+            let link_button = gtk4::LinkButton::builder()
+                .label(label)
+                .uri(format!("file://{dir_name}"))
+                .build();
+            dialog.set_extra_child(Some(&link_button));
+        }
+        dialog.add_response("cancel", "Cancel");
+        dialog.add_response("report", "Report");
+        dialog.connect_response(Some("report"), move |_dialog, _response| {
+            let _ = open::that_detached("https://github.com/philn/glide/issues/new");
+        });
+        dialog.present();
     }
 }

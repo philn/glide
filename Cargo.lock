@@ -461,6 +461,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "filetime"
+version = "0.2.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1ee447700ac8aa0b2f2bd7bc4462ad686ba06baa6727ac149a2d6277f0d240fd"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "redox_syscall",
+ "windows-sys 0.52.0",
+]
+
+[[package]]
 name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -813,16 +825,20 @@ dependencies = [
  "gio",
  "gst-plugin-gtk4",
  "gstreamer",
+ "gstreamer-pbutils",
  "gstreamer-play",
  "gstreamer-video",
  "gtk4",
  "lazy_static",
  "libadwaita",
+ "open",
+ "regex",
  "self_update",
  "serde",
  "serde_derive",
  "serde_json",
  "sha2",
+ "tar",
  "tempfile",
  "vergen",
 ]
@@ -945,8 +961,38 @@ dependencies = [
  "paste",
  "pin-project-lite",
  "pretty-hex",
+ "serde",
+ "serde_bytes",
  "smallvec",
  "thiserror",
+]
+
+[[package]]
+name = "gstreamer-audio"
+version = "0.21.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a97c8a4e9c889b4a7b2feda4be70edc5c3e012ddbf97928cf0a020ca1e4212d"
+dependencies = [
+ "cfg-if",
+ "glib",
+ "gstreamer",
+ "gstreamer-audio-sys",
+ "gstreamer-base",
+ "libc",
+]
+
+[[package]]
+name = "gstreamer-audio-sys"
+version = "0.21.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "78bd94ae8b177377855b38c3d809c686526786cdb771e6d68510509634b955d1"
+dependencies = [
+ "glib-sys",
+ "gobject-sys",
+ "gstreamer-base-sys",
+ "gstreamer-sys",
+ "libc",
+ "system-deps",
 ]
 
 [[package]]
@@ -1076,6 +1122,36 @@ checksum = "c49aef03c7b9e159b5f4c557efe4a597437ea6e5e10f934ae8b214386c6ebcdc"
 dependencies = [
  "glib-sys",
  "gstreamer-gl-sys",
+ "libc",
+ "system-deps",
+]
+
+[[package]]
+name = "gstreamer-pbutils"
+version = "0.21.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4b2719d7831b815a6ac4ccca9324fa40dd0c4d3539a59531c2e7c8d44919b945"
+dependencies = [
+ "glib",
+ "gstreamer",
+ "gstreamer-audio",
+ "gstreamer-pbutils-sys",
+ "gstreamer-video",
+ "libc",
+ "thiserror",
+]
+
+[[package]]
+name = "gstreamer-pbutils-sys"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6faae6e3454bc8ca5986d7ef6477fc44b809bfc952a8680eaedb4f2e001f9d69"
+dependencies = [
+ "glib-sys",
+ "gobject-sys",
+ "gstreamer-audio-sys",
+ "gstreamer-sys",
+ "gstreamer-video-sys",
  "libc",
  "system-deps",
 ]
@@ -1373,6 +1449,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f518f335dce6725a761382244631d86cf0ccb2863413590b31338feb467f9c3"
 
 [[package]]
+name = "is-docker"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "928bae27f42bc99b60d9ac7334e3a21d10ad8f1835a4e12ec3ec0464765ed1b3"
+dependencies = [
+ "once_cell",
+]
+
+[[package]]
+name = "is-wsl"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "173609498df190136aa7dea1a91db051746d339e18476eed5ca40521f02d7aa5"
+dependencies = [
+ "is-docker",
+ "once_cell",
+]
+
+[[package]]
 name = "itertools"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1547,6 +1642,7 @@ dependencies = [
  "autocfg",
  "num-integer",
  "num-traits",
+ "serde",
 ]
 
 [[package]]
@@ -1597,6 +1693,17 @@ name = "once_cell"
 version = "1.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3fdb12b2476b595f9358c5161aa467c2438859caa136dec86c26fdd2efe17b92"
+
+[[package]]
+name = "open"
+version = "5.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "90878fb664448b54c4e592455ad02831e23a3f7e157374a8b95654731aac7349"
+dependencies = [
+ "is-wsl",
+ "libc",
+ "pathdiff",
+]
 
 [[package]]
 name = "openssl"
@@ -1687,6 +1794,12 @@ name = "paste"
 version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "de3145af08024dea9fa9914f381a17b8fc6034dfb00f3a84013f7ff43f29ed4c"
+
+[[package]]
+name = "pathdiff"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8835116a5c179084a830efb3adc117ab007512b535bc1a21c991d3b32a6b44dd"
 
 [[package]]
 name = "percent-encoding"
@@ -2016,6 +2129,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_bytes"
+version = "0.11.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab33ec92f677585af6d88c65593ae2375adde54efdbf16d597f2cbc7a6d368ff"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "serde_derive"
 version = "1.0.193"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2154,6 +2276,17 @@ dependencies = [
  "pkg-config",
  "toml",
  "version-compare",
+]
+
+[[package]]
+name = "tar"
+version = "0.4.40"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b16afcea1f22891c49a00c751c7b63b2233284064f11a200fc624137c51e2ddb"
+dependencies = [
+ "filetime",
+ "libc",
+ "xattr",
 ]
 
 [[package]]
@@ -2773,4 +2906,15 @@ checksum = "524e57b2c537c0f9b1e69f1965311ec12182b4122e45035b1508cd24d2adadb1"
 dependencies = [
  "cfg-if",
  "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "xattr"
+version = "1.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a7dae5072fe1f8db8f8d29059189ac175196e410e40ba42d5d4684ae2f750995"
+dependencies = [
+ "libc",
+ "linux-raw-sys",
+ "rustix",
 ]
