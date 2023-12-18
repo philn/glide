@@ -76,7 +76,7 @@ struct MediaCache {
 }
 
 struct PlayerDataHolder {
-    subscribers: Vec<glib::Sender<PlayerEvent>>,
+    subscribers: Vec<async_channel::Sender<PlayerEvent>>,
     playlist: Vec<string::String>,
     current_uri: glib::GString,
     index: usize,
@@ -172,13 +172,13 @@ impl PlayerDataHolder {
     }
 
     #[allow(dead_code)]
-    fn register_event_handler(&mut self, sender: glib::Sender<PlayerEvent>) {
+    fn register_event_handler(&mut self, sender: async_channel::Sender<PlayerEvent>) {
         self.subscribers.push(sender);
     }
 
     fn notify(&self, event: PlayerEvent) {
         for sender in &*self.subscribers {
-            sender.send(event.clone()).unwrap();
+            let _ = sender.send_blocking(event.clone());
         }
     }
 
@@ -215,7 +215,10 @@ impl PlayerDataHolder {
 }
 
 impl ChannelPlayer {
-    pub fn new(sender: glib::Sender<PlayerEvent>, cache_file_path: Option<path::PathBuf>) -> anyhow::Result<Self> {
+    pub fn new(
+        sender: async_channel::Sender<PlayerEvent>,
+        cache_file_path: Option<path::PathBuf>,
+    ) -> anyhow::Result<Self> {
         let gtksink = gst::ElementFactory::make("gtk4paintablesink").build()?;
 
         // Need to set state to Ready to get a GL context
@@ -355,7 +358,7 @@ impl ChannelPlayer {
     }
 
     #[allow(dead_code)]
-    pub fn register_event_handler(&mut self, sender: glib::Sender<PlayerEvent>) {
+    pub fn register_event_handler(&mut self, sender: async_channel::Sender<PlayerEvent>) {
         let player = &self.player;
         with_mut_player!(player player_data {
             player_data.register_event_handler(sender);
