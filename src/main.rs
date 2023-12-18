@@ -78,7 +78,7 @@ struct VideoPlayer {
     video_frame_step_action: gio::SimpleAction,
     speed_increase_action: gio::SimpleAction,
     speed_decrease_action: gio::SimpleAction,
-    player_receiver: Option<glib::Receiver<PlayerEvent>>,
+    player_receiver: Option<async_channel::Receiver<PlayerEvent>>,
 }
 
 thread_local!(
@@ -222,7 +222,7 @@ impl VideoPlayer {
 
         let ui_context = UIContext::new(gtk_app);
 
-        let (player_sender, player_receiver) = glib::MainContext::channel(glib::Priority::default());
+        let (player_sender, player_receiver) = async_channel::unbounded();
 
         let mut cache_file_path = None;
         if !options.incognito {
@@ -272,11 +272,12 @@ impl VideoPlayer {
 
     pub fn start(&mut self) {
         let player_receiver = self.player_receiver.take().expect("No player channel receiver");
-        player_receiver.attach(None, move |event| {
-            with_video_player!(player {
-                player.dispatch_event(event);
-            });
-            glib::ControlFlow::Continue
+        glib::MainContext::default().spawn_local(async move {
+            while let Ok(event) = player_receiver.recv().await {
+                with_video_player!(player {
+                    player.dispatch_event(event);
+                });
+            }
         });
 
         self.pause_action.connect_change_state(|pause_action, _| {

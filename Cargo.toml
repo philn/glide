@@ -26,6 +26,7 @@ gtk4 = { version = "0.7", features = ["v4_8"]}
 gst-plugin-gtk4 = { version = "0.11" }
 adw = { version = "0.5", package = "libadwaita", features = ["v1_4"] }
 tempfile = "3"
+async-channel = "2.1.1"
 
 [build-dependencies]
 vergen = { version = "8.2", features = [ "build", "git", "gitcl", "cargo" ]}
