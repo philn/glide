@@ -14,6 +14,7 @@ use gst::prelude::*;
 use gst_play::PlayMessage;
 use gstreamer::format::Buffers;
 use gstreamer::glib;
+use gstreamer_pbutils::{Discoverer, DiscovererResult};
 use gtk::gdk;
 use gtk::glib::clone;
 use std::cell::RefCell;
@@ -691,16 +692,22 @@ impl ChannelPlayer {
         dot_file.sync_all()?;
 
         // Dump media info to a file, making sure we don't leak private informations (URIs).
-        let discoverer = gstreamer_pbutils::Discoverer::new(gst::ClockTime::from_seconds(2))?;
+        let discoverer = Discoverer::new(gst::ClockTime::from_seconds(2))?;
         let info = discoverer.discover_uri(&uri)?;
-        let variant = info.to_variant(gstreamer_pbutils::DiscovererSerializeFlags::all());
-        let dump = variant.print(true).to_string();
-        let uri_re2 = regex::Regex::new(r#"<\(@ms ('[^']*')"#)?;
-        let modified_dump = uri_re2.replace_all(&dump, r#"<\(@ms 'redacted'"#);
-        let disco_path = tar_directory_path.join("media-info.variant");
-        let mut disco_file = File::create(disco_path)?;
-        disco_file.write_all(modified_dump.as_bytes())?;
-        disco_file.sync_all()?;
+        // Look ahead for the result, in order to prevent critical warning from gst_discoverer_info_to_variant().
+        match info.result() {
+            DiscovererResult::Ok | DiscovererResult::MissingPlugins => {
+                let variant = info.to_variant(gstreamer_pbutils::DiscovererSerializeFlags::all());
+                let dump = variant.print(true).to_string();
+                let uri_re2 = regex::Regex::new(r#"<\(@ms ('[^']*')"#)?;
+                let modified_dump = uri_re2.replace_all(&dump, r#"<\(@ms 'redacted'"#);
+                let disco_path = tar_directory_path.join("media-info.variant");
+                let mut disco_file = File::create(disco_path)?;
+                disco_file.write_all(modified_dump.as_bytes())?;
+                disco_file.sync_all()?;
+            }
+            _ => {}
+        };
 
         let mut error_file = File::create(tar_directory_path.join("error.txt"))?;
         error_file.write_all(error_message.as_bytes())?;
