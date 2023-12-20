@@ -7,6 +7,7 @@ extern crate sha2;
 extern crate tar;
 
 use self::sha2::{Digest, Sha256};
+use crate::debug_infos::DebugInfos;
 use crate::gst_play::prelude::PlayStreamInfoExt;
 use crate::gtk::prelude::PaintableExt;
 use gst::prelude::*;
@@ -704,6 +705,11 @@ impl ChannelPlayer {
         let mut error_file = File::create(tar_directory_path.join("error.txt"))?;
         error_file.write_all(error_message.as_bytes())?;
         error_file.sync_all()?;
+
+        let debug_info = DebugInfos::new();
+        let mut debug_file = File::create(tar_directory_path.join("debug-infos.json"))?;
+        debug_file.write_all(debug_info.to_json()?.as_bytes())?;
+        debug_file.sync_all()?;
 
         a.append_dir_all(&tar_directory_name, &tar_directory_path)?;
         std::fs::remove_dir_all(&tar_directory_path)?;
