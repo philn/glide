@@ -637,6 +637,9 @@ impl ChannelPlayer {
         let tar_directory_name = format!("glide-error-{id}");
         let tar_filename = format!("{tar_directory_name}.tar");
         let tar_path = cache_dir.join(tar_filename);
+        if tar_path.is_file() {
+            std::fs::remove_file(&tar_path)?;
+        }
         let tar_file = File::create(&tar_path)?;
         let mut a = Builder::new(tar_file);
 
