@@ -48,6 +48,7 @@ pub struct AudioVisualization(pub string::String);
 #[derive(Serialize, Deserialize, Clone)]
 pub enum PlayerEvent {
     MediaInfoUpdated,
+    DurationChanged(Option<gst::ClockTime>),
     PositionUpdated,
     EndOfStream(string::String),
     EndOfPlaylist,
@@ -294,6 +295,11 @@ impl ChannelPlayer {
                             player_data.media_info_updated(&info);
                         });
 
+                    }
+                    PlayMessage::DurationChanged { duration } => {
+                        with_player!(player {
+                            player.notify(PlayerEvent::DurationChanged(duration));
+                        });
                     }
                     PlayMessage::PositionUpdated { position: _ } => {
                         with_player!(player {
