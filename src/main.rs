@@ -587,6 +587,9 @@ impl VideoPlayer {
             PlayerEvent::MediaInfoUpdated => {
                 self.media_info_updated();
             }
+            PlayerEvent::DurationChanged(duration) => {
+                self.duration_changed(duration);
+            }
             PlayerEvent::PositionUpdated => {
                 self.position_updated();
             }
@@ -687,6 +690,12 @@ impl VideoPlayer {
                 self.ui_context.clear_audio_visualization_menu();
                 self.audio_visualization_action.set_enabled(false);
             }
+        }
+    }
+
+    pub fn duration_changed(&self, duration: Option<gst::ClockTime>) {
+        if let Some(dur) = duration {
+            self.ui_context.set_position_range_end(dur.seconds() as f64);
         }
     }
 
