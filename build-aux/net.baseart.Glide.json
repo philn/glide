@@ -37,7 +37,7 @@
           "type": "git",
           "url": "https://git.ffmpeg.org/ffmpeg.git",
           "branch": "release/6.0",
-          "commit": "133069b4340961a1b3e8562a0dabfc61b35af84c"
+          "commit": "178575bdc1510f653620725b2fcc5cc0e956b466"
         }
       ],
       "config-opts": [
