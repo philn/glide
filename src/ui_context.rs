@@ -57,6 +57,7 @@ pub struct UIContext {
     video_renderer: gtk::Picture,
     pause_button: gtk::Button,
     progress_bar: gtk::Scale,
+    #[allow(deprecated)]
     volume_button: gtk::VolumeButton,
     toolbar_revealer: gtk::Revealer,
     track_synchronization_window: adw::ApplicationWindow,
@@ -110,6 +111,7 @@ impl UIContext {
 
         let video_renderer: gtk::Picture = builder.object("video-renderer").unwrap();
         let progress_bar: gtk::Scale = builder.object("progress-bar").unwrap();
+        #[allow(deprecated)]
         let volume_button: gtk::VolumeButton = builder.object("volume-button").unwrap();
 
         let toolbar_revealer: gtk::Revealer = builder.object("toolbar-revealer").unwrap();
@@ -125,7 +127,7 @@ impl UIContext {
         let window_weak = SendWeakRef::from(track_synchronization_window.downgrade());
         action.connect_activate(move |_, _| {
             if let Some(window) = window_weak.upgrade() {
-                window.hide();
+                window.set_visible(false);
             }
         });
 
@@ -228,13 +230,13 @@ impl UIContext {
     pub fn open_track_synchronization_window(&self) {
         let window = &self.track_synchronization_window;
         window.set_transient_for(Some(&self.window));
-        window.show();
+        window.set_visible(true);
     }
 
     pub fn show_shortcuts(&self) {
         let window = &self.shortcuts_window;
         window.set_transient_for(Some(&self.window));
-        window.show();
+        window.set_visible(true);
     }
 
     pub fn start_autohide_toolbar(&self) {
@@ -306,7 +308,7 @@ impl UIContext {
         }
         *INITIAL_SIZE.lock().unwrap() = Some(window.default_size());
         //*INITIAL_POSITION.lock().unwrap() = Some(window.position());
-        self.header_bar.hide();
+        self.header_bar.set_visible(false);
         window.fullscreen();
         let cursor = gtk::gdk::Cursor::from_name("none", None);
         window.set_cursor(cursor.as_ref());
@@ -322,11 +324,12 @@ impl UIContext {
             *cookie = None;
         }
         window.unfullscreen();
-        self.header_bar.show();
+        self.header_bar.set_visible(true);
         let cursor = gtk::gdk::Cursor::from_name("default", None);
         window.set_cursor(cursor.as_ref());
     }
 
+    #[allow(deprecated)]
     pub fn open_dialog<F>(&self, relative_uri: Option<glib::GString>, f: F)
     where
         F: Fn(glib::GString) + Send + Sync + 'static,
@@ -355,11 +358,11 @@ impl UIContext {
             }
             dialog.close();
         });
-        dialog.show();
+        dialog.set_visible(true);
     }
 
     pub fn start<F: Fn() + Send + Sync + 'static>(&self, f: F) {
-        self.window.show();
+        self.window.set_visible(true);
         self.window.connect_close_request(move |_| {
             f();
             glib::Propagation::Proceed
@@ -515,7 +518,7 @@ impl UIContext {
             .application(&self.app)
             .transient_for(&self.window)
             .build();
-        dialog.show();
+        dialog.set_visible(true);
     }
 
     pub fn playback_state_changed(&self, playback_state: &PlaybackState) {
