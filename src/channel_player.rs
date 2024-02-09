@@ -255,13 +255,13 @@ impl ChannelPlayer {
         player.set_config(config).unwrap();
 
         if std::env::var("GST_DEBUG").is_err() {
-            gst::debug_remove_default_log_function();
-            gst::debug_add_ring_buffer_logger(2048, 60);
+            gst::log::remove_default_log_function();
+            gst::log::add_ring_buffer_logger(2048, 60);
             let threshold = match std::env::var("GLIDE_DEBUG") {
                 Ok(val) => val,
                 Err(_) => "2,videodec*:5,playbin*:5".to_string(),
             };
-            gst::debug_set_threshold_from_string(&threshold, true);
+            gst::log::set_threshold_from_string(&threshold, true);
         }
 
         let bus_watch = player.message_bus().add_watch_local(
@@ -482,7 +482,7 @@ impl ChannelPlayer {
     pub fn dump_pipeline(&self, label: &str) {
         let element = self.player.pipeline();
         if let Ok(pipeline) = element.downcast::<gst::Pipeline>() {
-            gst::debug_bin_to_dot_file_with_ts(&pipeline, gst::DebugGraphDetails::all(), label);
+            pipeline.debug_to_dot_file_with_ts(gst::DebugGraphDetails::all(), label);
         }
     }
 
@@ -660,7 +660,7 @@ impl ChannelPlayer {
         } else {
             let gst_log = tar_directory_path.join("gst.log");
             let mut file = File::create(gst_log)?;
-            for log_data in gst::debug_ring_buffer_logger_get_logs().iter() {
+            for log_data in gst::log::ring_buffer_logger_get_logs().iter() {
                 file.write_all(log_data.as_bytes())?;
             }
             file.sync_all()?;
@@ -672,7 +672,7 @@ impl ChannelPlayer {
             let pipeline = element
                 .downcast::<gst::Pipeline>()
                 .map_err(|_| anyhow::anyhow!("Missing pipeline"))?;
-            Ok(gst::debug_bin_to_dot_data(&pipeline, gst::DebugGraphDetails::all()).to_string())
+            Ok(pipeline.debug_to_dot_data(gst::DebugGraphDetails::all()).to_string())
         };
 
         let dot_data = match details {

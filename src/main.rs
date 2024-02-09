@@ -24,7 +24,6 @@ use directories::ProjectDirs;
 #[allow(unused_imports)]
 use gdk::prelude::*;
 use gio::prelude::*;
-use glib::ToVariant;
 use gtk::gdk;
 use std::cell::RefCell;
 use std::env;

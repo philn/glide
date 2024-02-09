@@ -96,7 +96,7 @@ fn fill_capabilities(media_type: &MediaType) -> Vec<Capability> {
         MediaType::Video => (gst::ElementFactoryType::MEDIA_VIDEO, VIDEO_CODECS.clone(), "video"),
     };
     let decoder_factories =
-        gst::ElementFactory::factories_with_type(gst::ElementFactoryType::DECODER | factory_type, gst::Rank::Marginal);
+        gst::ElementFactory::factories_with_type(gst::ElementFactoryType::DECODER | factory_type, gst::Rank::MARGINAL);
     let mut decoders: Vec<Capability> = [].to_vec();
     for codec in codecs {
         let name = format!("{prefix}/{0}", codec.caps);
