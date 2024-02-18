@@ -511,6 +511,7 @@ impl UIContext {
         let dialog = adw::AboutWindow::builder()
             .application_name("Glide")
             .developer_name("Philippe Normand")
+            .artists(["Jakub Steiner"])
             .website("http://github.com/philn/glide")
             .issue_url("https://github.com/philn/glide/issues/new")
             .version(version)
