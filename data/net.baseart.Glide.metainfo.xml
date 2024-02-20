@@ -43,7 +43,7 @@
     <control>touch</control>
   </supports>
   <requires>
-    <display_length compare="ge">medium</display_length>
+    <display_length compare="ge">768</display_length>
   </requires>
   <releases>
     <release version="0.6.1" date="2023-12-03">
