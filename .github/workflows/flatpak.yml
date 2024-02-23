@@ -53,7 +53,7 @@ jobs:
         uses: andyholmes/flatter@main
         with:
           files: |
-            build-aux/net.baseart.Glide.json
+            build-aux/net.baseart.Glide.Devel.json
           arch: ${{ matrix.arch }}
           flatpak-builder-args: |
             --install-deps-from=flathub
