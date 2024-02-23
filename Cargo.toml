@@ -7,7 +7,7 @@ license = "MIT"
 name = "glide"
 readme = "README.md"
 repository = "https://github.com/philn/glide"
-version = "0.6.1"
+version = "0.6.2"
 
 [dependencies]
 directories = "4.0"
