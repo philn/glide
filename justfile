@@ -10,8 +10,7 @@ metainfo-check:
 [confirm("Have you added the new release notes in data/net.baseart.Glide.metainfo.xml?")]
 release version: metainfo-check
     meson rewrite kwargs set project / version {{version}}
-    sed -i -e 's/^version = .*/version = "{{version}}"/' Cargo.toml
-    cargo generate-lockfile
+    cargo set-version {{version}}
     git commit -am "Bump to {{version}}"
     git tag -s {{version}}
     meson setup _build
