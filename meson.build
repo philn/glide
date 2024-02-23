@@ -35,32 +35,15 @@ meson.add_dist_script(
 
 meson.add_install_script('scripts/meson_post_install.py')
 
-cargo_options = [ '--manifest-path', meson.project_source_root() / 'Cargo.toml' ]
-cargo_options += [ '--target-dir', meson.project_build_root() ]
-cargo_options += [ '--release' ]
-cargo_options += [ '--features', 'wayland,x11egl,x11glx']
-rust_target = 'release'
-
-cargo_env = [ 'CARGO_HOME=' + meson.project_build_root() / 'cargo-home' ]
-
-prefix = get_option('prefix')
-bindir = prefix / get_option('bindir')
-cargo = find_program('cargo', required: true)
-
 cargo_build = custom_target(
   'cargo-build',
   build_by_default: true,
-  build_always_stale: true,
-  output: meson.project_name(),
+  output: [meson.project_name()],
   console: true,
   install: true,
-  install_dir: bindir,
+  install_dir: get_option('bindir'),
   command: [
-    'env',
-    cargo_env,
-    cargo, 'build',
-    cargo_options,
-    '&&',
-    'cp', rust_target / meson.project_name(), '@OUTPUT@',
+    find_program(meson.project_source_root() / 'build-aux' / 'cargo-build.py'),
+    meson.project_source_root(), meson.project_build_root(), meson.project_name(), '@OUTDIR@'
   ]
 )
