@@ -15,10 +15,11 @@ release version: metainfo-check
     git tag -s {{version}}
     meson setup _build
     meson dist -C _build
+    mv _build/meson-dist/* /tmp
+    @echo "Now pending, upload /tmp/glide-{{version}}.tar.xz to GitHub"
 
 publish:
     git push --tags
     git push
     cargo package
     cargo publish
-    @echo "Now pending, upload tarball from _build/meson-dist/"
