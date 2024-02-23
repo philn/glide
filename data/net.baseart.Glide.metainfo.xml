@@ -48,6 +48,15 @@
     <display_length compare="ge">768</display_length>
   </requires>
   <releases>
+    <release version="0.6.2" date="2024-02-23">
+      <description>
+        <p>Maintenance release, the highlights are:</p>
+        <ul>
+          <li>Fixed progress bar sometimes not working (by Tyler Baker).</li>
+          <li>Improved error handling. When Glide emits an error, the user can now keep a copy of the error report, which can be useful for error diagnosis by the maintainers.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.6.1" date="2023-12-03">
       <description>
         <p>Maintenance release, also adding a couple new features:</p>
