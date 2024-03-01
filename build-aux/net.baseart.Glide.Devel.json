@@ -18,9 +18,7 @@
     "--share=ipc",
     "--socket=fallback-x11",
     "--socket=pulseaudio",
-    "--socket=wayland",
-    "--env=GST_PLUGIN_FEATURE_RANK=vaav1dec:MAX,vah264dec:MAX,vah265dec:MAX,vavp9dec:MAX",
-    "--env=GST_PLAY_USE_PLAYBIN3=1"
+    "--socket=wayland"
   ],
   "build-options": {
     "append-path": "/usr/lib/sdk/rust-stable/bin",
@@ -77,18 +75,30 @@
       ]
     },
     {
-      "name": "gst-libav",
+      "name": "gstreamer",
       "builddir": true,
       "buildsystem": "meson",
       "sources": [
         {
-          "type": "archive",
-          "url": "https://gstreamer.freedesktop.org/src/gst-libav/gst-libav-1.22.5.tar.xz",
-          "sha256": "8583f0c1f4fcb01eed11fa1e3c21126543a8bd739ed4fc1db31f756a5ab01d9a"
+          "type": "git",
+          "url": "https://gitlab.freedesktop.org/gstreamer/gstreamer",
+          "branch": "main",
+          "commit": "d0713e029cbc84a4e39912816dd9d90095a78f9b",
+          "disable-submodules": true
         }
       ],
       "config-opts": [
-        "-Ddoc=disabled"
+          "-Ddoc=disabled",
+          "-Dtests=disabled",
+          "-Ddevtools=disabled",
+          "-Dges=disabled",
+          "-Drtsp_server=disabled",
+          "-Dgst-examples=disabled",
+          "-Dpython=disabled",
+          "-Dwebrtc=disabled",
+          "-Dgpl=enabled",
+          "-Dgst-plugins-ugly:gpl=enabled",
+          "-Dgst-plugins-bad:gpl=enabled"
       ]
     },
     {
