@@ -24,6 +24,10 @@
   </developer>
   <url type="homepage">https://github.com/philn/glide</url>
   <url type="bugtracker">https://github.com/philn/glide/issues</url>
+  <branding>
+    <color type="primary" scheme_preference="light">#dee4f3</color>
+    <color type="primary" scheme_preference="dark">#431c3d</color>
+  </branding>
   <categories>
     <category>AudioVideo</category>
     <category>Video</category>
