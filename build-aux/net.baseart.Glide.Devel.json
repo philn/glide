@@ -82,7 +82,6 @@
         {
           "type": "git",
           "url": "https://gitlab.freedesktop.org/gstreamer/gstreamer",
-          "branch": "main",
           "tag": "23f654a9434bc68e7d37f617dc8b087777a28417",
           "disable-submodules": true
         }
