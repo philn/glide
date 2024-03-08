@@ -131,10 +131,10 @@ fn fill_capabilities(media_type: &MediaType) -> Vec<Capability> {
 
 impl DebugInfos {
     pub fn new() -> Self {
-        let playbin3_enabled = match std::env::var("GST_PLAY_USE_PLAYBIN3") {
-            Ok(val) => val == "1",
-            Err(_) => false,
-        };
+        let mut playbin3_enabled = gst::version() >= (1, 24, 0, 0);
+        if let Ok(val) = std::env::var("GST_PLAY_USE_PLAYBIN3") {
+            playbin3_enabled = val == "1";
+        }
 
         let features: Vec<String> = match std::env::var("VERGEN_CARGO_FEATURES") {
             Ok(val) => val.split(',').map(|v| v.to_string()).collect::<Vec<_>>(),
