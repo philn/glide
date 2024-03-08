@@ -136,9 +136,9 @@ impl DebugInfos {
             playbin3_enabled = val == "1";
         }
 
-        let features: Vec<String> = match std::env::var("VERGEN_CARGO_FEATURES") {
-            Ok(val) => val.split(',').map(|v| v.to_string()).collect::<Vec<_>>(),
-            Err(_) => [].to_vec(),
+        let features: Vec<String> = match option_env!("VERGEN_CARGO_FEATURES") {
+            Some(val) => val.split(',').map(|v| v.to_string()).collect::<Vec<_>>(),
+            None => [].to_vec(),
         };
 
         let dependencies: Vec<RuntimeDependency> = vec![
