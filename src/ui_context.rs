@@ -118,6 +118,17 @@ impl UIContext {
 
         video_renderer.set_content_fit(gtk::ContentFit::Fill);
 
+        let click_controller = gtk::GestureClick::new();
+        let weak_app = gtk_app.downgrade();
+        click_controller.connect_released(move |_event, npress, _x, _y| {
+            if npress >= 2 {
+                if let Some(app) = weak_app.upgrade() {
+                    app.activate_action("fullscreen", None);
+                }
+            }
+        });
+        toolbar_revealer.add_controller(click_controller);
+
         let window: adw::ApplicationWindow = builder.object("application-window").unwrap();
 
         let track_synchronization_window: adw::ApplicationWindow = builder.object("synchronization-window").unwrap();
