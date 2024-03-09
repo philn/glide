@@ -1,7 +1,7 @@
 {
   "app-id": "net.baseart.Glide.Devel",
   "runtime": "org.gnome.Platform",
-  "runtime-version": "45",
+  "runtime-version": "46beta",
   "sdk": "org.gnome.Sdk",
   "sdk-extensions": [
     "org.freedesktop.Sdk.Extension.rust-stable"
