@@ -56,6 +56,7 @@ jobs:
             build-aux/net.baseart.Glide.Devel.json
           arch: ${{ matrix.arch }}
           flatpak-builder-args: |
+            --install-deps-from=flathub
             --install-deps-from=flathub-beta
           gpg-sign: ${{ steps.gpg.outputs.fingerprint }}
           upload-bundles: true
