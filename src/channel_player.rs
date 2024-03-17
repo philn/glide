@@ -25,7 +25,7 @@ use gtk::glib::clone;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{Read, Write, Seek};
+use std::io::{Read, Seek, Write};
 use std::path;
 use std::string;
 use tar::Builder;
