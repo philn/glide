@@ -32,6 +32,7 @@ async-channel = "2.1.1"
 tar = "0.4"
 regex = "1"
 open = "5"
+graphviz-rust = "0.7.2"
 
 [build-dependencies]
 vergen = { version = "8.2", features = [ "build", "git", "gitcl", "cargo" ]}

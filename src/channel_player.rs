@@ -10,6 +10,11 @@ use self::sha2::{Digest, Sha256};
 use crate::debug_infos::DebugInfos;
 use crate::gst_play::prelude::PlayStreamInfoExt;
 use crate::gtk::prelude::PaintableExt;
+use graphviz_rust::{
+    cmd::{CommandArg, Format},
+    exec_dot, parse,
+    printer::{DotPrinter, PrinterContext},
+};
 use gst::prelude::*;
 use gst_play::PlayMessage;
 use gstreamer::format::Buffers;
@@ -20,8 +25,7 @@ use gtk::glib::clone;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::Read;
-use std::io::Write;
+use std::io::{Read, Write, Seek};
 use std::path;
 use std::string;
 use tar::Builder;
@@ -688,7 +692,7 @@ impl ChannelPlayer {
         }?;
 
         let dot_path = tar_directory_path.join("pipeline.dot");
-        let mut dot_file = File::create(dot_path)?;
+        let mut dot_file = File::options().create(true).read(true).write(true).open(dot_path)?;
         let uri_re = regex::Regex::new(r#"uri\=(\\"[^\\"]*\\")"#)?;
         let file_re = regex::Regex::new(r#"location\=(\\"[^\\"]*\\")"#)?;
         for line in dot_data.lines() {
@@ -697,6 +701,25 @@ impl ChannelPlayer {
             dot_file.write_all(modified_line2.as_bytes())?;
         }
         dot_file.sync_all()?;
+
+        // Convert pipeline dump dot graph to svg.
+        let mut dot_contents = String::new();
+        dot_file.seek(std::io::SeekFrom::Start(0))?;
+        dot_file.read_to_string(&mut dot_contents)?;
+        match parse(&dot_contents) {
+            Ok(graph) => {
+                let dot_string = graph.print(&mut PrinterContext::default());
+                if let Ok(svg_graph) = exec_dot(dot_string, vec![CommandArg::Format(Format::Svg)]) {
+                    let svg_path = tar_directory_path.join("pipeline.svg");
+                    let mut svg_file = File::create(svg_path)?;
+                    svg_file.write_all(&svg_graph)?;
+                    svg_file.sync_all()?;
+                }
+            },
+            Err(error) => {
+                eprintln!("{}", error);
+            }
+        };
 
         // Dump media info to a file, making sure we don't leak private informations (URIs).
         let discoverer = Discoverer::new(gst::ClockTime::from_seconds(2))?;
