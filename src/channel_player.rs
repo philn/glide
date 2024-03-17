@@ -715,7 +715,7 @@ impl ChannelPlayer {
                     svg_file.write_all(&svg_graph)?;
                     svg_file.sync_all()?;
                 }
-            },
+            }
             Err(error) => {
                 eprintln!("{}", error);
             }
