@@ -12,7 +12,7 @@ release version: metainfo-check
     meson rewrite kwargs set project / version {{version}}
     cargo set-version {{version}}
     git commit -am "Bump to {{version}}"
-    git tag -s {{version}}
+    git tag -s {{version}} -m "{{version}}"
     rm -fr _build
     meson setup _build
     meson dist -C _build
