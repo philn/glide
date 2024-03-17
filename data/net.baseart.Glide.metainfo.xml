@@ -52,6 +52,15 @@
     <display_length compare="ge">768</display_length>
   </requires>
   <releases>
+    <release version="0.6.3" date="2024-03-17">
+      <description>
+        <p>Maintenance release, the highlights are:</p>
+        <ul>
+          <li>Double-clicking on the video now toggles fullscreen state</li>
+          <li>Minor fixes in error report handling. The error report also now includes an SVG pipeline graph dump.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.6.2" date="2024-02-23">
       <description>
         <p>Maintenance release, the highlights are:</p>
