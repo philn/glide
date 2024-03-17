@@ -249,8 +249,9 @@ impl ChannelPlayer {
         let mut config = player.config();
         config.set_position_update_interval(250);
 
-        // TODO: Enable pipeline_dump_in_error_details, guarded by gst 1.24 feature check.
-        // https://gitlab.freedesktop.org/gstreamer/gstreamer/-/merge_requests/5828
+        if gst::version() >= (1, 24, 0, 0) {
+            config.set("pipeline-dump-in-error-details", true);
+        }
 
         player.set_config(config).unwrap();
 
