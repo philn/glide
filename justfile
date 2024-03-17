@@ -13,9 +13,11 @@ release version: metainfo-check
     cargo set-version {{version}}
     git commit -am "Bump to {{version}}"
     git tag -s {{version}}
+    rm -fr _build
     meson setup _build
     meson dist -C _build
     mv _build/meson-dist/* /tmp
+    rm -fr _build
     @echo "Now pending, upload /tmp/glide-{{version}}.tar.xz to GitHub"
 
 publish:
