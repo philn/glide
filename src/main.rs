@@ -81,7 +81,7 @@ struct VideoPlayer {
 }
 
 thread_local!(
-    static GLOBAL: RefCell<Option<VideoPlayer>> = RefCell::new(None)
+    static GLOBAL: RefCell<Option<VideoPlayer>> = const { RefCell::new(None) }
 );
 
 macro_rules! with_video_player {

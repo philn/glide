@@ -692,7 +692,12 @@ impl ChannelPlayer {
         }?;
 
         let dot_path = tar_directory_path.join("pipeline.dot");
-        let mut dot_file = File::options().create(true).read(true).write(true).open(dot_path)?;
+        let mut dot_file = File::options()
+            .create(true)
+            .truncate(true)
+            .read(true)
+            .write(true)
+            .open(dot_path)?;
         let uri_re = regex::Regex::new(r#"uri\=(\\"[^\\"]*\\")"#)?;
         let file_re = regex::Regex::new(r#"location\=(\\"[^\\"]*\\")"#)?;
         for line in dot_data.lines() {
