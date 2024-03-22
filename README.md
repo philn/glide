@@ -14,8 +14,8 @@ very complicated GUI. If you feel adventurous and willing to help, feel
 free to pick up a task from the TODO list and open a PR. Users are also
 encouraged to file issues on the Github bug tracker of course.
 
-![alt text](https://github.com/philn/glide/raw/master/screenshot.png "Glide screenshot")
-![alt text](https://github.com/philn/glide/raw/master/audio-screenshot.png "Glide audio playback screenshot")
+![alt text](https://github.com/philn/glide/raw/main/screenshot.png "Glide screenshot")
+![alt text](https://github.com/philn/glide/raw/main/audio-screenshot.png "Glide audio playback screenshot")
 
 ## Installation
 
