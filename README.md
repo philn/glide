@@ -25,7 +25,7 @@ Install it with Cargo:
 
         curl https://sh.rustup.rs -sSf | sh
 
-2.  Install GStreamer and GTK+. On Debian/Linux:
+2.  Install GStreamer and GTK. On Debian/Linux:
 
         sudo apt install gstreamer1.0-plugins-{base,good,bad} libgstreamer-plugins-{bad,base}1.0-dev
         sudo apt install libgtk-4-dev gstreamer1.0-gl libadwaita-1-dev
@@ -48,13 +48,18 @@ Install it with Cargo:
 #### Flatpak
 
 This is the most recommended way to use Glide as it will allow the maintainers to more
-easily reproduce reported bugs.
+easily reproduce reported bugs. There are two different flavours:
 
-Glide is available on [Flathub](https://flathub.org/apps/details/net.baseart.Glide).
+The Glide stable version is available on [Flathub](https://flathub.org/apps/details/net.baseart.Glide).
 After setting up the flathub Flatpak remote as documented in Flathub, install with the following command, or
 through GNOME Software.
 
     flatpak install net.baseart.Glide
+
+Users interested in the latest development snapshot of Glide can install the Devel version:
+
+    flatpak install https://philn.github.io/glide/glide.flatpakref
+    flatpak run net.baseart.Glide.Devel
 
 #### Fedora
 
@@ -94,9 +99,3 @@ also some keyboard shortcuts for these actions:
 - decrease volume: meta-up or ctrl-down
 - mute the audio track: meta-m or ctrl-m
 - open a new file: meta-o or ctrl-o
-
-## Contacting the maintainer
-
-Philippe usually hangs out on Freenode IRC, in \#gstreamer using the philn
-nickname. Feel free to also reach out by mail (check git logs to find the
-address).
