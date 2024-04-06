@@ -28,6 +28,24 @@
   },
   "modules": [
     {
+      "name": "libass",
+      "config-opts": [ "--enable-shared", "--disable-static" ],
+      "sources": [
+        {
+            "type": "git",
+            "url": "https://github.com/libass/libass.git",
+            "tag": "0.17.1",
+            "commit": "e8ad72accd3a84268275a9385beb701c9284e5b3"
+        },
+        {
+            "type":"script",
+            "commands":[
+                "autoreconf -fiv"
+            ],
+            "dest-filename":"autogen.sh"
+        }
+    },
+    {
       "name": "ffmpeg",
       "builddir": true,
       "sources": [
