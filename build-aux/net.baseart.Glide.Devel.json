@@ -44,6 +44,7 @@
             ],
             "dest-filename":"autogen.sh"
         }
+      ]
     },
     {
       "name": "ffmpeg",
