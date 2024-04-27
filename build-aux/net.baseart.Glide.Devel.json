@@ -123,7 +123,7 @@
       "buildsystem": "simple",
       "build-commands": [
         "cargo --offline fetch --manifest-path Cargo.toml",
-        "cargo --offline build --release --features wayland,x11egl,x11glx,devel",
+        "cargo --offline build --release --features wayland,x11egl,x11glx,dmabuf,devel",
         "install -Dm755 ./target/release/glide -t /app/bin/",
         "install -Dm644 ./data/net.baseart.Glide.metainfo.xml -t /app/share/metainfo/",
         "mv /app/share/metainfo/net.baseart.Glide{,.Devel}.metainfo.xml",
