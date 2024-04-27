@@ -905,7 +905,7 @@ fn main() -> anyhow::Result<()> {
 
     gst::init().expect("Failed to initialize GStreamer.");
     gtk::init().expect("Failed to initialize GTK.");
-    gstgtk4::plugin_register_static().expect("Failed to register gstgtk4 plugin.");
+    //gstgtk4::plugin_register_static().expect("Failed to register gstgtk4 plugin.");
 
     glib::set_application_name("Glide");
 
