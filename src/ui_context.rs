@@ -116,8 +116,6 @@ impl UIContext {
 
         let toolbar_revealer: gtk::Revealer = builder.object("toolbar-revealer").unwrap();
 
-        video_renderer.set_content_fit(gtk::ContentFit::Fill);
-
         let click_controller = gtk::GestureClick::new();
         let weak_app = gtk_app.downgrade();
         click_controller.connect_released(move |_event, npress, _x, _y| {
