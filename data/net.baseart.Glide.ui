@@ -107,7 +107,7 @@
           </object>
         </child>
         <child>
-          <object class="GtkOverlay">
+          <object class="GtkOverlay" id="overlay">
             <child>
               <object class="GtkGraphicsOffload" id="video-renderer-offload">
                 <property name="vexpand">True</property>

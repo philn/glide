@@ -110,6 +110,16 @@ impl UIContext {
             .set_action_name(Some("app.fullscreen"));
 
         let video_renderer: gtk::Picture = builder.object("video-renderer").unwrap();
+
+        if let Some(display) = gdk::Display::default() {
+            let overlay: gtk::Overlay = builder.object("overlay").unwrap();
+            overlay.add_css_class("video-renderer-overlay");
+
+            let css_provider = gtk::CssProvider::new();
+            css_provider.load_from_string(include_str!("../data/custom-style.css"));
+            gtk::style_context_add_provider_for_display(&display, &css_provider, 256);
+        }
+
         let progress_bar: gtk::Scale = builder.object("progress-bar").unwrap();
         #[allow(deprecated)]
         let volume_button: gtk::VolumeButton = builder.object("volume-button").unwrap();
