@@ -1,5 +1,5 @@
 use std::error::Error;
-use vergen::EmitBuilder;
+use vergen_gitcl::{BuildBuilder, CargoBuilder, Emitter, GitclBuilder};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let target = std::env::var("TARGET")?;
@@ -9,5 +9,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("cargo:rustc-link-lib=framework=IOKit");
     }
 
-    Ok(EmitBuilder::builder().all_build().all_git().cargo_features().emit()?)
+    Ok(Emitter::default()
+        .add_instructions(&BuildBuilder::all_build()?)?
+        .add_instructions(&CargoBuilder::all_cargo()?)?
+        .add_instructions(&GitclBuilder::all_git()?)?
+        .emit()?)
 }

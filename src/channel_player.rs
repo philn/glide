@@ -269,8 +269,12 @@ impl ChannelPlayer {
             gst::log::set_threshold_from_string(&threshold, true);
         }
 
-        let bus_watch = player.message_bus().add_watch_local(
-            clone!(@weak player => @default-return glib::ControlFlow::Break, move |_, message| {
+        let bus_watch = player.message_bus().add_watch_local(clone!(
+            #[weak]
+            player,
+            #[upgrade_or]
+            glib::ControlFlow::Break,
+            move |_, message| {
                 let play_message = if let Ok(msg) = PlayMessage::parse(message) {
                     msg
                 } else {
@@ -299,7 +303,6 @@ impl ChannelPlayer {
                         with_mut_player!(player player_data {
                             player_data.media_info_updated(&info);
                         });
-
                     }
                     PlayMessage::DurationChanged { duration } => {
                         with_player!(player {
@@ -310,13 +313,11 @@ impl ChannelPlayer {
                         with_player!(player {
                             player.notify(PlayerEvent::PositionUpdated);
                         });
-
                     }
                     PlayMessage::VideoDimensionsChanged { width, height } => {
                         with_player!(player {
                             player.notify(PlayerEvent::VideoDimensionsChanged(width, height));
                         });
-
                     }
                     PlayMessage::StateChanged { state } => {
                         let state = match state {
@@ -335,7 +336,6 @@ impl ChannelPlayer {
                         with_player!(player player_data {
                             player_data.notify(PlayerEvent::VolumeChanged(volume));
                         });
-
                     }
                     PlayMessage::Error { error, details } => {
                         with_player!(player {
@@ -346,8 +346,8 @@ impl ChannelPlayer {
                 }
 
                 glib::ControlFlow::Continue
-            }),
-        )?;
+            }
+        ))?;
 
         player.connect_audio_video_offset_notify(|player| {
             with_player!(player player_data {
