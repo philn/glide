@@ -15,7 +15,7 @@ def main():
     args = parser.parse_args()
 
     cmd = ['cargo', '--offline', 'build', '--manifest-path', os.path.join(args.srcdir, 'Cargo.toml'),
-           '--target-dir', args.builddir, '--release', '--features', 'wayland,x11egl,x11glx']
+           '--target-dir', args.builddir, '--release', '--features', 'dmabuf,wayland,x11egl,x11glx']
     subprocess.run(cmd)
     shutil.copy2(os.path.join(args.builddir, 'release', args.project_name), os.path.join(args.outdir, args.project_name))
     return 0
