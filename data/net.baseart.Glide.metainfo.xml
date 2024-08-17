@@ -52,6 +52,11 @@
     <display_length compare="ge">768</display_length>
   </requires>
   <releases>
+    <release version="0.6.4" date="2024-08-17">
+      <description>
+        <p>Maintenance release, also adding DMABuf offload support</p>
+      </description>
+    </release>
     <release version="0.6.3" date="2024-03-17">
       <description>
         <p>Maintenance release, the highlights are:</p>
