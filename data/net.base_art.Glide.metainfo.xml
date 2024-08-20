@@ -58,6 +58,15 @@
     <display_length compare="ge">768</display_length>
   </requires>
   <releases>
+    <release version="0.6.5" date="2024-08-20">
+      <description>
+        <p>Maintenance release, the highlights are:</p>
+        <ul>
+          <li>Enabled DMABuf offload support in Meson builds</li>
+          <li>Renamed the Flatpak app to net.base_art.Glide</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.6.4" date="2024-08-17">
       <description>
         <p>Maintenance release, also adding DMABuf offload support</p>
