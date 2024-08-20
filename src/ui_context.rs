@@ -34,9 +34,9 @@ use crate::iokit_sleep_disabler;
 
 pub fn create_app() -> adw::Application {
     let application_id = if cfg!(feature = "devel") {
-        "net.baseart.Glide.Devel"
+        "net.base_art.Glide.Devel"
     } else {
-        "net.baseart.Glide"
+        "net.base_art.Glide"
     };
 
     let gtk_app = adw::Application::builder()
@@ -79,7 +79,7 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 impl UIContext {
     pub fn new(gtk_app: adw::Application) -> Self {
-        let builder = gtk::Builder::from_string(include_str!("../data/net.baseart.Glide.ui"));
+        let builder = gtk::Builder::from_string(include_str!("../data/net.base_art.Glide.ui"));
 
         let header_bar: gtk::HeaderBar = builder.object("header-bar").unwrap();
 

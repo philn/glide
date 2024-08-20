@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Copyright 2018, 2019, 2020, 2021 Philippe Normand <phil_AT_base-art.net> -->
 <component type="desktop-application">
-  <id>net.baseart.Glide</id>
-  <launchable type="desktop-id">net.baseart.Glide.desktop</launchable>
+  <id>net.base_art.Glide</id>
+  <provides>
+    <id>net.baseart.Glide</id>
+  </provides>
+  <replaces>
+      <id>net.baseart.Glide</id>
+  </replaces>
+  <launchable type="desktop-id">net.base_art.Glide.desktop</launchable>
   <metadata_license>CC-BY-3.0</metadata_license>
   <project_license>MIT</project_license>
   <name>Glide</name>
@@ -19,7 +25,7 @@
     </p>
   </description>
   <update_contact>phil_AT_base-art.net</update_contact>
-  <developer id="net.baseart">
+  <developer id="net.base_art">
       <name>Philippe Normand</name>
   </developer>
   <url type="homepage">https://github.com/philn/glide</url>

@@ -50,16 +50,16 @@ Install it with Cargo:
 This is the most recommended way to use Glide as it will allow the maintainers to more
 easily reproduce reported bugs. There are two different flavours:
 
-The Glide stable version is available on [Flathub](https://flathub.org/apps/details/net.baseart.Glide).
+The Glide stable version is available on [Flathub](https://flathub.org/apps/details/net.base_art.Glide).
 After setting up the flathub Flatpak remote as documented in Flathub, install with the following command, or
 through GNOME Software.
 
-    flatpak install net.baseart.Glide
+    flatpak install net.base_art.Glide
 
 Users interested in the latest development snapshot of Glide can install the Devel version:
 
     flatpak install https://philn.github.io/glide/glide.flatpakref
-    flatpak run net.baseart.Glide.Devel
+    flatpak run net.base_art.Glide.Devel
 
 #### Fedora
 
@@ -78,7 +78,7 @@ Glide can also be used from the command line interface. In a terminal:
 
 ```bash
 $ # starting the flatpak version
-$ flatpak run net.baseart.Glide /path/to/localfile.mp4 http://some.com/remote/file.mp4
+$ flatpak run net.base_art.Glide /path/to/localfile.mp4 http://some.com/remote/file.mp4
 $ # starting the version installed with cargo or traditional distro packages
 $ glide /path/to/localfile.mp4 http://some.com/remote/file.mp4
 ```

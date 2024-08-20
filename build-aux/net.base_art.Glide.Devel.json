@@ -1,5 +1,5 @@
 {
-  "app-id": "net.baseart.Glide.Devel",
+  "app-id": "net.base_art.Glide.Devel",
   "runtime": "org.gnome.Platform",
   "runtime-version": "46",
   "sdk": "org.gnome.Sdk",
@@ -125,14 +125,14 @@
         "cargo --offline fetch --manifest-path Cargo.toml",
         "cargo --offline build --release --features wayland,x11egl,x11glx,dmabuf,devel",
         "install -Dm755 ./target/release/glide -t /app/bin/",
-        "install -Dm644 ./data/net.baseart.Glide.metainfo.xml -t /app/share/metainfo/",
-        "mv /app/share/metainfo/net.baseart.Glide{,.Devel}.metainfo.xml",
-        "sed -i 's/net.baseart.Glide/net.baseart.Glide.Devel/g' /app/share/metainfo/net.baseart.Glide.Devel.metainfo.xml",
-        "install -Dm644 ./data/net.baseart.Glide.desktop -t /app/share/applications/",
-        "mv /app/share/applications/net.baseart.Glide{,.Devel}.desktop",
-        "sed -i 's/net.baseart.Glide/net.baseart.Glide.Devel/g' /app/share/applications/net.baseart.Glide.Devel.desktop",
-        "sed -i 's/=Glide/=Glide Tech Preview/g' /app/share/applications/net.baseart.Glide.Devel.desktop",
-        "install -Dm644 ./data/net.baseart.Glide.Devel.svg -t /app/share/icons/hicolor/scalable/apps/"
+        "install -Dm644 ./data/net.base_art.Glide.metainfo.xml -t /app/share/metainfo/",
+        "mv /app/share/metainfo/net.base_art.Glide{,.Devel}.metainfo.xml",
+        "sed -i 's/net.base_art.Glide/net.base_art.Glide.Devel/g' /app/share/metainfo/net.base_art.Glide.Devel.metainfo.xml",
+        "install -Dm644 ./data/net.base_art.Glide.desktop -t /app/share/applications/",
+        "mv /app/share/applications/net.base_art.Glide{,.Devel}.desktop",
+        "sed -i 's/net.base_art.Glide/net.base_art.Glide.Devel/g' /app/share/applications/net.base_art.Glide.Devel.desktop",
+        "sed -i 's/=Glide/=Glide Tech Preview/g' /app/share/applications/net.base_art.Glide.Devel.desktop",
+        "install -Dm644 ./data/net.base_art.Glide.Devel.svg -t /app/share/icons/hicolor/scalable/apps/"
       ],
       "sources": [
         {
