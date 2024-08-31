@@ -27,6 +27,7 @@ lazy_static! {
     pub static ref INITIAL_POSITION: Mutex<Option<(i32, i32)>> = Mutex::new(None);
     pub static ref INITIAL_SIZE: Mutex<Option<(i32, i32)>> = Mutex::new(None);
     pub static ref AUTOHIDE_SOURCE: Mutex<Option<glib::SourceId>> = Mutex::new(None);
+    pub static ref AUTO_HIDE_TIMEOUT_SECONDS: u32 = 2;
 }
 
 #[cfg(target_os = "macos")]
@@ -290,7 +291,7 @@ impl UIContext {
 
             let window_weak2 = SendWeakRef::from(window_weak.clone());
             let toolbar_weak2 = SendWeakRef::from(toolbar_weak.clone());
-            *AUTOHIDE_SOURCE.lock().unwrap() = Some(glib::timeout_add_seconds(5, move || {
+            *AUTOHIDE_SOURCE.lock().unwrap() = Some(glib::timeout_add_seconds(*AUTO_HIDE_TIMEOUT_SECONDS, move || {
                 if let Some(toolbar) = toolbar_weak2.upgrade() {
                     toolbar.set_reveal_child(false);
                 }
