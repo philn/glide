@@ -28,6 +28,7 @@ lazy_static! {
     pub static ref INITIAL_SIZE: Mutex<Option<(i32, i32)>> = Mutex::new(None);
     pub static ref AUTOHIDE_SOURCE: Mutex<Option<glib::SourceId>> = Mutex::new(None);
     pub static ref AUTO_HIDE_TIMEOUT_SECONDS: u32 = 2;
+    pub static ref INITIAL_IDLE_DIM_VALUE: Mutex<Option<bool>> = Mutex::new(None);
 }
 
 #[cfg(target_os = "macos")]
@@ -74,6 +75,7 @@ pub struct UIContext {
     audio_offset_entry_signal_handler_id: Option<glib::SignalHandlerId>,
     subtitle_offset_entry_signal_handler_id: Option<glib::SignalHandlerId>,
     app: adw::Application,
+    gsd_settings: gio::Settings,
 }
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -244,6 +246,10 @@ impl UIContext {
             audio_offset_entry_signal_handler_id: None,
             subtitle_offset_entry_signal_handler_id: None,
             app: gtk_app,
+            gsd_settings: gio::Settings::with_path(
+                "org.gnome.settings-daemon.plugins.power",
+                "/org/gnome/settings-daemon/plugins/power/",
+            ),
         }
     }
 
@@ -332,6 +338,9 @@ impl UIContext {
         window.fullscreen();
         let cursor = gtk::gdk::Cursor::from_name("none", None);
         window.set_cursor(cursor.as_ref());
+        let idle_dim = self.gsd_settings.boolean("idle-dim");
+        *INITIAL_IDLE_DIM_VALUE.lock().unwrap() = Some(idle_dim);
+        let _ = self.gsd_settings.set_boolean("idle-dim", false);
     }
 
     pub fn leave_fullscreen(&self) {
@@ -347,6 +356,9 @@ impl UIContext {
         self.header_bar.set_visible(true);
         let cursor = gtk::gdk::Cursor::from_name("default", None);
         window.set_cursor(cursor.as_ref());
+        if let Some(idle_dim) = *INITIAL_IDLE_DIM_VALUE.lock().unwrap() {
+            let _ = self.gsd_settings.set_boolean("idle-dim", idle_dim);
+        }
     }
 
     #[allow(deprecated)]
