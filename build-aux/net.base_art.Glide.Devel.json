@@ -16,6 +16,7 @@
     "--filesystem=xdg-videos:ro",
     "--filesystem=xdg-music:ro",
     "--share=ipc",
+    "--share=network",
     "--socket=fallback-x11",
     "--socket=pulseaudio",
     "--socket=wayland"
