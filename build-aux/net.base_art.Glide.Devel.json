@@ -101,7 +101,7 @@
         {
           "type": "git",
           "url": "https://gitlab.freedesktop.org/gstreamer/gstreamer",
-          "tag": "1.24.8",
+          "tag": "1.24.10",
           "disable-submodules": true
         }
       ],
