@@ -58,6 +58,7 @@
       <section>
         <item>
           <attribute name="label" translatable="yes">Add subtitle file…</attribute>
+          <attribute name="action">app.open-subtitle-file</attribute>
         </item>
       </section>
       <submenu id="subtitle-track-menu">
