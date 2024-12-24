@@ -48,7 +48,6 @@ jobs:
         brew update
         brew upgrade || true
         brew install pkg-config pango gtk+4 libadwaita gstreamer || true
-        brew link --overwrite python@3.11
     - name: Build
       run: cargo build --verbose
     - name: Run tests
