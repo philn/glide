@@ -16,7 +16,7 @@ jobs:
 
     strategy:
       matrix:
-        arch: [x86_64, aarch64]
+        arch: [x86_64]
       fail-fast: false
       # Only one job at a time can use the shared repository cache
       max-parallel: 1
