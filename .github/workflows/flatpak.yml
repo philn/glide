@@ -11,7 +11,7 @@ jobs:
     name: Flatter
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/andyholmes/flatter/gnome-rust:47
+      image: ghcr.io/andyholmes/flatter/gnome:47
       options: --privileged
 
     strategy:
