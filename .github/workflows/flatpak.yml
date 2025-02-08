@@ -33,8 +33,9 @@ jobs:
       - name: Setup QEMU
         if: ${{ matrix.arch == 'aarch64' }}
         id: qemu
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v3.3.0
         with:
+          image: tonistiigi/binfmt:qemu-v8.1.5
           platforms: arm64
 
       - name: Setup GPG
