@@ -24,7 +24,7 @@ jobs:
     steps:
       # Checkout a repository with Flatpak manifests
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Generate Cargo sources
         run: |
