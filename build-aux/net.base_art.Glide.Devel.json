@@ -115,7 +115,8 @@
           "-Dwebrtc=disabled",
           "-Dgpl=enabled",
           "-Dgst-plugins-ugly:gpl=enabled",
-          "-Dgst-plugins-bad:gpl=enabled"
+          "-Dgst-plugins-bad:gpl=enabled",
+          "-Dgst-plugins-bad:openh264=disabled"
       ]
     },
     {
