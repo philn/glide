@@ -100,12 +100,8 @@
         {
           "type": "git",
           "url": "https://gitlab.freedesktop.org/gstreamer/gstreamer",
-          "tag": "1.24.13",
+          "tag": "1.26.5",
           "disable-submodules": true
-        },
-        {
-          "type": "patch",
-          "path": "0001-Revert-video-overlay-composition-Declare-the-video-s.patch"
         }
       ],
       "config-opts": [
