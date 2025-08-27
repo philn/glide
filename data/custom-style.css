@@ -1,3 +1,7 @@
 .video-renderer-overlay {
     background-color: black;
 }
+
+.toolbar-box {
+    border-radius: 8px;
+}
