@@ -1,13 +1,17 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 0.96.1 -->
 <interface>
+  <!-- interface-name net.base_art.Glide.ui -->
+  <requires lib="gio" version="2.0"/>
   <requires lib="gtk" version="4.0"/>
+  <requires lib="libadwaita" version="1.7"/>
   <menu id="main-menu">
     <submenu id="file-menu">
       <attribute name="label" translatable="yes">File</attribute>
       <section>
         <item>
-          <attribute name="label" translatable="yes">Open…</attribute>
           <attribute name="action">app.open-media</attribute>
+          <attribute name="label" translatable="yes">Open…</attribute>
         </item>
       </section>
     </submenu>
@@ -15,16 +19,16 @@
       <attribute name="label" translatable="yes">Audio</attribute>
       <section>
         <item>
-          <attribute name="label" translatable="yes">Increase volume</attribute>
           <attribute name="action">app.audio-volume-increase</attribute>
+          <attribute name="label" translatable="yes">Increase volume</attribute>
         </item>
         <item>
-          <attribute name="label" translatable="yes">Decrease volume</attribute>
           <attribute name="action">app.audio-volume-decrease</attribute>
+          <attribute name="label" translatable="yes">Decrease volume</attribute>
         </item>
         <item>
-          <attribute name="label" translatable="yes">Mute</attribute>
           <attribute name="action">app.audio-mute</attribute>
+          <attribute name="label" translatable="yes">Mute</attribute>
         </item>
       </section>
       <submenu id="audio-track-menu">
@@ -44,12 +48,12 @@
       <attribute name="label" translatable="yes">Playback</attribute>
       <section>
         <item>
-          <attribute name="label" translatable="yes">Increase speed</attribute>
           <attribute name="action">app.speed-increase</attribute>
+          <attribute name="label" translatable="yes">Increase speed</attribute>
         </item>
         <item>
-          <attribute name="label" translatable="yes">Decrease speed</attribute>
           <attribute name="action">app.speed-decrease</attribute>
+          <attribute name="label" translatable="yes">Decrease speed</attribute>
         </item>
       </section>
     </submenu>
@@ -57,8 +61,8 @@
       <attribute name="label" translatable="yes">Subtitles</attribute>
       <section>
         <item>
-          <attribute name="label" translatable="yes">Add subtitle file…</attribute>
           <attribute name="action">app.open-subtitle-file</attribute>
+          <attribute name="label" translatable="yes">Add subtitle file…</attribute>
         </item>
       </section>
       <submenu id="subtitle-track-menu">
@@ -68,26 +72,22 @@
     <submenu>
       <attribute name="label" translatable="yes">Window</attribute>
       <item>
-        <attribute name="label" translatable="yes">Track synchronization</attribute>
         <attribute name="action">app.open-sync-window</attribute>
+        <attribute name="label" translatable="yes">Track synchronization</attribute>
       </item>
       <item>
-        <attribute name="label" translatable="yes">Keyboard Shortcuts</attribute>
         <attribute name="action">app.show-shortcuts</attribute>
+        <attribute name="label" translatable="yes">Keyboard Shortcuts</attribute>
       </item>
       <item>
-        <attribute name="label" translatable="yes">About</attribute>
         <attribute name="action">app.about</attribute>
+        <attribute name="label" translatable="yes">About</attribute>
       </item>
     </submenu>
   </menu>
   <object class="AdwApplicationWindow" id="application-window">
-    <property name="width-request">640</property>
     <property name="height-request">480</property>
-    <child>
-      <placeholder/>
-    </child>
-
+    <property name="width-request">640</property>
     <child>
       <object class="GtkBox" id="main-box">
         <property name="orientation">vertical</property>
@@ -95,14 +95,14 @@
           <object class="GtkHeaderBar" id="header-bar">
             <child type="end">
               <object class="GtkMenuButton" id="gear_menu_button">
-                <property name="valign">3</property>
                 <property name="focus-on-click">0</property>
+                <property name="icon-name">open-menu-symbolic</property>
                 <property name="popover">
                   <object class="GtkPopoverMenu" id="gear_menu">
                     <property name="menu-model">main-menu</property>
                   </object>
                 </property>
-                <property name="icon-name">open-menu-symbolic</property>
+                <property name="valign">center</property>
               </object>
             </child>
           </object>
@@ -111,120 +111,132 @@
           <object class="GtkOverlay" id="overlay">
             <child>
               <object class="GtkGraphicsOffload" id="video-renderer-offload">
-                <property name="vexpand">True</property>
                 <property name="child">
                   <object class="GtkPicture" id="video-renderer">
                     <property name="vexpand">True</property>
                   </object>
                 </property>
+                <property name="vexpand">True</property>
               </object>
             </child>
             <child type="overlay">
               <object class="GtkRevealer" id="toolbar-revealer">
                 <child>
                   <object class="GtkBox" id="toolbar-box">
+                    <property name="css-classes">background
+toolbar-box</property>
                     <property name="valign">end</property>
-                    <property name="css-classes">background</property>
                     <child>
-                      <object class="GtkButton" id="seek-backward-button">
-                        <property name="halign">center</property>
-                        <property name="focusable">1</property>
-                        <property name="receives_default">1</property>
+                      <object class="GtkBox" id="control-container">
+                        <property name="accessible-role">group</property>
+                        <property name="css-classes">linked</property>
                         <child>
-                          <object class="GtkImage">
-                            <property name="icon_name">media-seek-backward-symbolic</property>
-                            <property name="icon_size">normal</property>
+                          <object class="GtkButton" id="seek-backward-button">
+                            <property name="focusable">1</property>
+                            <property name="halign">center</property>
+                            <property name="receives-default">1</property>
+                            <child>
+                              <object class="GtkImage">
+                                <property name="icon-name">media-seek-backward-symbolic</property>
+                                <property name="icon-size">normal</property>
+                              </object>
+                            </child>
                           </object>
                         </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="pause-button">
-                        <property name="halign">center</property>
-                        <property name="focusable">1</property>
-                        <property name="receives_default">1</property>
                         <child>
-                          <object class="GtkImage">
-                            <property name="icon_name">media-playback-pause-symbolic</property>
-                            <property name="icon_size">normal</property>
+                          <object class="GtkButton" id="pause-button">
+                            <property name="focusable">1</property>
+                            <property name="halign">center</property>
+                            <property name="receives-default">1</property>
+                            <child>
+                              <object class="GtkImage">
+                                <property name="icon-name">media-playback-pause-symbolic</property>
+                                <property name="icon-size">normal</property>
+                              </object>
+                            </child>
                           </object>
                         </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="seek-forward-button">
-                        <property name="halign">center</property>
-                        <property name="focusable">1</property>
-                        <property name="receives_default">1</property>
                         <child>
-                          <object class="GtkImage">
-                            <property name="icon_name">media-seek-forward-symbolic</property>
-                            <property name="icon_size">normal</property>
+                          <object class="GtkButton" id="seek-forward-button">
+                            <property name="focusable">1</property>
+                            <property name="halign">center</property>
+                            <property name="receives-default">1</property>
+                            <child>
+                              <object class="GtkImage">
+                                <property name="icon-name">media-seek-forward-symbolic</property>
+                                <property name="icon-size">normal</property>
+                              </object>
+                            </child>
                           </object>
                         </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="video-frame-step-button">
-                        <property name="halign">center</property>
-                        <property name="focusable">1</property>
-                        <property name="receives_default">1</property>
                         <child>
-                          <object class="GtkImage">
-                            <property name="icon_name">edit-redo-symbolic</property>
-                            <property name="icon_size">normal</property>
+                          <object class="GtkButton" id="video-frame-step-button">
+                            <property name="focusable">1</property>
+                            <property name="halign">center</property>
+                            <property name="receives-default">1</property>
+                            <child>
+                              <object class="GtkImage">
+                                <property name="icon-name">edit-redo-symbolic</property>
+                                <property name="icon-size">normal</property>
+                              </object>
+                            </child>
                           </object>
                         </child>
                       </object>
                     </child>
                     <child>
                       <object class="GtkScale" id="progress-bar">
-                        <property name="hexpand">1</property>
                         <property name="draw-value">1</property>
                         <property name="focusable">1</property>
-                        <property name="round_digits">1</property>
-                        <property name="value_pos">right</property>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="fullscreen-button">
-                        <property name="halign">center</property>
-                        <property name="focusable">1</property>
-                        <property name="receives_default">1</property>
-                        <child>
-                          <object class="GtkImage">
-                            <property name="icon_name">view-fullscreen-symbolic</property>
-                            <property name="icon_size">normal</property>
-                          </object>
-                        </child>
+                        <property name="hexpand">1</property>
+                        <property name="margin-end">8</property>
+                        <property name="margin-start">8</property>
+                        <property name="round-digits">1</property>
+                        <property name="value-pos">right</property>
                       </object>
                     </child>
                     <child>
                       <object class="GtkVolumeButton" id="volume-button">
-                        <property name="halign">center</property>
+                        <property name="accessible-role">button</property>
+                        <property name="focus-on-click">0</property>
                         <property name="focusable">1</property>
-                        <property name="focus_on_click">0</property>
-                        <property name="receives_default">1</property>
+                        <property name="halign">center</property>
                         <property name="icons">audio-volume-muted-symbolic
 audio-volume-high-symbolic
 audio-volume-low-symbolic
 audio-volume-medium-symbolic</property>
+                        <property name="margin-end">2</property>
+                        <property name="receives-default">1</property>
                         <child internal-child="plus_button">
                           <object class="GtkButton">
-                            <property name="visible">0</property>
                             <property name="focusable">1</property>
-                            <property name="receives_default">1</property>
                             <property name="halign">center</property>
+                            <property name="receives-default">1</property>
                             <property name="valign">center</property>
+                            <property name="visible">0</property>
                           </object>
                         </child>
                         <child internal-child="minus_button">
                           <object class="GtkButton">
-                            <property name="visible">0</property>
                             <property name="focusable">1</property>
-                            <property name="receives_default">1</property>
                             <property name="halign">center</property>
+                            <property name="receives-default">1</property>
                             <property name="valign">center</property>
+                            <property name="visible">0</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="fullscreen-button">
+                        <property name="focusable">1</property>
+                        <property name="halign">center</property>
+                        <property name="has-frame">False</property>
+                        <property name="receives-default">1</property>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="icon-name">view-fullscreen-symbolic</property>
+                            <property name="icon-size">normal</property>
                           </object>
                         </child>
                       </object>
@@ -239,24 +251,24 @@ audio-volume-medium-symbolic</property>
     </child>
   </object>
   <object class="GtkAdjustment" id="audio-offset-adjustment">
-    <property name="upper">100</property>
     <property name="lower">-100</property>
-    <property name="step-increment">0.1</property>
     <property name="page-increment">10</property>
+    <property name="step-increment">0.1</property>
+    <property name="upper">100</property>
   </object>
   <object class="GtkAdjustment" id="subtitle-offset-adjustment">
-    <property name="upper">100</property>
     <property name="lower">-100</property>
-    <property name="step-increment">0.1</property>
     <property name="page-increment">10</property>
+    <property name="step-increment">0.1</property>
+    <property name="upper">100</property>
   </object>
   <object class="GtkShortcutsWindow" id="shortcuts-window">
-    <property name="modal">1</property>
     <property name="hide-on-close">1</property>
+    <property name="modal">1</property>
     <child>
       <object class="GtkShortcutsSection">
-        <property name="section-name">Playback controls</property>
         <property name="max-height">12</property>
+        <property name="section-name">Playback controls</property>
         <child>
           <object class="GtkShortcutsGroup">
             <property name="title">Playback controls</property>
@@ -314,7 +326,6 @@ audio-volume-medium-symbolic</property>
                 <property name="title" translatable="yes">Decrease playback speed</property>
               </object>
             </child>
-
           </object>
         </child>
         <child>
@@ -356,9 +367,6 @@ audio-volume-medium-symbolic</property>
     </child>
   </object>
   <object class="AdwApplicationWindow" id="synchronization-window">
-    <property name="title" translatable="1">Track synchronization</property>
-    <property name="hide-on-close">1</property>
-    <property name="modal">1</property>
     <property name="content">
       <object class="GtkBox">
         <property name="orientation">vertical</property>
@@ -371,7 +379,7 @@ audio-volume-medium-symbolic</property>
             <property name="row-spacing">5</property>
             <child>
               <object class="GtkLabel">
-                <property name="label" translatable="1">Audio track synchronization</property>
+                <property name="label" translatable="yes">Audio track synchronization</property>
                 <layout>
                   <property name="column">0</property>
                   <property name="row">0</property>
@@ -380,12 +388,12 @@ audio-volume-medium-symbolic</property>
             </child>
             <child>
               <object class="GtkSpinButton" id="audio-video-offset">
-                <property name="focusable">1</property>
-                <property name="tooltip-text" translatable="1">Delay in seconds</property>
-                <property name="climb-rate">0.01</property>
                 <property name="adjustment">audio-offset-adjustment</property>
+                <property name="climb-rate">0.01</property>
                 <property name="digits">3</property>
+                <property name="focusable">1</property>
                 <property name="numeric">1</property>
+                <property name="tooltip-text" translatable="yes">Delay in seconds</property>
                 <layout>
                   <property name="column">1</property>
                   <property name="row">0</property>
@@ -394,8 +402,8 @@ audio-volume-medium-symbolic</property>
             </child>
             <child>
               <object class="GtkButton" id="audio-offset-reset-button">
-                <property name="icon-name">edit-clear</property>
                 <property name="focusable">1</property>
+                <property name="icon-name">edit-clear</property>
                 <property name="receives-default">1</property>
                 <layout>
                   <property name="column">2</property>
@@ -405,7 +413,7 @@ audio-volume-medium-symbolic</property>
             </child>
             <child>
               <object class="GtkLabel">
-                <property name="label" translatable="1">Subtitle track synchronization</property>
+                <property name="label" translatable="yes">Subtitle track synchronization</property>
                 <layout>
                   <property name="column">0</property>
                   <property name="row">1</property>
@@ -414,12 +422,12 @@ audio-volume-medium-symbolic</property>
             </child>
             <child>
               <object class="GtkSpinButton" id="subtitle-video-offset">
-                <property name="focusable">1</property>
-                <property name="tooltip-text" translatable="1">Delay in seconds</property>
                 <property name="adjustment">subtitle-offset-adjustment</property>
                 <property name="climb-rate">0.01</property>
                 <property name="digits">3</property>
+                <property name="focusable">1</property>
                 <property name="numeric">1</property>
+                <property name="tooltip-text" translatable="yes">Delay in seconds</property>
                 <layout>
                   <property name="column">1</property>
                   <property name="row">1</property>
@@ -428,8 +436,8 @@ audio-volume-medium-symbolic</property>
             </child>
             <child>
               <object class="GtkButton" id="subtitle-offset-reset-button">
-                <property name="icon-name">edit-clear</property>
                 <property name="focusable">1</property>
+                <property name="icon-name">edit-clear</property>
                 <property name="receives-default">1</property>
                 <layout>
                   <property name="column">2</property>
@@ -439,16 +447,16 @@ audio-volume-medium-symbolic</property>
             </child>
             <child>
               <object class="GtkButton" id="synchronization-window-close-button">
-                <property name="vexpand">1</property>
-                <property name="icon-name">window-close</property>
-                <property name="focusable">1</property>
-                <property name="receives-default">1</property>
                 <property name="action-name">win.close</property>
-                <property name="label" translatable="1">Close</property>
+                <property name="focusable">1</property>
+                <property name="icon-name">window-close</property>
+                <property name="label" translatable="yes">Close</property>
+                <property name="receives-default">1</property>
+                <property name="vexpand">1</property>
                 <layout>
-                  <property name="row">2</property>
                   <property name="column">0</property>
                   <property name="column-span">3</property>
+                  <property name="row">2</property>
                 </layout>
               </object>
             </child>
@@ -456,5 +464,8 @@ audio-volume-medium-symbolic</property>
         </child>
       </object>
     </property>
+    <property name="hide-on-close">1</property>
+    <property name="modal">1</property>
+    <property name="title" translatable="yes">Track synchronization</property>
   </object>
 </interface>
