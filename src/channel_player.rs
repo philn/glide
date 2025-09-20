@@ -282,7 +282,7 @@ impl ChannelPlayer {
                 };
 
                 match play_message {
-                    PlayMessage::UriLoaded => {
+                    PlayMessage::UriLoaded(_) => {
                         player.pause();
                         let uri = player.uri().unwrap();
                         with_mut_player!(player player_data {
@@ -294,33 +294,33 @@ impl ChannelPlayer {
                         });
                         player.play();
                     }
-                    PlayMessage::EndOfStream => {
+                    PlayMessage::EndOfStream(_) => {
                         with_mut_player!(player player_data {
                             player_data.end_of_stream(&player);
                         });
                     }
-                    PlayMessage::MediaInfoUpdated { info } => {
+                    PlayMessage::MediaInfoUpdated(message) => {
                         with_mut_player!(player player_data {
-                            player_data.media_info_updated(&info);
+                            player_data.media_info_updated(message.media_info());
                         });
                     }
-                    PlayMessage::DurationChanged { duration } => {
+                    PlayMessage::DurationChanged(message) => {
                         with_player!(player {
-                            player.notify(PlayerEvent::DurationChanged(duration));
+                            player.notify(PlayerEvent::DurationChanged(message.duration()));
                         });
                     }
-                    PlayMessage::PositionUpdated { position: _ } => {
+                    PlayMessage::PositionUpdated(_) => {
                         with_player!(player {
                             player.notify(PlayerEvent::PositionUpdated);
                         });
                     }
-                    PlayMessage::VideoDimensionsChanged { width, height } => {
+                    PlayMessage::VideoDimensionsChanged(message) => {
                         with_player!(player {
-                            player.notify(PlayerEvent::VideoDimensionsChanged(width, height));
+                            player.notify(PlayerEvent::VideoDimensionsChanged(message.width(), message.height()));
                         });
                     }
-                    PlayMessage::StateChanged { state } => {
-                        let state = match state {
+                    PlayMessage::StateChanged(message) => {
+                        let state = match message.state() {
                             gst_play::PlayState::Playing => Some(PlaybackState::Playing),
                             gst_play::PlayState::Paused => Some(PlaybackState::Paused),
                             gst_play::PlayState::Stopped => Some(PlaybackState::Stopped),
@@ -332,14 +332,15 @@ impl ChannelPlayer {
                             });
                         }
                     }
-                    PlayMessage::VolumeChanged { volume } => {
+                    PlayMessage::VolumeChanged(message) => {
                         with_player!(player player_data {
-                            player_data.notify(PlayerEvent::VolumeChanged(volume));
+                            player_data.notify(PlayerEvent::VolumeChanged(message.volume()));
                         });
                     }
-                    PlayMessage::Error { error, details } => {
+                    PlayMessage::Error(message) => {
                         with_player!(player {
-                            player.notify(PlayerEvent::Error(error.to_string(), details));
+                            let details = message.details().map(|s| s.to_owned());
+                            player.notify(PlayerEvent::Error(message.error().to_string(), details));
                         });
                     }
                     _ => {}
