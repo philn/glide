@@ -100,7 +100,7 @@
         {
           "type": "git",
           "url": "https://gitlab.freedesktop.org/gstreamer/gstreamer",
-          "tag": "1.26.5",
+          "tag": "1.26.6",
           "disable-submodules": true
         }
       ],
