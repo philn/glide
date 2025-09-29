@@ -61,6 +61,7 @@
       ],
       "config-opts": [
           "-Ddoc=disabled",
+          "-Dlibav=disabled",
           "-Dtests=disabled",
           "-Ddevtools=disabled",
           "-Dges=disabled",
