@@ -1,11 +1,11 @@
 metainfo := "data/net.base_art.Glide.metainfo.xml"
 
 manifest-check:
-    flatpak run --command=flatpak-builder-lint org.flatpak.Builder manifest build-aux/net.base_art.Glide.Devel.json
+    flatpak run --user --filesystem=home:ro --command=flatpak-builder-lint org.flatpak.Builder manifest build-aux/net.base_art.Glide.Devel.json
 
 metainfo-check:
     appstreamcli validate {{metainfo}}
-    flatpak run --command=flatpak-builder-lint org.flatpak.Builder appstream {{metainfo}}
+    flatpak run --user --filesystem=home:ro --command=flatpak-builder-lint org.flatpak.Builder appstream {{metainfo}}
 
 [confirm("Have you added the new release notes in data/net.base_art.Glide.metainfo.xml?")]
 release version: metainfo-check
