@@ -58,6 +58,17 @@
     <display_length compare="ge">768</display_length>
   </requires>
   <releases>
+    <release version="0.6.6" date="2025-11-09">
+      <description>
+        <p>Maintenance release, the highlights are:</p>
+        <ul>
+          <li>Lower auto-hide controls timeout to 2 seconds</li>
+          <li>Fixed the subtitle loader</li>
+          <li>Dependencies updates, most notably the GTK4 video sink</li>
+          <li>Minor UI changes on the toolbar (by Robin Tetour)</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.6.5" date="2024-08-20">
       <description>
         <p>Maintenance release, the highlights are:</p>

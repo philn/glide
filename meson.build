@@ -1,4 +1,4 @@
-project('glide', 'rust', version : '0.6.5', license : 'MIT')
+project('glide', 'rust', version : '0.6.6', license : 'MIT')
 
 glide_version = meson.project_version()
 version_array = glide_version.split('.')
