@@ -57,6 +57,10 @@
           "url": "https://gitlab.freedesktop.org/gstreamer/gstreamer",
           "tag": "1.26.9",
           "disable-submodules": true
+        },
+        {
+          "type": "patch",
+          "path": "0001-Revert-play-Distinguish-missing-plugin-errors-and-in.patch"
         }
       ],
       "config-opts": [
