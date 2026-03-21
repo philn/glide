@@ -34,8 +34,8 @@ open = "5"
 graphviz-rust = "0.9"
 
 [build-dependencies]
-vergen = "9"
-vergen-gitcl = { version = "1", features = ["build", "cargo"]}
+vergen = "9.1"
+vergen-gitcl = { version = "9.1", features = ["build", "cargo"]}
 
 
 [dependencies.self_update]
