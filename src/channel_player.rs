@@ -516,7 +516,7 @@ impl ChannelPlayer {
     }
 
     pub fn configure_subtitle_track(&self, track: Option<SubtitleTrack>) {
-        if let Some(track) = track {
+        let enabled = if let Some(track) = track {
             match track {
                 SubtitleTrack::External(uri) => {
                     self.player.set_subtitle_uri(Some(&uri));
@@ -525,8 +525,11 @@ impl ChannelPlayer {
                     let _ = self.player.set_subtitle_track(idx);
                 }
             };
-            self.player.set_subtitle_track_enabled(true);
-        }
+            true
+        } else {
+            false
+        };
+        self.player.set_subtitle_track_enabled(enabled);
     }
 
     pub fn get_current_subtitle_track(&self) -> Option<gst_play::PlaySubtitleInfo> {
