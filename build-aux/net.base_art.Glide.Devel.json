@@ -57,10 +57,6 @@
           "url": "https://gitlab.freedesktop.org/gstreamer/gstreamer",
           "tag": "1.26.11",
           "disable-submodules": true
-        },
-        {
-          "type": "patch",
-          "path": "0001-play-Fix-GstStream-leaks.patch"
         }
       ],
       "config-opts": [
