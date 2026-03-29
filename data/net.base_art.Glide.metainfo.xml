@@ -58,6 +58,11 @@
     <display_length compare="ge">768</display_length>
   </requires>
   <releases>
+    <release version="0.6.7" date="2026-03-29">
+      <description>
+        <p>Maintenance release, fixing a crash related with subtitle track switching.</p>
+      </description>
+    </release>
     <release version="0.6.6" date="2025-11-09">
       <description>
         <p>Maintenance release, the highlights are:</p>
