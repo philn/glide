@@ -349,6 +349,10 @@ impl UIContext {
         window.set_cursor(cursor.as_ref());
     }
 
+    pub fn present(&self) {
+        self.window.present();
+    }
+
     #[allow(deprecated)]
     pub fn open_dialog<F>(&self, relative_uri: Option<glib::GString>, f: F)
     where

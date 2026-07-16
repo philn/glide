@@ -202,7 +202,11 @@ impl VideoPlayer {
             })
         });
 
-        gtk_app.connect_activate(|_| {});
+        gtk_app.connect_activate(|_| {
+            with_video_player!(video_player {
+                video_player.ui_context.present();
+            });
+        });
 
         let quit = gio::SimpleAction::new("quit", None);
         quit.connect_activate(|_, _| {
