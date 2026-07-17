@@ -38,12 +38,7 @@ vergen = "9.1"
 vergen-gitcl = { version = "9.1", features = ["build", "cargo"]}
 
 
-[dependencies.self_update]
-optional = true
-version = "0.28"
-
 [features]
-self-updater = ["self_update"]
 x11egl = ["gst-plugin-gtk4/x11egl"]
 x11glx = ["gst-plugin-gtk4/x11glx"]
 wayland = ["gst-plugin-gtk4/wayland"]

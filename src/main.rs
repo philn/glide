@@ -9,9 +9,6 @@ extern crate gstreamer_video as gst_video;
 extern crate gtk4 as gtk;
 #[macro_use]
 extern crate lazy_static;
-#[cfg(feature = "self-updater")]
-#[macro_use]
-extern crate self_update;
 
 #[macro_use]
 extern crate serde_derive;
@@ -35,7 +32,7 @@ mod constants;
 mod debug_infos;
 use channel_player::{AudioVisualization, ChannelPlayer, PlaybackState, PlayerEvent, SeekDirection, SubtitleTrack};
 mod ui_context;
-use ui_context::{create_app, UIContext};
+use ui_context::{UIContext, create_app};
 
 #[cfg(target_os = "macos")]
 mod iokit_sleep_disabler;
@@ -545,17 +542,6 @@ impl VideoPlayer {
             })
         });
 
-        #[cfg(feature = "self-updater")]
-        match self.check_update() {
-            Ok(o) => {
-                match o {
-                    self_update::Status::UpToDate(_version) => {}
-                    _ => println!("Update succeeded: {}", o),
-                };
-            }
-            Err(e) => eprintln!("Update failed: {}", e),
-        };
-
         self.ui_context.start(|| {
             with_video_player!(video_player {
                 video_player.quit();
@@ -873,19 +859,6 @@ impl VideoPlayer {
         }
 
         self.player.load_playlist(playlist);
-    }
-
-    #[cfg(feature = "self-updater")]
-    pub fn check_update(&self) -> Result<self_update::Status, self_update::errors::Error> {
-        let target = self_update::get_target();
-        self_update::backends::github::Update::configure()
-            .repo_owner("philn")
-            .repo_name("glide")
-            .bin_name("glide")
-            .target(&target)
-            .current_version(cargo_crate_version!())
-            .build()?
-            .update()
     }
 
     pub fn leave_fullscreen(&self) {
