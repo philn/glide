@@ -47,7 +47,7 @@ jobs:
         sudo chown -R $(whoami) $(brew --prefix)/*
         brew update
         brew upgrade || true
-        brew install pkg-config pango gtk+4 libadwaita gstreamer || true
+        brew install rust pkg-config pango gtk+4 libadwaita gstreamer || true
     - name: Build
       run: cargo build --verbose
     - name: Run tests
