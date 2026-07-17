@@ -429,7 +429,7 @@ impl VideoPlayer {
             with_video_player!(video_player {
                 video_player.ui_context.open_dialog(video_player.player.get_current_uri(), |uri| {
                     with_video_player!(video_player {
-                        println!("loading {}", &uri);
+                        println!("loading {}", uri);
                         video_player.player.stop();
                         video_player.player.load_uri(&uri);
                     });
@@ -527,7 +527,7 @@ impl VideoPlayer {
                         }
                     }
                 }
-                println!("loading {}", &uri);
+                println!("loading {}", uri);
                 video_player.player.stop();
                 video_player.player.load_uri(uri);
             })
