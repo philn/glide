@@ -19,8 +19,8 @@ use std::path;
 use std::string;
 use std::sync::Mutex;
 
-use crate::PlaybackState;
 use crate::debug_infos::DebugInfos;
+use crate::PlaybackState;
 
 lazy_static! {
     pub static ref INHIBIT_COOKIE: Mutex<Option<u32>> = Mutex::new(None);
