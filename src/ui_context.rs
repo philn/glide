@@ -386,6 +386,7 @@ impl UIContext {
     }
 
     pub fn start<F: Fn() + Send + Sync + 'static>(&self, f: F) {
+        self.window.set_application(Some(&self.app));
         self.window.set_visible(true);
         self.window.connect_close_request(move |_| {
             f();
