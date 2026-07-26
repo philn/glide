@@ -188,23 +188,23 @@ impl UIContext {
 
         let window_weak = SendWeakRef::from(window.downgrade());
         gtk_app.connect_startup(move |app| {
-            let accels_per_action = [
-                ("open-media", ["<Primary>o"]),
-                ("quit", ["<Primary>q"]),
-                ("fullscreen", ["<Primary>f"]),
-                ("restore", ["Escape"]),
-                ("pause", ["space"]),
-                ("seek-forward", ["<Primary>Right"]),
-                ("seek-backward", ["<Primary>Left"]),
-                ("audio-volume-increase", ["<Primary>Up"]),
-                ("audio-volume-decrease", ["<Primary>Down"]),
-                ("audio-mute", ["<Primary>m"]),
-                ("open-subtitle-file", ["<Primary>s"]),
-                ("dump-pipeline", ["<Ctrl>d"]),
-                ("show-shortcuts", ["<Primary>question"]),
-                ("video-frame-step", ["<Primary>n"]),
-                ("speed-increase", ["Page_Up"]),
-                ("speed-decrease", ["Page_Down"]),
+            let accels_per_action: Vec<(&str, Vec<&str>)> = vec![
+                ("open-media", vec!["<Primary>o"]),
+                ("quit", vec!["<Primary>q"]),
+                ("fullscreen", vec!["<Primary>f", "F", "F11"]),
+                ("restore", vec!["Escape"]),
+                ("pause", vec!["space"]),
+                ("seek-forward", vec!["<Primary>Right"]),
+                ("seek-backward", vec!["<Primary>Left"]),
+                ("audio-volume-increase", vec!["<Primary>Up"]),
+                ("audio-volume-decrease", vec!["<Primary>Down"]),
+                ("audio-mute", vec!["<Primary>m"]),
+                ("open-subtitle-file", vec!["<Primary>s"]),
+                ("dump-pipeline", vec!["<Ctrl>d"]),
+                ("show-shortcuts", vec!["<Primary>question"]),
+                ("video-frame-step", vec!["<Primary>n"]),
+                ("speed-increase", vec!["Page_Up"]),
+                ("speed-decrease", vec!["Page_Down"]),
             ];
             for (action, accels) in accels_per_action.iter() {
                 app.set_accels_for_action(&format!("app.{action}"), accels);

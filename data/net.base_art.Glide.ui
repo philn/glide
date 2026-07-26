@@ -334,7 +334,19 @@ audio-volume-medium-symbolic</property>
             <child>
               <object class="GtkShortcutsShortcut">
                 <property name="accelerator">&lt;primary&gt;f</property>
-                <property name="title" translatable="yes">Switch to fullscreen mode</property>
+                <property name="title" translatable="yes">Toggle fullscreen mode</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="accelerator">f</property>
+                <property name="title" translatable="yes">Toggle fullscreen mode</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="accelerator">F11</property>
+                <property name="title" translatable="yes">Toggle fullscreen mode</property>
               </object>
             </child>
             <child>
