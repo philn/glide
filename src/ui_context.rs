@@ -353,36 +353,25 @@ impl UIContext {
         self.window.present();
     }
 
-    #[allow(deprecated)]
     pub fn open_dialog<F>(&self, relative_uri: Option<glib::GString>, f: F)
     where
         F: Fn(glib::GString) + Send + Sync + 'static,
     {
-        let dialog = gtk::FileChooserDialog::new(
-            Some("Choose a file"),
-            Some(&self.window),
-            gtk::FileChooserAction::Open,
-            &[("Open", gtk::ResponseType::Ok), ("Cancel", gtk::ResponseType::Cancel)],
-        );
-
-        dialog.set_select_multiple(true);
+        let mut dialog_builder = gtk::FileDialog::builder().title("Choose a file").accept_label("Open");
         if let Some(uri) = relative_uri {
             if let Ok((filename, _)) = glib::filename_from_uri(&uri) {
                 if let Some(folder) = filename.parent() {
-                    dialog.set_current_folder(Some(&gio::File::for_path(folder))).unwrap();
+                    dialog_builder = dialog_builder.initial_folder(&gio::File::for_path(folder));
                 }
             }
         }
-
-        dialog.connect_response(move |dialog, response| {
-            if response == gtk::ResponseType::Ok {
-                let file = dialog.file().unwrap();
+        let dialog = dialog_builder.build();
+        dialog.open(Some(&self.window), gio::Cancellable::NONE, move |result| {
+            if let Ok(file) = result {
                 let filename = file.uri();
                 f(filename);
             }
-            dialog.close();
         });
-        dialog.set_visible(true);
     }
 
     pub fn start<F: Fn() + Send + Sync + 'static>(&self, f: F) {
