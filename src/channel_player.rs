@@ -249,9 +249,9 @@ impl ChannelPlayer {
 
         let player = gst_play::Play::new(Some(renderer.clone().upcast::<gst_play::PlayVideoRenderer>()));
 
-        // Get position updates every 250ms.
+        // Get position updates every 100ms.
         let mut config = player.config();
-        config.set_position_update_interval(250);
+        config.set_position_update_interval(100);
 
         if gst::version() >= (1, 24, 0, 0) {
             config.set("pipeline-dump-in-error-details", true);
