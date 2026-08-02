@@ -218,6 +218,25 @@ impl UIContext {
         let motion_controller = gtk::EventControllerMotion::builder().build();
         window.add_controller(motion_controller.clone());
 
+        let scroll_controller = gtk::EventControllerScroll::builder()
+            .flags(gtk::EventControllerScrollFlags::HORIZONTAL)
+            .build();
+        let weak_app = gtk_app.downgrade();
+        scroll_controller.connect_scroll(move |_controller, delta_x, _delta_y| -> glib::Propagation {
+            let app = match weak_app.upgrade() {
+                Some(a) => a,
+                None => return glib::Propagation::Stop,
+            };
+            let action = if delta_x < 0.0 {
+                "drag-seek-forward"
+            } else {
+                "seek-backward"
+            };
+            app.activate_action(action, None);
+            glib::Propagation::Stop
+        });
+        window.add_controller(scroll_controller.clone());
+
         if cfg!(feature = "devel") {
             window.add_css_class("devel");
         }
