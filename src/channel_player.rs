@@ -62,6 +62,7 @@ pub enum PlayerEvent {
     Error(String, Option<gst::Structure>),
     AudioVideoOffsetChanged(i64),
     SubtitleVideoOffsetChanged(i64),
+    SeekDone,
 }
 
 pub struct ChannelPlayer {
@@ -341,6 +342,11 @@ impl ChannelPlayer {
                         with_player!(player {
                             let details = message.details().map(|s| s.to_owned());
                             player.notify(PlayerEvent::Error(message.error().to_string(), details));
+                        });
+                    }
+                    PlayMessage::SeekDone(_) => {
+                        with_player!(player {
+                            player.notify(PlayerEvent::SeekDone);
                         });
                     }
                     _ => {}
