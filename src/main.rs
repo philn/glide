@@ -56,6 +56,7 @@ struct VideoPlayer {
     restore_action: gio::SimpleAction,
     pause_action: gio::SimpleAction,
     seek_forward_action: gio::SimpleAction,
+    drag_seek_forward_action: gio::SimpleAction,
     seek_backward_action: gio::SimpleAction,
     subtitle_action: gio::SimpleAction,
     audio_visualization_action: gio::SimpleAction,
@@ -118,6 +119,11 @@ impl VideoPlayer {
 
         let seek_forward_action = gio::SimpleAction::new_stateful("seek-forward", None, &false.to_variant());
         gtk_app.add_action(&seek_forward_action);
+
+        // FIXME: Ideally the seek-forward action should accept a gst::ClockTime
+        // as parameter but IDK how to do that.
+        let drag_seek_forward_action = gio::SimpleAction::new_stateful("drag-seek-forward", None, &false.to_variant());
+        gtk_app.add_action(&drag_seek_forward_action);
 
         let seek_backward_action = gio::SimpleAction::new_stateful("seek-backward", None, &false.to_variant());
         gtk_app.add_action(&seek_backward_action);
@@ -239,6 +245,7 @@ impl VideoPlayer {
             restore_action,
             pause_action,
             seek_forward_action,
+            drag_seek_forward_action,
             seek_backward_action,
             subtitle_action,
             audio_visualization_action,
@@ -298,6 +305,12 @@ impl VideoPlayer {
         self.seek_forward_action.connect_change_state(|_, _| {
             with_video_player!(video_player {
                 video_player.player.seek(&SeekDirection::Forward(constants::SEEK_FORWARD_OFFSET));
+            });
+        });
+
+        self.drag_seek_forward_action.connect_change_state(|_, _| {
+            with_video_player!(video_player {
+                video_player.player.seek(&SeekDirection::Forward(constants::DRAG_SEEK_FORWARD_OFFSET));
             });
         });
 
