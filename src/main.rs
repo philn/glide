@@ -600,6 +600,9 @@ impl VideoPlayer {
             PlayerEvent::SubtitleVideoOffsetChanged(offset) => {
                 self.subtitle_video_offset_changed(offset);
             }
+            PlayerEvent::SeekDone => {
+                self.seek_done();
+            }
             _ => {}
         };
     }
@@ -692,6 +695,10 @@ impl VideoPlayer {
         if let Some(position) = self.player.get_position() {
             self.ui_context.set_position_range_value(position.seconds());
         }
+    }
+
+    pub fn seek_done(&self) {
+        self.ui_context.show_toolbar();
     }
 
     pub fn update_subtitle_track(&self, value: Option<&glib::Variant>) {

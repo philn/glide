@@ -315,6 +315,11 @@ impl UIContext {
         });
     }
 
+    pub fn show_toolbar(&self) {
+        self.toolbar_revealer.set_reveal_child(true);
+        self.start_autohide_toolbar();
+    }
+
     pub fn enter_fullscreen(&self) {
         let window = &self.window;
         #[cfg(target_os = "macos")]
