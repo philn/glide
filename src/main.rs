@@ -507,7 +507,7 @@ impl VideoPlayer {
         });
 
         let paintable = self.player.paintable();
-        paintable.connect_invalidate_contents(|p| {
+        paintable.connect_invalidate_size(|p| {
             with_video_player!(video_player {
                 video_player.player.update_render_rectangle(p);
             })
