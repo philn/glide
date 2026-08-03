@@ -20,6 +20,7 @@ use clap::Parser;
 use directories::ProjectDirs;
 #[allow(unused_imports)]
 use gdk::prelude::*;
+use gettextrs::*;
 use gio::prelude::*;
 use gtk::gdk;
 use std::cell::RefCell;
@@ -28,8 +29,10 @@ use std::fs::create_dir_all;
 use std::path::PathBuf;
 
 mod channel_player;
+mod config;
 mod constants;
 mod debug_infos;
+mod i18n;
 use channel_player::{AudioVisualization, ChannelPlayer, PlaybackState, PlayerEvent, SeekDirection, SubtitleTrack};
 mod ui_context;
 use ui_context::{create_app, UIContext};
@@ -739,7 +742,7 @@ impl VideoPlayer {
         let mut selected_action: Option<std::string::String> = None;
 
         if let Some(info) = self.player.get_media_info() {
-            let item = gio::MenuItem::new(Some("Disable"), Some("none"));
+            let item = gio::MenuItem::new(Some(&gettext("Disable")), Some("none"));
             item.set_detailed_action("app.subtitle::none");
             section.append_item(&item);
 
@@ -899,6 +902,7 @@ fn main() -> anyhow::Result<()> {
     {
         return Err(anyhow::anyhow!("Add support for target platform"));
     }
+    i18n::init();
 
     gst::init().expect("Failed to initialize GStreamer.");
     gtk::init().expect("Failed to initialize GTK.");

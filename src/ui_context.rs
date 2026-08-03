@@ -5,6 +5,7 @@ extern crate gtk4 as gtk;
 extern crate open;
 
 use adw::prelude::MessageDialogExt;
+use gettextrs::*;
 #[allow(unused_imports)]
 use gio::prelude::*;
 #[allow(unused_imports)]
@@ -381,7 +382,9 @@ impl UIContext {
     where
         F: Fn(glib::GString) + Send + Sync + 'static,
     {
-        let mut dialog_builder = gtk::FileDialog::builder().title("Choose a file").accept_label("Open");
+        let mut dialog_builder = gtk::FileDialog::builder()
+            .title(gettext("Choose a file"))
+            .accept_label(gettext("Open"));
         if let Some(uri) = relative_uri {
             if let Ok((filename, _)) = glib::filename_from_uri(&uri) {
                 if let Some(folder) = filename.parent() {
@@ -603,13 +606,14 @@ impl UIContext {
 
     pub fn show_error_dialog(&self, report_path: Option<String>, debug: Option<String>) {
         let body = if report_path.is_some() {
-            "An error report was saved. If you decide to file a bug, please include the report file.".to_string()
+            gettext("An error report was saved. If you decide to file a bug, please include the report file.")
         } else {
-            format!("Debug informations: {}", debug.expect("Missing debug message"))
+            let fall_back = gettext("Missing debug message");
+            format!("{} {}", gettext("Debug informations:"), debug.expect(&fall_back))
         };
         let dialog = adw::MessageDialog::builder()
-            .title("An error occurred")
-            .body(format!("Glide failed to play this media file. {body}"))
+            .title(gettext("An error occurred"))
+            .body(format!("{} {body}", gettext("Glide failed to play this media file.")))
             .decorated(true)
             .transient_for(&self.window)
             .build();
@@ -624,8 +628,8 @@ impl UIContext {
                 .build();
             dialog.set_extra_child(Some(&link_button));
         }
-        dialog.add_response("cancel", "Cancel");
-        dialog.add_response("report", "Report");
+        dialog.add_response("cancel", &gettext("Cancel"));
+        dialog.add_response("report", &gettext("Report"));
         dialog.connect_response(Some("report"), move |_dialog, _response| {
             let _ = open::that_detached("https://github.com/philn/glide/issues/new");
         });
