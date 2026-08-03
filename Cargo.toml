@@ -32,6 +32,7 @@ tar = "0.4"
 regex = "1"
 open = "5"
 graphviz-rust = "0.9"
+gettext-rs = { version = "0.7.7", features = ["gettext-system"]}
 
 [build-dependencies]
 vergen = "9.1"

@@ -8,6 +8,13 @@ glide_version_micro = version_array[2].to_int()
 
 datadir = get_option('datadir')
 icondir = join_paths(datadir, 'icons')
+localedir = get_option('prefix') / get_option('localedir')
+
+# Import GNOME and i18n modules
+gnome = import('gnome')
+i18n = import('i18n')
+
+subdir('po')
 
 app_id = 'net.base_art.Glide'
 icon_name = '@0@.svg'.format(app_id)
@@ -38,6 +45,10 @@ cargo_build = custom_target(
   console: true,
   install: true,
   install_dir: get_option('bindir'),
+  env: {
+    'GETTEXT_PACKAGE': meson.project_name(),
+    'LOCALEDIR': localedir,
+  },
   command: [
     find_program(meson.project_source_root() / 'build-aux' / 'cargo-build.py'),
     meson.project_source_root(), meson.project_build_root(), meson.project_name(), '@OUTDIR@'

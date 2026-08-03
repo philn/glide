@@ -1,0 +1,216 @@
+# French translation for Glide
+# Copyright (C) 2026 glide's COPYRIGHT HOLDER
+# This file is distributed under the same license as the glide package.
+# Philippe Normand <phil@base-art.net>, 2026
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: glide\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-08-03 14:09+0100\n"
+"PO-Revision-Date: 2026-08-03 14:39+0100\n"
+"Last-Translator: Philippe Normand <phil@base-art.net>\n"
+"Language-Team: French\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: data/net.base_art.Glide.ui:10
+msgid "File"
+msgstr "Fichier"
+
+#: data/net.base_art.Glide.ui:14
+msgid "Open…"
+msgstr "Ouvrir…"
+
+#: data/net.base_art.Glide.ui:19
+msgid "Audio"
+msgstr "Son"
+
+#: data/net.base_art.Glide.ui:23
+msgid "Increase volume"
+msgstr "Augmenter le volume"
+
+#: data/net.base_art.Glide.ui:27
+msgid "Decrease volume"
+msgstr "Diminuer le volume"
+
+#: data/net.base_art.Glide.ui:31
+msgid "Mute"
+msgstr "Désactiver le son"
+
+#: data/net.base_art.Glide.ui:35
+msgid "Audio track"
+msgstr "Piste audio"
+
+#: data/net.base_art.Glide.ui:38
+msgid "Visualization"
+msgstr "Visualization"
+
+#: data/net.base_art.Glide.ui:42
+msgid "Video"
+msgstr "Vidéo"
+
+#: data/net.base_art.Glide.ui:44
+msgid "Video track"
+msgstr "Piste vidéo"
+
+#: data/net.base_art.Glide.ui:48
+msgid "Playback"
+msgstr "Lecture"
+
+#: data/net.base_art.Glide.ui:52
+msgid "Increase speed"
+msgstr "Augmenter la vitesse"
+
+#: data/net.base_art.Glide.ui:56
+msgid "Decrease speed"
+msgstr "Diminuer la vitesse"
+
+#: data/net.base_art.Glide.ui:61
+msgid "Subtitles"
+msgstr "Sous-titres"
+
+#: data/net.base_art.Glide.ui:65
+msgid "Add subtitle file…"
+msgstr "Ajouter fichier de sous-titres…"
+
+#: data/net.base_art.Glide.ui:69
+msgid "Subtitle track"
+msgstr "Piste de sous-titres"
+
+#: data/net.base_art.Glide.ui:73
+msgid "Window"
+msgstr "Fenêtre"
+
+#: data/net.base_art.Glide.ui:76 data/net.base_art.Glide.ui:481
+msgid "Track synchronization"
+msgstr "Synchronisation des pistes"
+
+#: data/net.base_art.Glide.ui:80
+msgid "Keyboard Shortcuts"
+msgstr "Raccourcis clavier"
+
+#: data/net.base_art.Glide.ui:84
+msgid "About"
+msgstr "À Propos"
+
+#: data/net.base_art.Glide.ui:278
+msgid "Toggle between play and pause states"
+msgstr "Alterner entre lecture et pause"
+
+#: data/net.base_art.Glide.ui:284
+msgid "Seek forward"
+msgstr "Avancer"
+
+#: data/net.base_art.Glide.ui:290
+msgid "Seek backward"
+msgstr "Reculer"
+
+#: data/net.base_art.Glide.ui:296
+msgid "Step to next video frame"
+msgstr "Avance à l'image suivante"
+
+#: data/net.base_art.Glide.ui:302
+msgid "Increase audio volume"
+msgstr "Augmenter le volume"
+
+#: data/net.base_art.Glide.ui:308
+msgid "Decrease audio volume"
+msgstr "Diminuer le volume"
+
+#: data/net.base_art.Glide.ui:314
+msgid "Mute the audio track"
+msgstr "Désactiver le son"
+
+#: data/net.base_art.Glide.ui:320
+msgid "Increase playback speed"
+msgstr "Augmenter la vitesse de lecture"
+
+#: data/net.base_art.Glide.ui:326
+msgid "Decrease playback speed"
+msgstr "Diminuer la vitesse de lecture"
+
+#: data/net.base_art.Glide.ui:337 data/net.base_art.Glide.ui:343
+#: data/net.base_art.Glide.ui:349
+msgid "Toggle fullscreen mode"
+msgstr "Alterner le plein écran"
+
+#: data/net.base_art.Glide.ui:355
+msgid "Exit from fullscreen mode"
+msgstr "Désactiver le plein écran"
+
+#: data/net.base_art.Glide.ui:361
+msgid "Exit from the application"
+msgstr "Sortir de l'application"
+
+#: data/net.base_art.Glide.ui:367
+msgid "Load a subtitle file"
+msgstr "Charger un fichier de sous-titres"
+
+#: data/net.base_art.Glide.ui:373
+msgid "Open a new media file"
+msgstr "Ouvrir un nouveau fichier multimédia"
+
+#: data/net.base_art.Glide.ui:394
+msgid "Audio track synchronization"
+msgstr "Synchronisation de la piste audio"
+
+#: data/net.base_art.Glide.ui:408 data/net.base_art.Glide.ui:442
+msgid "Delay in seconds"
+msgstr "Décalage en secondes"
+
+#: data/net.base_art.Glide.ui:428
+msgid "Subtitle track synchronization"
+msgstr "Synchronisation de la piste de sous-titres"
+
+#: data/net.base_art.Glide.ui:465
+msgid "Close"
+msgstr "Fermer"
+
+#: src/main.rs:745
+msgid "Disable"
+msgstr "Désactiver"
+
+#: src/ui_context.rs:385
+msgid "Choose a file"
+msgstr "Choisir un fichier"
+
+#: src/ui_context.rs:386
+msgid "Open"
+msgstr "Ouvrir"
+
+#: src/ui_context.rs:608
+msgid ""
+"An error report was saved. If you decide to file a bug, please include the "
+"report file."
+msgstr ""
+"Un rapport d'erreur a été sauvegardé. Si vous décidez de reporter le problème, veuillez "
+"inclure le rapport d'erreur."
+
+#: src/ui_context.rs:612
+#, rust-format
+msgid "Debug informations: {}"
+msgstr "Informations de déboggage: {}"
+
+#: src/ui_context.rs:613
+msgid "Missing debug message"
+msgstr "Message de déboggage manquant"
+
+#: src/ui_context.rs:617
+msgid "An error occurred"
+msgstr "Une erreur est survenue"
+
+#: src/ui_context.rs:618
+#, rust-format
+msgid "Glide failed to play this media file. {body}"
+msgstr "Glide n'a pas pu lire ce fichier multimédia. {body}"
+
+#: src/ui_context.rs:633
+msgid "Cancel"
+msgstr "Annuler"
+
+#: src/ui_context.rs:634
+msgid "Report"
+msgstr "Reporter"
