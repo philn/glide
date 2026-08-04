@@ -2,7 +2,8 @@
 import os
 import sys
 
-def main(*args):
+def main(args):
+    prefix = args[0]
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     po_dir = os.path.join(root, 'po')
     for filename in os.listdir(po_dir):
@@ -10,7 +11,9 @@ def main(*args):
             continue
         basename, _ = os.path.splitext(filename)
         po_file = os.path.join(po_dir, filename)
-        output = os.path.join(po_dir, f"{basename}.mo")
+        output_dir = os.path.join(prefix, basename, "LC_MESSAGES")
+        os.makedirs(output_dir)
+        output = os.path.join(output_dir, "glide.mo")
         os.system(f"msgfmt -o {output} {po_file}")
 
     return 0

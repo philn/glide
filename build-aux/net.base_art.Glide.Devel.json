@@ -91,8 +91,7 @@
         "sed -i 's/net.base_art.Glide/net.base_art.Glide.Devel/g' /app/share/applications/net.base_art.Glide.Devel.desktop",
         "sed -i 's/=Glide/=Glide Tech Preview/g' /app/share/applications/net.base_art.Glide.Devel.desktop",
         "install -Dm644 ./data/net.base_art.Glide.Devel.svg -t /app/share/icons/hicolor/scalable/apps/",
-        "python build-aux/compile-po-files.py",
-        "install -Dm644 ./po/*.mo -t /app/share/locale/"
+        "python build-aux/compile-po-files.py /app/share/locale/"
       ],
       "sources": [
         {
