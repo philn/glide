@@ -1,0 +1,218 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the glide package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: glide\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-08-03 14:09+0100\n"
+"PO-Revision-Date: 2026-08-04 10:19+0200\n"
+"Last-Translator: Heimen Stoffels <vistausss@fastmail.com>\n"
+"Language-Team: \n"
+"Language: nl\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 3.9\n"
+
+#: data/net.base_art.Glide.ui:10
+msgid "File"
+msgstr "Bestand"
+
+#: data/net.base_art.Glide.ui:14
+msgid "Open…"
+msgstr "Openen…"
+
+#: data/net.base_art.Glide.ui:19
+msgid "Audio"
+msgstr "Audio"
+
+#: data/net.base_art.Glide.ui:23
+msgid "Increase volume"
+msgstr "Volumeniveau verhogen"
+
+#: data/net.base_art.Glide.ui:27
+msgid "Decrease volume"
+msgstr "Volumeniveau verlagen"
+
+#: data/net.base_art.Glide.ui:31
+msgid "Mute"
+msgstr "Dempen"
+
+#: data/net.base_art.Glide.ui:35
+msgid "Audio track"
+msgstr "Audiospoor"
+
+#: data/net.base_art.Glide.ui:38
+msgid "Visualization"
+msgstr "Visualisatie"
+
+#: data/net.base_art.Glide.ui:42
+msgid "Video"
+msgstr "Video"
+
+#: data/net.base_art.Glide.ui:44
+msgid "Video track"
+msgstr "Videospoor"
+
+#: data/net.base_art.Glide.ui:48
+msgid "Playback"
+msgstr "Afspelen"
+
+#: data/net.base_art.Glide.ui:52
+msgid "Increase speed"
+msgstr "Afspeelsnelheid verhogen"
+
+#: data/net.base_art.Glide.ui:56
+msgid "Decrease speed"
+msgstr "Afspeelsnelheid verlagen"
+
+#: data/net.base_art.Glide.ui:61
+msgid "Subtitles"
+msgstr "Ondertiteling"
+
+#: data/net.base_art.Glide.ui:65
+msgid "Add subtitle file…"
+msgstr "Ondertitelbestand openen…"
+
+#: data/net.base_art.Glide.ui:69
+msgid "Subtitle track"
+msgstr "Ondertitelspoor"
+
+#: data/net.base_art.Glide.ui:73
+msgid "Window"
+msgstr "Venster"
+
+#: data/net.base_art.Glide.ui:76 data/net.base_art.Glide.ui:481
+msgid "Track synchronization"
+msgstr "Sporen synchroniseren"
+
+#: data/net.base_art.Glide.ui:80
+msgid "Keyboard Shortcuts"
+msgstr "Sneltoetsen"
+
+#: data/net.base_art.Glide.ui:84
+msgid "About"
+msgstr "Over"
+
+#: data/net.base_art.Glide.ui:278
+msgid "Toggle between play and pause states"
+msgstr "Afspelen/pauzeren"
+
+#: data/net.base_art.Glide.ui:284
+msgid "Seek forward"
+msgstr "Vooruitspoelen"
+
+#: data/net.base_art.Glide.ui:290
+msgid "Seek backward"
+msgstr "Terugspoelen"
+
+#: data/net.base_art.Glide.ui:296
+msgid "Step to next video frame"
+msgstr "Ga naar volgend videoframe"
+
+#: data/net.base_art.Glide.ui:302
+msgid "Increase audio volume"
+msgstr "Volumeniveau verhogen"
+
+#: data/net.base_art.Glide.ui:308
+msgid "Decrease audio volume"
+msgstr "Volumeniveau verlagen"
+
+#: data/net.base_art.Glide.ui:314
+msgid "Mute the audio track"
+msgstr "Audiospoor dempen"
+
+#: data/net.base_art.Glide.ui:320
+msgid "Increase playback speed"
+msgstr "Afspeelsnelheid verhogen"
+
+#: data/net.base_art.Glide.ui:326
+msgid "Decrease playback speed"
+msgstr "Afspeelsnelheid verlagen"
+
+#: data/net.base_art.Glide.ui:337 data/net.base_art.Glide.ui:343
+#: data/net.base_art.Glide.ui:349
+msgid "Toggle fullscreen mode"
+msgstr "Schermvullende weergave aan/uit"
+
+#: data/net.base_art.Glide.ui:355
+msgid "Exit from fullscreen mode"
+msgstr "Schermvullende weergave verlaten"
+
+#: data/net.base_art.Glide.ui:361
+msgid "Exit from the application"
+msgstr "Programma afsluiten"
+
+#: data/net.base_art.Glide.ui:367
+msgid "Load a subtitle file"
+msgstr "Ondertitelbestand laden"
+
+#: data/net.base_art.Glide.ui:373
+msgid "Open a new media file"
+msgstr "Mediabestand openen"
+
+#: data/net.base_art.Glide.ui:394
+msgid "Audio track synchronization"
+msgstr "Audiosporen synchroniseren"
+
+#: data/net.base_art.Glide.ui:408 data/net.base_art.Glide.ui:442
+msgid "Delay in seconds"
+msgstr "Vertraging (in seconden)"
+
+#: data/net.base_art.Glide.ui:428
+msgid "Subtitle track synchronization"
+msgstr "Ondertitelspoor synchroniseren"
+
+#: data/net.base_art.Glide.ui:465
+msgid "Close"
+msgstr "Sluiten"
+
+#: src/main.rs:745
+msgid "Disable"
+msgstr "Uitschakelen"
+
+#: src/ui_context.rs:385
+msgid "Choose a file"
+msgstr "Kies een bestand"
+
+#: src/ui_context.rs:386
+msgid "Open"
+msgstr "Openen"
+
+#: src/ui_context.rs:608
+msgid ""
+"An error report was saved. If you decide to file a bug, please include the "
+"report file."
+msgstr ""
+"Er is een foutenverslag opgeslagen. Als je een bug meldt, voeg dit verslag "
+"dan bij."
+
+#: src/ui_context.rs:612
+#, rust-format
+msgid "Debug informations: {}"
+msgstr "Foutopsporingsinformatie: {}"
+
+#: src/ui_context.rs:613
+msgid "Missing debug message"
+msgstr "Ontbrekend foutopsporingsbericht"
+
+#: src/ui_context.rs:617
+msgid "An error occurred"
+msgstr "Er is een fout opgetreden"
+
+#: src/ui_context.rs:618
+#, rust-format
+msgid "Glide failed to play this media file. {body}"
+msgstr "Glide kan dit mediabestand niet afspelen. {body}"
+
+#: src/ui_context.rs:633
+msgid "Cancel"
+msgstr "Annuleren"
+
+#: src/ui_context.rs:634
+msgid "Report"
+msgstr "Melden"
