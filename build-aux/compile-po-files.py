@@ -12,7 +12,10 @@ def main(args):
         basename, _ = os.path.splitext(filename)
         po_file = os.path.join(po_dir, filename)
         output_dir = os.path.join(prefix, basename, "LC_MESSAGES")
-        os.makedirs(output_dir)
+        try:
+            os.makedirs(output_dir)
+        except FileExistsError:
+            pass
         output = os.path.join(output_dir, "glide.mo")
         os.system(f"msgfmt -o {output} {po_file}")
 
