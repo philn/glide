@@ -16,7 +16,7 @@ jobs:
 
     strategy:
       matrix:
-        arch: [x86_64, aarch64]
+        arch: [x86_64]
       fail-fast: false
       # Only one job at a time can use the shared repository cache
       max-parallel: 1
@@ -29,13 +29,6 @@ jobs:
       - name: Generate Cargo sources
         run: |
           python3 ./build-aux/flatpak-cargo-generator.py ./Cargo.lock -o cargo-sources.json
-
-      - name: Setup QEMU
-        if: ${{ matrix.arch == 'aarch64' }}
-        id: qemu
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
 
       - name: Setup GPG
         id: gpg
@@ -60,7 +53,7 @@ jobs:
             --install-deps-from=flathub-beta
           gpg-sign: ${{ steps.gpg.outputs.fingerprint }}
           upload-bundles: true
-          upload-pages-artifact: ${{ matrix.arch == 'aarch64' }}
+          upload-pages-artifact: true
           upload-pages-includes: |
             base.css
             style.css
