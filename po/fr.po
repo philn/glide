@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: glide\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-03 14:09+0100\n"
+"POT-Creation-Date: 2026-08-06 12:41+0100\n"
 "PO-Revision-Date: 2026-08-03 14:39+0100\n"
 "Last-Translator: Philippe Normand <phil@base-art.net>\n"
 "Language-Team: French\n"
@@ -96,6 +96,10 @@ msgstr "Raccourcis clavier"
 msgid "About"
 msgstr "À Propos"
 
+#: data/net.base_art.Glide.ui:271
+msgid "Playback controls"
+msgstr "Gestion de la lecture"
+
 #: data/net.base_art.Glide.ui:278
 msgid "Toggle between play and pause states"
 msgstr "Alterner entre lecture et pause"
@@ -131,6 +135,10 @@ msgstr "Augmenter la vitesse de lecture"
 #: data/net.base_art.Glide.ui:326
 msgid "Decrease playback speed"
 msgstr "Diminuer la vitesse de lecture"
+
+#: data/net.base_art.Glide.ui:333
+msgid "UI controls"
+msgstr "Gestion de l'interface graphique"
 
 #: data/net.base_art.Glide.ui:337 data/net.base_art.Glide.ui:343
 #: data/net.base_art.Glide.ui:349
@@ -173,44 +181,44 @@ msgstr "Fermer"
 msgid "Disable"
 msgstr "Désactiver"
 
-#: src/ui_context.rs:385
+#: src/ui_context.rs:386
 msgid "Choose a file"
 msgstr "Choisir un fichier"
 
-#: src/ui_context.rs:386
+#: src/ui_context.rs:387
 msgid "Open"
 msgstr "Ouvrir"
 
-#: src/ui_context.rs:608
+#: src/ui_context.rs:609
 msgid ""
 "An error report was saved. If you decide to file a bug, please include the "
 "report file."
 msgstr ""
-"Un rapport d'erreur a été sauvegardé. Si vous décidez de reporter le problème, veuillez "
-"inclure le rapport d'erreur."
+"Un rapport d'erreur a été sauvegardé. Si vous décidez de reporter le "
+"problème, veuillez inclure le rapport d'erreur."
 
-#: src/ui_context.rs:612
-#, rust-format
-msgid "Debug informations: {}"
-msgstr "Informations de déboggage: {}"
-
-#: src/ui_context.rs:613
+#: src/ui_context.rs:611
 msgid "Missing debug message"
 msgstr "Message de déboggage manquant"
 
-#: src/ui_context.rs:617
+#: src/ui_context.rs:612
+#, fuzzy
+msgid "Debug informations:"
+msgstr "Informations de déboggage:"
+
+#: src/ui_context.rs:615
 msgid "An error occurred"
 msgstr "Une erreur est survenue"
 
-#: src/ui_context.rs:618
-#, rust-format
-msgid "Glide failed to play this media file. {body}"
-msgstr "Glide n'a pas pu lire ce fichier multimédia. {body}"
+#: src/ui_context.rs:616
+#, fuzzy
+msgid "Glide failed to play this media file."
+msgstr "Glide n'a pas pu lire ce fichier multimédia."
 
-#: src/ui_context.rs:633
+#: src/ui_context.rs:631
 msgid "Cancel"
 msgstr "Annuler"
 
-#: src/ui_context.rs:634
+#: src/ui_context.rs:632
 msgid "Report"
 msgstr "Reporter"
