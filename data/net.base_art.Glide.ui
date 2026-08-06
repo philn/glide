@@ -268,7 +268,7 @@ audio-volume-medium-symbolic</property>
     <child>
       <object class="GtkShortcutsSection">
         <property name="max-height">12</property>
-        <property name="section-name">Playback controls</property>
+        <property name="section-name" translatable="yes">Playback controls</property>
         <child>
           <object class="GtkShortcutsGroup">
             <property name="title">Playback controls</property>
@@ -330,7 +330,7 @@ audio-volume-medium-symbolic</property>
         </child>
         <child>
           <object class="GtkShortcutsGroup">
-            <property name="title">UI controls</property>
+            <property name="title" translatable="yes">UI controls</property>
             <child>
               <object class="GtkShortcutsShortcut">
                 <property name="accelerator">&lt;primary&gt;f</property>

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: glide\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-03 14:09+0100\n"
+"POT-Creation-Date: 2026-08-06 12:41+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -97,6 +97,10 @@ msgstr ""
 msgid "About"
 msgstr ""
 
+#: data/net.base_art.Glide.ui:271
+msgid "Playback controls"
+msgstr ""
+
 #: data/net.base_art.Glide.ui:278
 msgid "Toggle between play and pause states"
 msgstr ""
@@ -131,6 +135,10 @@ msgstr ""
 
 #: data/net.base_art.Glide.ui:326
 msgid "Decrease playback speed"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:333
+msgid "UI controls"
 msgstr ""
 
 #: data/net.base_art.Glide.ui:337 data/net.base_art.Glide.ui:343
@@ -174,42 +182,40 @@ msgstr ""
 msgid "Disable"
 msgstr ""
 
-#: src/ui_context.rs:385
+#: src/ui_context.rs:386
 msgid "Choose a file"
 msgstr ""
 
-#: src/ui_context.rs:386
+#: src/ui_context.rs:387
 msgid "Open"
 msgstr ""
 
-#: src/ui_context.rs:608
+#: src/ui_context.rs:609
 msgid ""
 "An error report was saved. If you decide to file a bug, please include the "
 "report file."
 msgstr ""
 
-#: src/ui_context.rs:612
-#, rust-format
-msgid "Debug informations: {}"
-msgstr ""
-
-#: src/ui_context.rs:613
+#: src/ui_context.rs:611
 msgid "Missing debug message"
 msgstr ""
 
-#: src/ui_context.rs:617
+#: src/ui_context.rs:612
+msgid "Debug informations:"
+msgstr ""
+
+#: src/ui_context.rs:615
 msgid "An error occurred"
 msgstr ""
 
-#: src/ui_context.rs:618
-#, rust-format
-msgid "Glide failed to play this media file. {body}"
+#: src/ui_context.rs:616
+msgid "Glide failed to play this media file."
 msgstr ""
 
-#: src/ui_context.rs:633
+#: src/ui_context.rs:631
 msgid "Cancel"
 msgstr ""
 
-#: src/ui_context.rs:634
+#: src/ui_context.rs:632
 msgid "Report"
 msgstr ""
