@@ -229,6 +229,7 @@ impl VideoPlayer {
             });
         });
 
+        let app_clone = gtk_app.clone();
         let ui_context = UIContext::new(gtk_app);
 
         let (player_sender, player_receiver) = async_channel::unbounded();
@@ -239,7 +240,7 @@ impl VideoPlayer {
             cache_dir_path = Some(d.cache_dir().to_path_buf());
         }
 
-        let player = ChannelPlayer::new(player_sender, options.incognito, cache_dir_path)?;
+        let player = ChannelPlayer::new(app_clone, player_sender, options.incognito, cache_dir_path)?;
 
         Ok(Self {
             player,
