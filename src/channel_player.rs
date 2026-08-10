@@ -8,8 +8,12 @@ extern crate tar;
 
 use self::sha2::{Digest, Sha256};
 use crate::debug_infos::DebugInfos;
+use crate::gio::prelude::ActionExt;
+use crate::gio::prelude::ApplicationExt;
 use crate::gst_play::prelude::PlayStreamInfoExt;
 use crate::gtk::prelude::PaintableExt;
+use async_lock::OnceCell as AsyncOnceCell;
+use gio::prelude::{ActionGroupExt, ActionMapExt};
 use graphviz_rust::{
     cmd::{CommandArg, Format},
     exec_dot, parse,
@@ -22,6 +26,12 @@ use gstreamer::glib;
 use gstreamer_pbutils::{Discoverer, DiscovererResult};
 use gtk::gdk;
 use gtk::glib::clone;
+use mpris_server::{
+    zbus::{self, fdo},
+    LocalPlayerInterface, LocalRootInterface, LocalServer, LoopStatus, Metadata, PlaybackRate, PlaybackStatus,
+    Property, Signal, Time, TrackId, Volume,
+};
+use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fs::File;
@@ -30,11 +40,22 @@ use std::path;
 use std::string;
 use tar::Builder;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Copy)]
 pub enum PlaybackState {
     Stopped,
+    Buffering,
     Paused,
     Playing,
+}
+
+impl PlaybackState {
+    fn to_playback_status(self) -> PlaybackStatus {
+        match self {
+            Self::Stopped | Self::Buffering => PlaybackStatus::Stopped,
+            Self::Playing => PlaybackStatus::Playing,
+            Self::Paused => PlaybackStatus::Paused,
+        }
+    }
 }
 
 pub enum SeekDirection {
@@ -65,11 +86,13 @@ pub enum PlayerEvent {
     SeekDone,
 }
 
+#[derive(Clone)]
 pub struct ChannelPlayer {
     player: gst_play::Play,
     renderer: gst_play::PlayVideoOverlayVideoRenderer,
     gtksink: gst::Element,
     cache_dir_path: Option<path::PathBuf>,
+    gtk_app: adw::Application,
 }
 
 impl Drop for ChannelPlayer {
@@ -94,10 +117,15 @@ struct PlayerDataHolder {
     cache: Option<MediaCache>,
     #[allow(dead_code)]
     bus_watch: gst::bus::BusWatchGuard,
+    state: PlaybackState,
+    metadata: RefCell<Metadata>,
+    seekable: bool,
+    cover_file: Option<tempfile::NamedTempFile>,
 }
 
 thread_local!(
     static PLAYER_REGISTRY: RefCell<HashMap<glib::GString, PlayerDataHolder>> = RefCell::new(HashMap::new());
+    static MPRIS_SERVER: AsyncOnceCell<LocalServer<ChannelPlayer>> = const { AsyncOnceCell::new() };
 );
 
 macro_rules! with_player {
@@ -119,6 +147,22 @@ macro_rules! with_mut_player {
             if let Some(ref mut $player_data) = registry.borrow_mut().get_mut(&player_id) $code
         })
     )
+}
+
+fn mpris_properties_changed(properties: impl IntoIterator<Item = Property> + 'static) {
+    MPRIS_SERVER.with(|server| {
+        if let Some(server) = server.get() {
+            let _ = glib::MainContext::default().block_on(server.properties_changed(properties));
+        }
+    });
+}
+
+fn emit_mpris_signal(signal: Signal) {
+    MPRIS_SERVER.with(|server| {
+        if let Some(server) = server.get() {
+            let _ = glib::MainContext::default().block_on(server.emit(signal));
+        }
+    });
 }
 
 impl MediaCache {
@@ -187,10 +231,80 @@ impl PlayerDataHolder {
         self.subscribers.push(sender);
     }
 
+    fn set_state(&mut self, state: PlaybackState) {
+        self.state = state;
+        mpris_properties_changed([Property::PlaybackStatus(self.state.to_playback_status())]);
+    }
+
+    fn state(&self) -> PlaybackState {
+        self.state
+    }
+
+    fn seek_done(&self, position: &gst::ClockTime) {
+        emit_mpris_signal(Signal::Seeked {
+            position: Time::from_micros(position.useconds() as i64),
+        });
+    }
+
     fn notify(&self, event: PlayerEvent) {
         for sender in &*self.subscribers {
             let _ = sender.send_blocking(event.clone());
         }
+    }
+
+    fn update_mpris_metadata(&mut self, info: &gst_play::PlayMediaInfo) {
+        let mut builder = Metadata::builder().url(info.uri());
+        if let Some(audio_info) = info.audio_streams().first() {
+            if let Some(tags) = audio_info.tags() {
+                if let Some(album_title) = tags.get::<gst::tags::Album>() {
+                    builder = builder.album(album_title.get());
+                }
+                if let Some(artist) = tags.get::<gst::tags::Artist>() {
+                    builder = builder.artist([artist.get()]);
+                }
+                if let Some(album_artist) = tags.get::<gst::tags::AlbumArtist>() {
+                    builder = builder.album_artist([album_artist.get()]);
+                }
+                if let Some(track_number) = tags.get::<gst::tags::TrackNumber>() {
+                    builder = builder.track_number(track_number.get() as i32);
+                }
+                if let Some(composer) = tags.get::<gst::tags::Composer>() {
+                    builder = builder.composer([composer.get()]);
+                }
+                if let Some(date) = tags.get::<gst::tags::DateTime>() {
+                    if let Ok(date) = date.get().to_iso8601_string() {
+                        builder = builder.content_created(date);
+                    }
+                }
+                if let Some(comment) = tags.get::<gst::tags::Comment>() {
+                    builder = builder.comment([comment.get()]);
+                }
+                if let Some(audio_bpm) = tags.get::<gst::tags::BeatsPerMinute>() {
+                    builder = builder.audio_bpm(audio_bpm.get() as i32);
+                }
+                if let Some(sample) = tags.get::<gst::tags::Image>() {
+                    let sample = sample.get();
+                    let buffer = sample.buffer().expect("Sample without buffer");
+                    let mapped_buffer = buffer.map_readable().expect("Buffer un-readable");
+                    let data = mapped_buffer.as_slice();
+                    let mut f = tempfile::NamedTempFile::new().expect("Unable to create temporary file");
+                    let _ = f.write(data);
+                    f.flush().expect("Unable to flush temporary file");
+                    let path = f.path().to_string_lossy();
+                    builder = builder.art_url(format!("file://{path}"));
+                    self.cover_file = Some(f);
+                }
+            }
+        }
+        if let Some(title) = info.title() {
+            builder = builder.title(title);
+        }
+        if let Some(duration) = info.duration() {
+            builder = builder.length(Time::from_micros(duration.useconds() as i64));
+        }
+        let metadata = builder.build();
+        self.metadata.replace(metadata.clone());
+        mpris_properties_changed([Property::Metadata(metadata)]);
     }
 
     fn media_info_updated(&mut self, info: &gst_play::PlayMediaInfo) {
@@ -200,21 +314,74 @@ impl PlayerDataHolder {
         if self.current_uri != *uri {
             self.current_uri = uri;
             self.notify(PlayerEvent::MediaInfoUpdated);
+            self.update_mpris_metadata(info);
+            self.seekable = info.is_seekable();
+        }
+    }
+
+    fn duration_changed(&mut self, duration: Option<gst::ClockTime>) {
+        self.notify(PlayerEvent::DurationChanged(duration));
+        if let Some(duration) = duration {
+            self.metadata
+                .borrow_mut()
+                .set_length(Some(Time::from_micros(duration.useconds() as i64)));
+            mpris_properties_changed([Property::Metadata(self.metadata.borrow().clone())]);
         }
     }
 
     fn end_of_stream(&mut self, player: &gst_play::Play) {
         if let Some(uri) = player.uri() {
             self.notify(PlayerEvent::EndOfStream(uri.into()));
-            self.index += 1;
-
-            if self.index < self.playlist.len() {
-                let next_uri = &*self.playlist[self.index];
-                player.set_property("uri", next_uri);
-            } else {
-                self.notify(PlayerEvent::EndOfPlaylist);
-            }
+            let _ = self.go_next(player);
         }
+    }
+
+    fn go_next(&mut self, player: &gst_play::Play) -> bool {
+        self.index += 1;
+
+        self.update_mpris_nav_controls();
+        if self.index < self.playlist_length() {
+            let next_uri = &*self.playlist[self.index];
+            player.set_property("uri", next_uri);
+            return true;
+        }
+        self.notify(PlayerEvent::EndOfPlaylist);
+        false
+    }
+
+    fn go_prev(&mut self, player: &gst_play::Play) -> bool {
+        if self.index < 1 {
+            return false;
+        }
+        self.index -= 1;
+        self.update_mpris_nav_controls();
+        let uri = &*self.playlist[self.index];
+        player.set_property("uri", uri);
+        true
+    }
+
+    fn playlist_length(&self) -> usize {
+        self.playlist.len()
+    }
+
+    fn can_go_next(&self) -> bool {
+        self.index < self.playlist_length() - 1
+    }
+
+    fn can_go_prev(&self) -> bool {
+        self.index >= 1
+    }
+
+    fn can_seek(&self) -> bool {
+        self.seekable
+    }
+
+    fn update_mpris_nav_controls(&self) {
+        let can_go_prev = self.can_go_prev();
+        let can_go_next = self.can_go_next();
+        glib::idle_add_local_once(move || {
+            mpris_properties_changed([Property::CanGoNext(can_go_next), Property::CanGoPrevious(can_go_prev)]);
+        });
     }
 
     fn update_cache_and_write(&mut self, id: string::String, position: u64) {
@@ -227,6 +394,7 @@ impl PlayerDataHolder {
 
 impl ChannelPlayer {
     pub fn new(
+        gtk_app: adw::Application,
         sender: async_channel::Sender<PlayerEvent>,
         incognito: bool,
         cache_dir_path: Option<path::PathBuf>,
@@ -306,8 +474,8 @@ impl ChannelPlayer {
                         });
                     }
                     PlayMessage::DurationChanged(message) => {
-                        with_player!(player {
-                            player.notify(PlayerEvent::DurationChanged(message.duration()));
+                        with_mut_player!(player player_data {
+                            player_data.duration_changed(message.duration());
                         });
                     }
                     PlayMessage::PositionUpdated(_) => {
@@ -328,8 +496,9 @@ impl ChannelPlayer {
                             _ => None,
                         };
                         if let Some(s) = state {
-                            with_player!(player {
-                                player.notify(PlayerEvent::StateChanged(s));
+                            with_mut_player!(player player_data {
+                                player_data.set_state(s);
+                                player_data.notify(PlayerEvent::StateChanged(s));
                             });
                         }
                     }
@@ -344,9 +513,12 @@ impl ChannelPlayer {
                             player.notify(PlayerEvent::Error(message.error().to_string(), details));
                         });
                     }
-                    PlayMessage::SeekDone(_) => {
-                        with_player!(player {
-                            player.notify(PlayerEvent::SeekDone);
+                    PlayMessage::SeekDone(message) => {
+                        with_player!(player player_data {
+                            if let Some(position) = message.position() {
+                                player_data.seek_done(&position);
+                            }
+                            player_data.notify(PlayerEvent::SeekDone);
                         });
                     }
                     _ => {}
@@ -384,18 +556,37 @@ impl ChannelPlayer {
             index: 0,
             cache,
             bus_watch,
+            state: PlaybackState::Stopped,
+            metadata: RefCell::new(Metadata::new()),
+            seekable: false,
+            cover_file: None,
         };
 
         PLAYER_REGISTRY.with(move |registry| {
             registry.borrow_mut().insert(player_id, player_data);
         });
 
-        Ok(Self {
+        let result = Self {
             player,
             renderer,
             gtksink,
             cache_dir_path: cache_dir_path.map(|d| d.to_path_buf()),
-        })
+            gtk_app,
+        };
+
+        if !incognito {
+            let player = result.clone();
+            glib::MainContext::default().spawn_local(async move {
+                let local_server = LocalServer::new("net.base_art.Glide.Devel", player)
+                    .await
+                    .expect("Unable to create MPRIS server");
+                glib::MainContext::default().spawn_local(local_server.run());
+                MPRIS_SERVER.with(|mut server| {
+                    let _ = server.borrow_mut().set_blocking(local_server);
+                });
+            });
+        }
+        Ok(result)
     }
 
     #[allow(dead_code)]
@@ -768,5 +959,248 @@ impl ChannelPlayer {
             .into_os_string()
             .into_string()
             .map_err(|e| anyhow::anyhow!(format!("{}", e.to_str().unwrap())))
+    }
+}
+
+impl LocalRootInterface for ChannelPlayer {
+    async fn raise(&self) -> fdo::Result<()> {
+        gio::Application::default().unwrap().activate();
+        Ok(())
+    }
+
+    async fn quit(&self) -> fdo::Result<()> {
+        gio::Application::default().unwrap().quit();
+        Ok(())
+    }
+
+    async fn can_quit(&self) -> fdo::Result<bool> {
+        Ok(true)
+    }
+
+    async fn fullscreen(&self) -> fdo::Result<bool> {
+        let mut result: Option<bool> = None;
+        if let Some(action) = self.gtk_app.lookup_action("fullscreen") {
+            if let Some(state) = action.state() {
+                result = state.get::<bool>();
+            }
+        }
+        result.ok_or(fdo::Error::Failed("Unable to determine result".to_string()))
+    }
+
+    async fn set_fullscreen(&self, _fullscreen: bool) -> zbus::Result<()> {
+        self.gtk_app.activate_action("fullscreen", None);
+        Ok(())
+    }
+
+    async fn can_set_fullscreen(&self) -> fdo::Result<bool> {
+        Ok(true)
+    }
+
+    async fn can_raise(&self) -> fdo::Result<bool> {
+        Ok(true)
+    }
+
+    async fn has_track_list(&self) -> fdo::Result<bool> {
+        let mut result: Option<bool> = None;
+        let player_id = &self.player;
+        with_player!(player_id player_data {
+            result = Some(player_data.playlist_length() > 1);
+        });
+        result.ok_or(fdo::Error::Failed("Unable to determine result".to_string()))
+    }
+
+    async fn identity(&self) -> fdo::Result<String> {
+        Ok("Glide".to_string())
+    }
+
+    async fn desktop_entry(&self) -> fdo::Result<String> {
+        Ok("net.base_art.Glide.Devel".to_string())
+    }
+
+    async fn supported_uri_schemes(&self) -> fdo::Result<Vec<String>> {
+        Ok(vec![])
+    }
+
+    async fn supported_mime_types(&self) -> fdo::Result<Vec<String>> {
+        Ok(vec![])
+    }
+}
+
+impl LocalPlayerInterface for ChannelPlayer {
+    async fn next(&self) -> fdo::Result<()> {
+        let player = &self.player;
+        let mut result = false;
+        with_mut_player!(player player_data {
+            result = player_data.go_next(player);
+        });
+        if result {
+            Ok(())
+        } else {
+            Err(fdo::Error::Failed("Unable to go to next track".into()))
+        }
+    }
+
+    async fn previous(&self) -> fdo::Result<()> {
+        let player = &self.player;
+        let mut result = false;
+        with_mut_player!(player player_data {
+            result = player_data.go_prev(player);
+        });
+        if result {
+            Ok(())
+        } else {
+            Err(fdo::Error::Failed("Unable to go to previous track".into()))
+        }
+    }
+
+    async fn pause(&self) -> fdo::Result<()> {
+        self.player.pause();
+        Ok(())
+    }
+
+    async fn play_pause(&self) -> fdo::Result<()> {
+        let status = self.playback_status().await?;
+        self.toggle_pause(status == PlaybackStatus::Paused);
+        Ok(())
+    }
+
+    async fn stop(&self) -> fdo::Result<()> {
+        self.player.stop();
+        Ok(())
+    }
+
+    async fn play(&self) -> fdo::Result<()> {
+        self.player.play();
+        Ok(())
+    }
+
+    async fn seek(&self, offset: Time) -> fdo::Result<()> {
+        let offset_abs = gst::ClockTime::from_useconds(offset.as_micros().unsigned_abs());
+        let direction = if offset.is_positive() {
+            SeekDirection::Forward(offset_abs)
+        } else {
+            SeekDirection::Backward(offset_abs)
+        };
+        self.seek(&direction);
+        Ok(())
+    }
+
+    async fn set_position(&self, _track_id: TrackId, _position: Time) -> fdo::Result<()> {
+        Err(fdo::Error::NotSupported("SetPosition is not supported".into()))
+    }
+
+    async fn open_uri(&self, _uri: String) -> fdo::Result<()> {
+        Err(fdo::Error::NotSupported("OpenUri is not supported".into()))
+    }
+
+    async fn playback_status(&self) -> fdo::Result<PlaybackStatus> {
+        let mut state: Option<PlaybackStatus> = None;
+        let player_id = &self.player;
+        with_player!(player_id player_data {
+            state = Some(player_data.state().to_playback_status());
+        });
+        state.ok_or(fdo::Error::Failed("Playback status unknown".to_string()))
+    }
+
+    async fn loop_status(&self) -> fdo::Result<LoopStatus> {
+        Ok(LoopStatus::None)
+    }
+
+    async fn set_loop_status(&self, _loop_status: LoopStatus) -> zbus::Result<()> {
+        Err(zbus::Error::from(fdo::Error::NotSupported(
+            "SetLoopStatus is not supported".into(),
+        )))
+    }
+
+    async fn rate(&self) -> fdo::Result<PlaybackRate> {
+        Ok(self.playback_rate())
+    }
+
+    async fn set_rate(&self, rate: PlaybackRate) -> zbus::Result<()> {
+        self.player.set_rate(rate);
+        Ok(())
+    }
+
+    async fn shuffle(&self) -> fdo::Result<bool> {
+        Ok(false)
+    }
+
+    async fn set_shuffle(&self, _shuffle: bool) -> zbus::Result<()> {
+        Err(zbus::Error::from(fdo::Error::NotSupported(
+            "SetShuffle is not supported".into(),
+        )))
+    }
+
+    async fn metadata(&self) -> fdo::Result<Metadata> {
+        let mut result: Option<Metadata> = None;
+        let player_id = &self.player;
+        with_player!(player_id player_data {
+            result = Some(player_data.metadata.borrow().clone());
+        });
+        result.ok_or(fdo::Error::Failed("Metadata un-available".to_string()))
+    }
+
+    async fn volume(&self) -> fdo::Result<Volume> {
+        Ok(self.player.volume())
+    }
+
+    async fn set_volume(&self, volume: Volume) -> zbus::Result<()> {
+        self.player.set_volume(volume);
+        Ok(())
+    }
+
+    async fn position(&self) -> fdo::Result<Time> {
+        if let Some(position) = self.get_position() {
+            Ok(Time::from_micros(position.useconds() as i64))
+        } else {
+            Err(fdo::Error::NotSupported("Position is unknown".into()))
+        }
+    }
+
+    async fn minimum_rate(&self) -> fdo::Result<PlaybackRate> {
+        Ok(0.25)
+    }
+
+    async fn maximum_rate(&self) -> fdo::Result<PlaybackRate> {
+        Ok(2.0)
+    }
+
+    async fn can_go_next(&self) -> fdo::Result<bool> {
+        let mut result: Option<bool> = None;
+        let player_id = &self.player;
+        with_player!(player_id player_data {
+            result = Some(player_data.can_go_next());
+        });
+        result.ok_or(fdo::Error::Failed("Unable to determine result".to_string()))
+    }
+
+    async fn can_go_previous(&self) -> fdo::Result<bool> {
+        let mut result: Option<bool> = None;
+        let player_id = &self.player;
+        with_player!(player_id player_data {
+            result = Some(player_data.can_go_prev());
+        });
+        result.ok_or(fdo::Error::Failed("Unable to determine result".to_string()))
+    }
+
+    async fn can_play(&self) -> fdo::Result<bool> {
+        Ok(true)
+    }
+
+    async fn can_pause(&self) -> fdo::Result<bool> {
+        Ok(true)
+    }
+
+    async fn can_seek(&self) -> fdo::Result<bool> {
+        let mut result: Option<bool> = None;
+        let player_id = &self.player;
+        with_player!(player_id player_data {
+            result = Some(player_data.can_seek());
+        });
+        result.ok_or(fdo::Error::Failed("Unable to determine result".to_string()))
+    }
+
+    async fn can_control(&self) -> fdo::Result<bool> {
+        Ok(true)
     }
 }
