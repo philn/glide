@@ -2,7 +2,9 @@ use crate::config;
 use gettextrs::*;
 
 pub fn init() {
-    setlocale(LocaleCategory::LcAll, "");
+    unsafe {
+        setlocale(LocaleCategory::LcAll, "");
+    }
     if let Some(localedir) = config::localedir() {
         bindtextdomain(config::gettext_package(), localedir).expect("Unable to bind the text domain");
         bind_textdomain_codeset(config::gettext_package(), "UTF-8").expect("Unable to set text domain encoding");

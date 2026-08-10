@@ -1,5 +1,5 @@
 use std::error::Error;
-use vergen_gitcl::{BuildBuilder, CargoBuilder, Emitter, GitclBuilder};
+use vergen_gitcl::{Build, Cargo, Emitter, Gitcl};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let target = std::env::var("TARGET")?;
@@ -10,8 +10,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     Ok(Emitter::default()
-        .add_instructions(&BuildBuilder::all_build()?)?
-        .add_instructions(&CargoBuilder::all_cargo()?)?
-        .add_instructions(&GitclBuilder::all_git()?)?
+        .add_instructions(&Build::all_build())?
+        .add_instructions(&Cargo::all_cargo())?
+        .add_instructions(&Gitcl::all_git())?
         .emit()?)
 }
