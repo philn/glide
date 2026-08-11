@@ -7,6 +7,7 @@ extern crate sha2;
 extern crate tar;
 
 use self::sha2::{Digest, Sha256};
+use crate::config;
 use crate::debug_infos::DebugInfos;
 use crate::gio::prelude::ActionExt;
 use crate::gio::prelude::ApplicationExt;
@@ -609,7 +610,7 @@ impl ChannelPlayer {
         if !incognito {
             let player = result.clone();
             glib::MainContext::default().spawn_local(async move {
-                let local_server = LocalServer::new("net.base_art.Glide.Devel", player)
+                let local_server = LocalServer::new(config::app_id(), player)
                     .await
                     .expect("Unable to create MPRIS server");
                 glib::MainContext::default().spawn_local(local_server.run());
@@ -1046,7 +1047,7 @@ impl LocalRootInterface for ChannelPlayer {
     }
 
     async fn desktop_entry(&self) -> fdo::Result<String> {
-        Ok("net.base_art.Glide.Devel".to_string())
+        Ok(config::app_id().to_string())
     }
 
     async fn supported_uri_schemes(&self) -> fdo::Result<Vec<String>> {

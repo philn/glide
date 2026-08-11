@@ -20,6 +20,7 @@ use std::path;
 use std::string;
 use std::sync::Mutex;
 
+use crate::config;
 use crate::debug_infos::DebugInfos;
 use crate::PlaybackState;
 
@@ -35,14 +36,8 @@ lazy_static! {
 use crate::iokit_sleep_disabler;
 
 pub fn create_app() -> adw::Application {
-    let application_id = if cfg!(feature = "devel") {
-        "net.base_art.Glide.Devel"
-    } else {
-        "net.base_art.Glide"
-    };
-
     let gtk_app = adw::Application::builder()
-        .application_id(application_id)
+        .application_id(config::app_id())
         .flags(gio::ApplicationFlags::HANDLES_OPEN)
         .build();
 

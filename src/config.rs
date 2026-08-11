@@ -8,3 +8,11 @@ pub fn gettext_package() -> &'static str {
 pub fn localedir() -> Option<&'static str> {
     LOCALEDIR
 }
+
+pub fn app_id() -> &'static str {
+    if cfg!(feature = "devel") {
+        "net.base_art.Glide.Devel"
+    } else {
+        "net.base_art.Glide"
+    }
+}
