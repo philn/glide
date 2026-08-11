@@ -10,6 +10,8 @@ use self::sha2::{Digest, Sha256};
 use crate::debug_infos::DebugInfos;
 use crate::gio::prelude::ActionExt;
 use crate::gio::prelude::ApplicationExt;
+use crate::gio::prelude::FileExt;
+use crate::gio::prelude::OutputStreamExt;
 use crate::gst_play::prelude::PlayStreamInfoExt;
 use crate::gtk::prelude::PaintableExt;
 use async_lock::OnceCell as AsyncOnceCell;
@@ -120,7 +122,6 @@ struct PlayerDataHolder {
     state: PlaybackState,
     metadata: RefCell<Metadata>,
     seekable: bool,
-    cover_file: Option<tempfile::NamedTempFile>,
 }
 
 thread_local!(
@@ -220,6 +221,41 @@ fn uri_to_sha256(uri: &str) -> string::String {
         .concat()
 }
 
+fn cache_cover_art(data: &[u8]) -> Option<gio::File> {
+    let mut cache_dir = glib::user_cache_dir();
+    cache_dir.push("glide");
+    cache_dir.push("covers");
+    glib::mkdir_with_parents(&cache_dir, 0o755);
+
+    let mut sh = Sha256::new();
+    sh.update(data);
+    let id = sh
+        .finalize()
+        .into_iter()
+        .map(|b| format!("{b:02x}"))
+        .collect::<Vec<_>>()
+        .concat();
+    cache_dir.push(&id);
+
+    let file = gio::File::for_path(&cache_dir);
+    if file.query_exists(gio::Cancellable::NONE) {
+        return Some(file);
+    }
+
+    match file.create(gio::FileCreateFlags::NONE, gio::Cancellable::NONE) {
+        Ok(stream) => {
+            if stream.write(data, gio::Cancellable::NONE).is_err() {
+                return None;
+            }
+        }
+        Err(_) => {
+            return None;
+        }
+    };
+
+    Some(file)
+}
+
 impl PlayerDataHolder {
     fn set_playlist(&mut self, playlist: Vec<string::String>) {
         self.playlist = playlist;
@@ -287,12 +323,9 @@ impl PlayerDataHolder {
                     let buffer = sample.buffer().expect("Sample without buffer");
                     let mapped_buffer = buffer.map_readable().expect("Buffer un-readable");
                     let data = mapped_buffer.as_slice();
-                    let mut f = tempfile::NamedTempFile::new().expect("Unable to create temporary file");
-                    let _ = f.write(data);
-                    f.flush().expect("Unable to flush temporary file");
-                    let path = f.path().to_string_lossy();
-                    builder = builder.art_url(format!("file://{path}"));
-                    self.cover_file = Some(f);
+                    if let Some(path) = cache_cover_art(data) {
+                        builder = builder.art_url(path.uri());
+                    }
                 }
             }
         }
@@ -559,7 +592,6 @@ impl ChannelPlayer {
             state: PlaybackState::Stopped,
             metadata: RefCell::new(Metadata::new()),
             seekable: false,
-            cover_file: None,
         };
 
         PLAYER_REGISTRY.with(move |registry| {
