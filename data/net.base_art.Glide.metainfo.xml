@@ -58,6 +58,11 @@
     <display_length compare="ge">768</display_length>
   </requires>
   <releases>
+    <release version="0.6.9" date="2026-08-13">
+      <description>
+        <p>Maintenance release, fixing a build issue.</p>
+      </description>
+    </release>
     <release version="0.6.8" date="2026-08-13">
       <description>
         <p>Maintenance release, including bug fixes and new features:</p>
