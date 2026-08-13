@@ -58,6 +58,19 @@
     <display_length compare="ge">768</display_length>
   </requires>
   <releases>
+    <release version="0.6.8" date="2026-08-13">
+      <description>
+        <p>Maintenance release, including bug fixes and new features:</p>
+        <ul>
+          <li>Additional keyboard shortcut for fullscreen mode toggle: f and F11</li>
+          <li>Removed usage of deprecated GTK FileChooserDialog</li>
+          <li>The toolbar is now shown after seeks</li>
+          <li>Added support for seeking via touchpad scroll events</li>
+          <li>Added i18n infrastructure along with Dutch and French translations</li>
+          <li>Added MPRIS support</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.6.7" date="2026-03-29">
       <description>
         <p>Maintenance release, fixing a crash related with subtitle track switching.</p>
