@@ -72,8 +72,6 @@ pub struct UIContext {
     app: adw::Application,
 }
 
-const VERSION: &str = env!("CARGO_PKG_VERSION");
-
 impl UIContext {
     pub fn new(gtk_app: adw::Application) -> Self {
         let builder = gtk::Builder::from_string(include_str!("../data/net.base_art.Glide.ui"));
@@ -539,22 +537,25 @@ impl UIContext {
     pub fn display_about_dialog(&self) {
         let debug_info = DebugInfos::new();
 
-        let version = if cfg!(feature = "devel") {
-            env!("VERGEN_GIT_DESCRIBE")
-        } else {
-            VERSION
-        };
-        let dialog = adw::AboutWindow::builder()
+        let mut builder = adw::AboutWindow::builder()
             .application_name("Glide")
             .developer_name("Philippe Normand")
             .artists(["Jakub Steiner"])
             .website("http://github.com/philn/glide")
             .issue_url("https://github.com/philn/glide/issues/new")
-            .version(version)
             .debug_info(debug_info.to_json().unwrap())
             .application(&self.app)
-            .transient_for(&self.window)
-            .build();
+            .transient_for(&self.window);
+
+        let version_env_var_name = if cfg!(feature = "devel") {
+            "VERGEN_GIT_DESCRIBE"
+        } else {
+            "CARGO_PKG_VERSION"
+        };
+        if let Ok(version) = std::env::var(version_env_var_name) {
+            builder = builder.version(version);
+        }
+        let dialog = builder.build();
         dialog.set_visible(true);
     }
 
