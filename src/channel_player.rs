@@ -330,7 +330,18 @@ impl PlayerDataHolder {
                 }
             }
         }
-        if let Some(title) = info.title() {
+
+        let title = info.title().or_else(|| {
+            if let Ok((path, _)) = glib::filename_from_uri(&info.uri()) {
+                let path = std::path::Path::new(&path);
+                path.file_name()
+                    .map(|v| glib::GString::from_string_unchecked(v.to_string_lossy().to_string()))
+            } else {
+                None
+            }
+        });
+
+        if let Some(title) = title {
             builder = builder.title(title);
         }
         if let Some(duration) = info.duration() {
