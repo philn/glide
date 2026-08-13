@@ -87,9 +87,9 @@ also some keyboard shortcuts for these actions:
 
 - show shortcuts window: meta-? or ctrl-?
 - play/pause: space
-- seek forward: meta-right or ctrl-right
-- seek backward: meta-left or ctrl-left
-- switch to fullscreen: meta-f or ctrl-f
+- seek forward: meta-right or ctrl-right or scroll-right (works on touchpads only)
+- seek backward: meta-left or ctrl-left or scroll-left (works on touchpads only)
+- switch to fullscreen: meta-f or ctrl-f or f or F11
 - exit from fullscreen: escape
 - quit the application: meta-q or ctrl-q
 - load a subtitle file: meta-s or ctrl-s
