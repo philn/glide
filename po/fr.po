@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: glide\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-06 12:41+0100\n"
+"POT-Creation-Date: 2026-08-15 12:51+0200\n"
 "PO-Revision-Date: 2026-08-03 14:39+0100\n"
 "Last-Translator: Philippe Normand <phil@base-art.net>\n"
 "Language-Team: French\n"
@@ -177,19 +177,19 @@ msgstr "Synchronisation de la piste de sous-titres"
 msgid "Close"
 msgstr "Fermer"
 
-#: src/main.rs:745
+#: src/main.rs:746
 msgid "Disable"
 msgstr "Désactiver"
 
-#: src/ui_context.rs:386
+#: src/ui_context.rs:379
 msgid "Choose a file"
 msgstr "Choisir un fichier"
 
-#: src/ui_context.rs:387
+#: src/ui_context.rs:380
 msgid "Open"
 msgstr "Ouvrir"
 
-#: src/ui_context.rs:609
+#: src/ui_context.rs:605
 msgid ""
 "An error report was saved. If you decide to file a bug, please include the "
 "report file."
@@ -197,28 +197,28 @@ msgstr ""
 "Un rapport d'erreur a été sauvegardé. Si vous décidez de reporter le "
 "problème, veuillez inclure le rapport d'erreur."
 
-#: src/ui_context.rs:611
+#: src/ui_context.rs:607
 msgid "Missing debug message"
 msgstr "Message de déboggage manquant"
 
-#: src/ui_context.rs:612
+#: src/ui_context.rs:608
 #, fuzzy
 msgid "Debug informations:"
 msgstr "Informations de déboggage:"
 
-#: src/ui_context.rs:615
+#: src/ui_context.rs:611
 msgid "An error occurred"
 msgstr "Une erreur est survenue"
 
-#: src/ui_context.rs:616
+#: src/ui_context.rs:612
 #, fuzzy
 msgid "Glide failed to play this media file."
 msgstr "Glide n'a pas pu lire ce fichier multimédia."
 
-#: src/ui_context.rs:631
+#: src/ui_context.rs:627
 msgid "Cancel"
 msgstr "Annuler"
 
-#: src/ui_context.rs:632
+#: src/ui_context.rs:628
 msgid "Report"
 msgstr "Reporter"
