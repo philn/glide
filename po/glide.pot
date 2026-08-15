@@ -1,14 +1,14 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the glide package.
+# This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: glide\n"
+"Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-06 12:41+0100\n"
+"POT-Creation-Date: 2026-08-15 12:51+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -178,44 +178,44 @@ msgstr ""
 msgid "Close"
 msgstr ""
 
-#: src/main.rs:745
+#: src/main.rs:746
 msgid "Disable"
 msgstr ""
 
-#: src/ui_context.rs:386
+#: src/ui_context.rs:379
 msgid "Choose a file"
 msgstr ""
 
-#: src/ui_context.rs:387
+#: src/ui_context.rs:380
 msgid "Open"
 msgstr ""
 
-#: src/ui_context.rs:609
+#: src/ui_context.rs:605
 msgid ""
 "An error report was saved. If you decide to file a bug, please include the "
 "report file."
 msgstr ""
 
-#: src/ui_context.rs:611
+#: src/ui_context.rs:607
 msgid "Missing debug message"
 msgstr ""
 
-#: src/ui_context.rs:612
+#: src/ui_context.rs:608
 msgid "Debug informations:"
 msgstr ""
 
-#: src/ui_context.rs:615
+#: src/ui_context.rs:611
 msgid "An error occurred"
 msgstr ""
 
-#: src/ui_context.rs:616
+#: src/ui_context.rs:612
 msgid "Glide failed to play this media file."
 msgstr ""
 
-#: src/ui_context.rs:631
+#: src/ui_context.rs:627
 msgid "Cancel"
 msgstr ""
 
-#: src/ui_context.rs:632
+#: src/ui_context.rs:628
 msgid "Report"
 msgstr ""

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: glide\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-03 14:09+0100\n"
+"POT-Creation-Date: 2026-08-15 12:51+0200\n"
 "PO-Revision-Date: 2026-08-04 10:19+0200\n"
 "Last-Translator: Heimen Stoffels <vistausss@fastmail.com>\n"
 "Language-Team: \n"
@@ -98,6 +98,12 @@ msgstr "Sneltoetsen"
 msgid "About"
 msgstr "Over"
 
+#: data/net.base_art.Glide.ui:271
+#, fuzzy
+#| msgid "Playback"
+msgid "Playback controls"
+msgstr "Afspelen"
+
 #: data/net.base_art.Glide.ui:278
 msgid "Toggle between play and pause states"
 msgstr "Afspelen/pauzeren"
@@ -133,6 +139,10 @@ msgstr "Afspeelsnelheid verhogen"
 #: data/net.base_art.Glide.ui:326
 msgid "Decrease playback speed"
 msgstr "Afspeelsnelheid verlagen"
+
+#: data/net.base_art.Glide.ui:333
+msgid "UI controls"
+msgstr ""
 
 #: data/net.base_art.Glide.ui:337 data/net.base_art.Glide.ui:343
 #: data/net.base_art.Glide.ui:349
@@ -171,19 +181,19 @@ msgstr "Ondertitelspoor synchroniseren"
 msgid "Close"
 msgstr "Sluiten"
 
-#: src/main.rs:745
+#: src/main.rs:746
 msgid "Disable"
 msgstr "Uitschakelen"
 
-#: src/ui_context.rs:385
+#: src/ui_context.rs:379
 msgid "Choose a file"
 msgstr "Kies een bestand"
 
-#: src/ui_context.rs:386
+#: src/ui_context.rs:380
 msgid "Open"
 msgstr "Openen"
 
-#: src/ui_context.rs:608
+#: src/ui_context.rs:605
 msgid ""
 "An error report was saved. If you decide to file a bug, please include the "
 "report file."
@@ -191,28 +201,30 @@ msgstr ""
 "Er is een foutenverslag opgeslagen. Als je een bug meldt, voeg dit verslag "
 "dan bij."
 
-#: src/ui_context.rs:612
-#, rust-format
-msgid "Debug informations: {}"
-msgstr "Foutopsporingsinformatie: {}"
-
-#: src/ui_context.rs:613
+#: src/ui_context.rs:607
 msgid "Missing debug message"
 msgstr "Ontbrekend foutopsporingsbericht"
 
-#: src/ui_context.rs:617
+#: src/ui_context.rs:608
+#, fuzzy
+#| msgid "Debug informations: {}"
+msgid "Debug informations:"
+msgstr "Foutopsporingsinformatie: {}"
+
+#: src/ui_context.rs:611
 msgid "An error occurred"
 msgstr "Er is een fout opgetreden"
 
-#: src/ui_context.rs:618
-#, rust-format
-msgid "Glide failed to play this media file. {body}"
+#: src/ui_context.rs:612
+#, fuzzy
+#| msgid "Glide failed to play this media file. {body}"
+msgid "Glide failed to play this media file."
 msgstr "Glide kan dit mediabestand niet afspelen. {body}"
 
-#: src/ui_context.rs:633
+#: src/ui_context.rs:627
 msgid "Cancel"
 msgstr "Annuleren"
 
-#: src/ui_context.rs:634
+#: src/ui_context.rs:628
 msgid "Report"
 msgstr "Melden"
