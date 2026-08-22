@@ -1,0 +1,221 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-08-15 12:51+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: Automatically generated\n"
+"Language-Team: none\n"
+"Language: et\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+
+#: data/net.base_art.Glide.ui:10
+msgid "File"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:14
+msgid "Open…"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:19
+msgid "Audio"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:23
+msgid "Increase volume"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:27
+msgid "Decrease volume"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:31
+msgid "Mute"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:35
+msgid "Audio track"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:38
+msgid "Visualization"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:42
+msgid "Video"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:44
+msgid "Video track"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:48
+msgid "Playback"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:52
+msgid "Increase speed"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:56
+msgid "Decrease speed"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:61
+msgid "Subtitles"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:65
+msgid "Add subtitle file…"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:69
+msgid "Subtitle track"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:73
+msgid "Window"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:76 data/net.base_art.Glide.ui:481
+msgid "Track synchronization"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:80
+msgid "Keyboard Shortcuts"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:84
+msgid "About"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:271
+msgid "Playback controls"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:278
+msgid "Toggle between play and pause states"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:284
+msgid "Seek forward"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:290
+msgid "Seek backward"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:296
+msgid "Step to next video frame"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:302
+msgid "Increase audio volume"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:308
+msgid "Decrease audio volume"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:314
+msgid "Mute the audio track"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:320
+msgid "Increase playback speed"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:326
+msgid "Decrease playback speed"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:333
+msgid "UI controls"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:337 data/net.base_art.Glide.ui:343
+#: data/net.base_art.Glide.ui:349
+msgid "Toggle fullscreen mode"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:355
+msgid "Exit from fullscreen mode"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:361
+msgid "Exit from the application"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:367
+msgid "Load a subtitle file"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:373
+msgid "Open a new media file"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:394
+msgid "Audio track synchronization"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:408 data/net.base_art.Glide.ui:442
+msgid "Delay in seconds"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:428
+msgid "Subtitle track synchronization"
+msgstr ""
+
+#: data/net.base_art.Glide.ui:465
+msgid "Close"
+msgstr ""
+
+#: src/main.rs:746
+msgid "Disable"
+msgstr ""
+
+#: src/ui_context.rs:379
+msgid "Choose a file"
+msgstr ""
+
+#: src/ui_context.rs:380
+msgid "Open"
+msgstr ""
+
+#: src/ui_context.rs:605
+msgid ""
+"An error report was saved. If you decide to file a bug, please include the "
+"report file."
+msgstr ""
+
+#: src/ui_context.rs:607
+msgid "Missing debug message"
+msgstr ""
+
+#: src/ui_context.rs:608
+msgid "Debug informations:"
+msgstr ""
+
+#: src/ui_context.rs:611
+msgid "An error occurred"
+msgstr ""
+
+#: src/ui_context.rs:612
+msgid "Glide failed to play this media file."
+msgstr ""
+
+#: src/ui_context.rs:627
+msgid "Cancel"
+msgstr ""
+
+#: src/ui_context.rs:628
+msgid "Report"
+msgstr ""
