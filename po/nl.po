@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: glide\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-15 12:51+0200\n"
+"POT-Creation-Date: 2026-08-23 14:50+0100\n"
 "PO-Revision-Date: 2026-08-23 16:08+0000\n"
 "Last-Translator: Anonymous <noreply@weblate.org>\n"
 "Language-Team: Dutch <https://hosted.weblate.org/projects/glide/glide/nl/>\n"
@@ -86,7 +86,7 @@ msgstr "Ondertitelspoor"
 msgid "Window"
 msgstr "Venster"
 
-#: data/net.base_art.Glide.ui:76 data/net.base_art.Glide.ui:481
+#: data/net.base_art.Glide.ui:76 data/net.base_art.Glide.ui:493
 msgid "Track synchronization"
 msgstr "Sporen synchroniseren"
 
@@ -153,31 +153,32 @@ msgstr "Schermvullende weergave aan/uit"
 msgid "Exit from fullscreen mode"
 msgstr "Schermvullende weergave verlaten"
 
-#: data/net.base_art.Glide.ui:361
+#: data/net.base_art.Glide.ui:361 data/net.base_art.Glide.ui:367
+#: data/net.base_art.Glide.ui:373
 msgid "Exit from the application"
 msgstr "Programma afsluiten"
 
-#: data/net.base_art.Glide.ui:367
+#: data/net.base_art.Glide.ui:379
 msgid "Load a subtitle file"
 msgstr "Ondertitelbestand laden"
 
-#: data/net.base_art.Glide.ui:373
+#: data/net.base_art.Glide.ui:385
 msgid "Open a new media file"
 msgstr "Mediabestand openen"
 
-#: data/net.base_art.Glide.ui:394
+#: data/net.base_art.Glide.ui:406
 msgid "Audio track synchronization"
 msgstr "Audiosporen synchroniseren"
 
-#: data/net.base_art.Glide.ui:408 data/net.base_art.Glide.ui:442
+#: data/net.base_art.Glide.ui:420 data/net.base_art.Glide.ui:454
 msgid "Delay in seconds"
 msgstr "Vertraging (in seconden)"
 
-#: data/net.base_art.Glide.ui:428
+#: data/net.base_art.Glide.ui:440
 msgid "Subtitle track synchronization"
 msgstr "Ondertitelspoor synchroniseren"
 
-#: data/net.base_art.Glide.ui:465
+#: data/net.base_art.Glide.ui:477
 msgid "Close"
 msgstr "Sluiten"
 
