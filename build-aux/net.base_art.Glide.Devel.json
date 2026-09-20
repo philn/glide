@@ -1,7 +1,7 @@
 {
   "app-id": "net.base_art.Glide.Devel",
   "runtime": "org.gnome.Platform",
-  "runtime-version": "50",
+  "runtime-version": "51",
   "sdk": "org.gnome.Sdk",
   "sdk-extensions": [
     "org.freedesktop.Sdk.Extension.rust-stable"
@@ -42,35 +42,6 @@
             ],
             "dest-filename":"autogen.sh"
         }
-      ]
-    },
-    {
-      "name": "gstreamer",
-      "builddir": true,
-      "buildsystem": "meson",
-      "sources": [
-        {
-          "type": "git",
-          "url": "https://gitlab.freedesktop.org/gstreamer/gstreamer",
-          "tag": "1.26.11",
-          "commit": "e6ee9e63e033b9c8e343ba0bdfa7590ef81449ee",
-          "disable-submodules": true
-        }
-      ],
-      "config-opts": [
-          "-Ddoc=disabled",
-          "-Dlibav=disabled",
-          "-Dtests=disabled",
-          "-Ddevtools=disabled",
-          "-Dges=disabled",
-          "-Drtsp_server=disabled",
-          "-Dgst-examples=disabled",
-          "-Dpython=disabled",
-          "-Dwebrtc=disabled",
-          "-Dgpl=enabled",
-          "-Dgst-plugins-ugly:gpl=enabled",
-          "-Dgst-plugins-bad:gpl=enabled",
-          "-Dgst-plugins-bad:openh264=disabled"
       ]
     },
     {
