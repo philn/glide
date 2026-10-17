@@ -463,6 +463,9 @@ impl ChannelPlayer {
 
         let player = gst_play::Play::new(Some(renderer.clone().upcast::<gst_play::PlayVideoRenderer>()));
 
+        let playbin = player.pipeline();
+        playbin.set_property_from_str("flags", "buffering+soft-volume+text+audio+video+vis+native-video");
+
         // Get position updates every 100ms.
         let mut config = player.config();
         config.set_position_update_interval(100);
