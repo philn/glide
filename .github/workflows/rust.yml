@@ -19,7 +19,7 @@ jobs:
         sudo apt update
         sudo apt-get -y install podman
         podman pull fedora:44
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
     - name: Create container
       run: |
         podman build --tag fedora44test -f ./Dockerfile
@@ -41,7 +41,7 @@ jobs:
   macos-build:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
     - name: Install Dependencies
       run: |
         sudo chown -R $(whoami) $(brew --prefix)/*
