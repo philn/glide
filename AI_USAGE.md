@@ -31,21 +31,16 @@ unacceptable working conditions, and they are being used to undermine labor and
 justify layoffs. These are harms that we do not want to perpetuate, even if only
 indirectly.
 
-<div class="warning">
-
 Note that aside from generating code or other contributions, AI tools can
 sometimes answer questions you may have about Glide, but we’ve found that these
 answers are often incorrect or very misleading.
 
 In general, do not assume that AI tools are a source of truth regarding how
 Glide works.
-</div>
 
-<div class="note">
 This policy is directly inpired from the [Servo AI
 policy](https://github.com/servo/book/blob/main/src/policy/ai-usage.md). Many
 thanks to the Servo maintainers for publishing it.
-</div>
 
 ### AI Policy FAQ
 
