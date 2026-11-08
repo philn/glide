@@ -513,7 +513,31 @@ impl UIContext {
     }
 
     pub fn resize_video_renderer(&self, width: u32, height: u32) {
-        self.video_renderer.set_size_request(width as i32, height as i32);
+        let surface = self.window.surface().unwrap();
+        if let Some(monitor) = self.video_renderer.display().monitor_at_surface(&surface) {
+            let hidpi_scale = self.video_renderer.scale_factor() as f64;
+
+            let monitor_geometry = monitor.geometry();
+            let monitor_width = monitor_geometry.width() as f64 * hidpi_scale;
+            let monitor_height = monitor_geometry.height() as f64 * hidpi_scale;
+            let monitor_area = monitor_width * monitor_height;
+
+            let video_width = width as f64;
+            let video_height = height as f64;
+            let video_area = video_width * video_height;
+
+            let ratio: f64 = 0.55;
+            let size_scale = f64::sqrt(monitor_area / video_area * ratio);
+
+            let target_scale = f64::min(1.0, size_scale);
+            let natural_width = video_width * target_scale;
+            let natural_height = video_height * target_scale;
+
+            if natural_width > 0.0 && natural_height > 0.0 {
+                self.video_renderer
+                    .set_size_request(natural_width as i32, natural_height as i32);
+            }
+        }
     }
 
     pub fn set_window_title(&self, title: &str) {
