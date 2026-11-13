@@ -636,6 +636,15 @@ impl ChannelPlayer {
         Ok(result)
     }
 
+    fn set_native_video_enabled(&self, enabled: bool) {
+        let playbin = self.player.pipeline();
+        let mut flags: String = "buffering+soft-volume+text+audio+video+vis".into();
+        if enabled {
+            flags = format!("{flags}+native-video");
+        }
+        playbin.set_property_from_str("flags", flags.as_str());
+    }
+
     #[allow(dead_code)]
     pub fn register_event_handler(&mut self, sender: async_channel::Sender<PlayerEvent>) {
         let player = &self.player;
@@ -767,6 +776,7 @@ impl ChannelPlayer {
         } else {
             false
         };
+        self.set_native_video_enabled(!enabled);
         self.player.set_subtitle_track_enabled(enabled);
     }
 
