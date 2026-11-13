@@ -50,6 +50,10 @@ struct Opt {
     /// Files to play
     #[clap(name = "FILE", value_parser)]
     files: Vec<PathBuf>,
+
+    /// Disable error reporting
+    #[clap(short, long, default_value_t = false)]
+    error_reporting: bool,
 }
 
 struct VideoPlayer {
@@ -79,6 +83,7 @@ struct VideoPlayer {
     speed_increase_action: gio::SimpleAction,
     speed_decrease_action: gio::SimpleAction,
     player_receiver: Option<async_channel::Receiver<PlayerEvent>>,
+    disable_error_reporting: bool,
 }
 
 thread_local!(
@@ -269,6 +274,7 @@ impl VideoPlayer {
             speed_increase_action,
             speed_decrease_action,
             player_receiver: Some(player_receiver),
+            disable_error_reporting: options.error_reporting,
         })
     }
 
@@ -625,6 +631,9 @@ impl VideoPlayer {
     }
 
     pub fn player_error(&self, msg: std::string::String, details: Option<gst::Structure>) {
+        if self.disable_error_reporting {
+            return;
+        }
         let mut debug: Option<String> = None;
         let report_path = match self.player.write_error_report(&msg, details) {
             Ok(path) => Some(path),
