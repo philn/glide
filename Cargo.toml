@@ -43,7 +43,7 @@ vergen-gitcl = { version = "10", features = ["build", "cargo"]}
 [features]
 x11egl = ["gst-plugin-gtk4/x11egl"]
 x11glx = ["gst-plugin-gtk4/x11glx"]
-wayland = ["gst-plugin-gtk4/wayland"]
+wayland = ["gst-plugin-gtk4/waylandegl"]
 dmabuf = ["gst-plugin-gtk4/dmabuf"]
 devel = []
 
